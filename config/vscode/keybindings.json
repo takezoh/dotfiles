@@ -1,0 +1,23 @@
+// Place your key bindings in this file to overwrite the defaults
+[
+    {
+        "key": "ctrl+p",
+        "command": "",
+        "when": "terminalFocus"
+    },
+    {
+        "key": "ctrl+n",
+        "command": "",
+        "when": "terminalFocus"
+    },
+    {
+        "key": "ctrl+v",
+        "command": "",
+        "when": "terminalFocus"
+    },
+    // {
+    //     "key": ", c <space>",
+    //     "command": "editor.action.addCommentLine",
+    //     "when": "editorTextFocus && !editorReadonly"
+    // },
+]

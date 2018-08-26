@@ -1,0 +1,3 @@
+rg --line-number --ignore-case "$@" . 2>/dev/null | peco --prompt="$*>" --exec 'awk -F : '"'"'{print "+" $2 " " $1}'"'"' | xargs less -N '
+# rg --line-number --ignore-case "$@" . 2>/dev/null | fzf --reverse --bind 'enter:execute(awk -F : '"'"'{print "+" $2 " " $1}'"'"' | xargs less -N )'
+# rg --line-number --ignore-case "$@" . 2>/dev/null | fzf --select-1 --exit-0 --reverse --bind 'enter:execute:(echo {} | less -R)'

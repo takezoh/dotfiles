@@ -1,0 +1,5 @@
+[[plugins]]
+repo = 'jnurmine/Zenburn'
+
+[[plugins]]
+repo = 'vim-airline/vim-airline'

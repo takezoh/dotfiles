@@ -1,0 +1,19 @@
+# To use common configuration in %APPDATA%\mintty, simply remove this file
+BoldAsFont=-1
+Term=xterm-256color
+AllowBlinking=yes
+Locale=en_US
+BellType=0
+BellTaskbar=no
+Printer=*
+Language=@
+BoldAsFont=-1
+
+Columns=150
+Rows=40
+Font=Ricty Diminished
+FontHeight=13
+Charset=UTF-8
+Transparency=high
+CursorType=block
+Scrollbar=none

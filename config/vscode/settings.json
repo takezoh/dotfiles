@@ -1,0 +1,48 @@
+{
+    "terminal.integrated.shell.windows": "C:\\WINDOWS\\System32\\wsl.exe",
+
+    "files.exclude": {
+        "**/.git": true,
+        "**/.gitignore": true,
+        "**/.vs": true,
+        "**/.vscode": true,
+        "**/.meta": true,
+    },
+
+    "vim.leader": ",",
+    "vim.useSystemClipboard": true,
+
+    "vim.normalModeKeyBindings": [
+        {
+            "before": [ "leader", "c", "<space>"],
+            "after": [],
+            "commands": [
+                {
+                    "command": "editor.action.addCommentLine",
+                    "args": [],
+                }
+            ]
+        }
+    ],
+    "vim.visualModeKeyBindings": [
+        {
+            "before": [ "leader", "c", "<space>"],
+            "after": [],
+            "commands": [
+                {
+                    "command": "editor.action.addCommentLine",
+                    "args": [],
+                }
+            ]
+        }
+    ],
+
+    "editor.minimap.enabled": false,
+    "window.zoomLevel": 0,
+
+    // "git.path"
+    // "codegnuglobal.executable": "C:\\cygwin64\\bin\\global.exe",
+    // "codegnuglobal.executable": "global_proxy.bat",
+    "codegnuglobal.autoupdate": false,
+    "git.ignoreMissingGitWarning": true
+}

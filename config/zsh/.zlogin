@@ -1,0 +1,1 @@
+_zsh.load zlogin

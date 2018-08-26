@@ -1,0 +1,9 @@
+Host github.com
+	HostName github.com
+	AddKeysToAgent no
+
+Include ~/.local/config/ssh/config
+
+Host *
+	AddKeysToAgent yes
+	ForwardAgent yes

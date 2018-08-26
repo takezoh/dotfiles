@@ -1,0 +1,59 @@
+[[plugins]]
+repo = 'Shougo/dein.vim'
+
+[[plugins]]
+repo = 'vim-scripts/sudo.vim'
+
+[[plugins]]
+repo = 'osyo-manga/vim-watchdogs'
+
+[[plugins]]
+repo = 'sjl/gundo.vim'
+hook_add = '''
+	nnoremap <leader>g :GundoToggle<cr>
+'''
+
+# " NeoBundle 'Shougo/vimshell'
+# " NeoBundle 'mattn/zencoding-vim'
+
+[[plugins]]
+repo = 'kana/vim-fakeclip'
+
+[[plugins]]
+repo = 'altercation/vim-colors-solarized'
+
+# filer
+
+[[plugins]]
+repo = 'scrooloose/nerdtree'
+hook_add = 'source $XDG_CONFIG_HOME/nvim/autoload/plugins/nerdtree.vim'
+
+[[plugins]]
+repo = 'Shougo/vimfiler'
+hook_add = '''
+	nnoremap <leader>e :VimFilerExplorer<cr>
+	let g:vimfiler_ignore_pattern = '\%(\.pyc\|\.meta\)$'
+'''
+
+
+
+[[plugins]]
+repo = 'Shougo/unite.vim'
+on_cmd = 'Denite'
+
+[[plugins]]
+repo = 'Shougo/unite.vim'
+
+[[plugins]]
+repo = 'Shougo/unite-outline'
+on_cmd = 'Denite'
+depends = ['unite.vim', 'denite.nvim']
+# NeoBundle 'Shougo/vimproc', {
+#       \ 'build' : {
+#       \     'windows' : 'make -f make_mingw32.mak',
+#       \     'cygwin' : 'make -f make_cygwin.mak',
+#       \     'mac' : 'make -f make_mac.mak',
+#       \     'unix' : 'make -f make_unix.mak',
+#       \    },
+#       \ }
+

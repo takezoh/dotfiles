@@ -1,0 +1,5 @@
+set clipboard=unnamed
+nnoremap Y y$
+nnoremap x "_x
+# nnoremap d "_d
+nnoremap D "_D

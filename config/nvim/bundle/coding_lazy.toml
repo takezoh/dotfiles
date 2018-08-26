@@ -1,0 +1,148 @@
+# languages
+
+[[plugins]]
+repo = 'vim-jp/cpp-vim'
+on_ft = ['cpp']
+
+[[plugins]]
+repo = "elixir-lang/vim-elixir"
+on_ft = ['elixir']
+
+# " NeoBundle 'vim-jp/vim-go-extra'
+
+[[plugins]]
+repo = 'fatih/vim-go'
+on_ft = ['golang']
+
+[[plugins]]
+repo = 'posva/vim-vue'
+on_ft = ['vue']
+hook_source	= '''
+let g:vue_disable_pre_processors=1
+let g:ft = ''
+function! NERDCommenter_before()
+	if &ft == 'vue'
+		let g:ft = 'vue'
+		let stack = synstack(line('.'), col('.'))
+		if len(stack) > 0
+			let syn = synIDattr((stack)[0], 'name')
+			if len(syn) > 0
+				exe 'setf ' . substitute(tolower(syn), '^vue_', '', '')
+			endif
+		endif
+	endif
+endfunction
+function! NERDCommenter_after()
+	if g:ft == 'vue'
+		setf vue
+		let g:ft = ''
+	endif
+endfunction
+'''
+
+# erlang
+
+# [[plugins]]
+# repo = 'vim-erlang/vim-erlang-runtime'
+
+# [[plugins]]
+# repo = 'vim-erlang/vim-erlang-omnicomplete'
+
+# [[plugins]]
+# repo = 'vim-erlang/vim-erlang-tags'
+
+# [[plugins]]
+# repo = 'vim-erlang/vim-erlang-compiler'
+
+# [[plugins]]
+# repo = 'vim-erlang/erlang-motions.vim'
+
+# [[plugins]]
+# repo = 'vim-erlang/vim-rebar'
+
+# [[plugins]]
+# repo = 'vim-erlang/vim-dialyzer'
+
+# [[plugins]]
+# repo = 'vim-erlang/vim-erlang-skeletons'
+
+# " C#
+# NeoBundleLazy 'nosami/Omnisharp', {
+#     \    'autoload': {'filetypes': ['cs']},
+#     \    'build': {
+#     \        'windows': 'MSBuild.exe server/OmniSharp.sln /p:Platform="Any CPU"',
+#     \        'mac': 'xbuild server/OmniSharp.sln',
+#     \        'unix': 'xbuild server/OmniSharp.sln',
+#     \    }
+#     \}
+
+[[plugins]]  # toml
+repo = 'cespare/vim-toml'
+on_ft = 'toml'
+
+
+# completion
+
+[[plugins]]
+repo = 'Shougo/deoplete.nvim'
+depends = ['context_filetype.vim']
+# if = 'has("nvim")'
+on_i = 1
+hook_source = '''
+	let g:deoplete#enable_at_startup = 1
+	inoremap <expr><tab> pumvisible() ? "\<C-n>" :
+		\ neosnippet#expandable_or_jumpable() ?
+		\    "\<Plug>(neosnippet_expand_or_jump)" : "\<tab>"
+'''
+
+[[plugins]]
+repo = 'Shougo/neosnippet-snippets'
+
+[[plugins]]
+repo = 'Shougo/neosnippet'
+depends = ['neosnippet-snippets']
+on_i  = 1
+on_ft = ['snippet']
+hook_source = '''
+  imap <C-k> <Plug>(neosnippet_expand_or_jump)
+  smap <C-k> <Plug>(neosnippet_expand_or_jump)
+  xmap <C-k> <Plug>(neosnippet_expand_target)
+  if has('conceal')
+    set conceallevel=2 concealcursor=niv
+  endif
+'''
+
+# [[plugins]]  # c++
+# repo = 'zchee/deoplete-clang'
+# on_ft = ['cpp']
+
+[[plugins]]  # elixir
+repo = 'slashmili/alchemist.vim'
+on_ft = ['elixir']
+
+[[plugins]]  # golang
+repo = 'zchee/deoplete-go'
+on_ft = ['golang']
+
+# [[plugins]]  # javascript flow
+# repo = 'wokalski/autocomplete-flow'
+
+[[plugins]]  # javascript
+repo = 'carlitux/deoplete-ternjs'
+on_ft = ['javascript']
+
+[[plugins]]  # javascript typescript
+repo = 'mhartington/nvim-typescript'
+on_ft = ['typescript']
+
+[[plugins]]  # python
+repo = 'zchee/deoplete-jedi'
+on_ft = ['python']
+
+[[plugins]]  # rust
+repo = 'sebastianmarkow/deoplete-rust'
+on_ft = ['rust']
+
+[[plugins]]  # zsh
+repo = 'zchee/deoplete-zsh'
+on_ft = ['zsh']

@@ -1,0 +1,9 @@
+.dropbox
+
+config/zsh/.zcompdump
+
+.*_history
+.*.local
+.*.zwc
+
+.local/

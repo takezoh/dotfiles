@@ -1,0 +1,3 @@
+#!/bin/sh
+root_dir=$(cd `dirname $0`; pwd -P)
+java -jar $root_dir/../misc/lib/apktool.jar $*

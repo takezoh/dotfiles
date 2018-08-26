@@ -1,0 +1,26 @@
+[color]
+	ui = auto
+	; status = auto
+	; diff = auto
+	; branch = auto
+	; interactive = auto
+	; grep = auto
+	; editor = vim
+	; pager = "lv -c"
+
+[core]
+	autocrlf = input
+	quotepath = true
+	preloadindex = true
+	fscache = true
+
+[alias]
+	# mergeの際にconflictが起きたファイルを編集
+	edit-unmerged = "!f() { git ls-files --unmerged | cut -f2 | sort -u ; }; vim `f`"
+	# mergeの際にconflictが起きたファイルをadd
+	add-unmerged = "!f() { git ls-files --unmerged | cut -f2 | sort -u ; }; git add `f`"
+	delete-unmerged =  "!f() { git ls-files --deleted | cut -f2 | sort -u ; }; git rm `f`"
+
+[include]
+	path = ~/.local/platform-generated.gitconfig
+	path = ~/.local/config/gitconfig
