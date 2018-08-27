@@ -142,7 +142,7 @@ install() {
 	ln -snf $XDG_CONFIG_HOME/nvim/init.vim .vimrc
 
 	# ssh config
-	(mkdir -p .ssh && cd .ssh && ln -snf $XDG_CONFIG_HOME/ssh/config . && clean-symbolic-link .)
+	(mkdir -p .ssh && chmod 700 .ssh && cd .ssh && ln -snf $XDG_CONFIG_HOME/ssh/config . && clean-symbolic-link .)
 }
 
 install_darwin() {

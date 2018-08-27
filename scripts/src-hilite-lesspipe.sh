@@ -1,6 +1,6 @@
 #! /bin/bash
 
-local style="--style-css-file=sh_darkblue.css"
+style="--style-css-file=sh_darkblue.css"
 
 for source in "$@"; do
     case $source in
