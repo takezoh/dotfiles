@@ -1,0 +1,5 @@
+project(UE4-Game CXX)
+cmake_minimum_required(VERSION 2.6)
+set(CMAKE_CXX_STANDARD 11)
+include_directories({include_directories})
+add_executable(UE4-Game main.cpp)
