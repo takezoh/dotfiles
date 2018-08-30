@@ -65,11 +65,10 @@ ___ue_generate_project_files() {
 	else
 		local bat=`___ue_find_script "Engine/Build/BatchFiles/GenerateProjectFiles.bat"`
 	fi
-	# if [ -n "$uproj" -a -f "$bat" ]; then
-		# wcmd `wslpath -am $bat ` "-VSCode" "-2017" `wslpath -am $uproj` "-Game" "-Engine"
+	if [ -n "$uproj" -a -f "$bat" ]; then
+		wcmd `wslpath -am $bat ` "-VSCode" "-2017" `wslpath -am $uproj` "-Game" "-Engine"
 	# elif [ -f "$bat" ]; then
-	if [ -f "$bat" ]; then
-		wcmd `wslpath -am $bat ` "-VSCode" "-2017"
+		# wcmd `wslpath -am $bat ` "-VSCode" "-2017"
 	elif [ -n "$uproj" ]; then
 		$_UNREAL_VERSION_SELECTOR /projectfiles "`wslpath -am $uproj`"
 	fi
@@ -84,12 +83,25 @@ ___ue_generate_global_proxy() {
 	local proj_dirname=$(basename "`dirname $uproj`")
 	local proj_name="`basename ${uproj%.*}`"
 	cp ~/.dotfiles/misc/etc/ue-project/ignore "`dirname $uproj`/../.ignore"
+	# cp ~/.dotfiles/misc/etc/ue-project/ycm_extra_conf.py "`dirname $uproj`/../.ycm_extra_conf.py"
 	cp ~/.dotfiles/misc/etc/ue-project/project.gtags.conf "`dirname $uproj`/gtags.conf"
 	cp ~/.dotfiles/misc/etc/ue-project/engine.gtags.conf "`dirname $uproj`/../Engine/gtags.conf"
+	python3 ~/.dotfiles/misc/etc/ue-project/make_include_path.py "$(cd `dirname $uproj`/.. && pwd -P)" &
+
+	cat <<EOF > "`dirname $uproj`/../.global"
+current_dir=\$(cd \`dirname \$0\` && pwd -P)
+if [ "\$1" = "-u" ]; then
+	(cd "\$current_dir/${proj_dirname}" && \$GLOBALBIN "\$@")
+else
+	GTAGSROOT="\$current_dir/${proj_dirname}" GTAGSDBPATH="\$current_dir/${proj_dirname}" \$GLOBALBIN "\$@" 2>/dev/null
+	GTAGSROOT="\$current_dir/Engine" GTAGSDBPATH="\$current_dir/Engine" \$GLOBALBIN "\$@" 2>/dev/null
+fi
+EOF
+
 	cat <<EOF > "`dirname $uproj`/../global_proxy.bat"
 @echo off
 if "%1" == "-u" (
-	cd ${proj_dirname}
+	cd %~dp${proj_dirname}
 	call global %*
 ) else (
 	set GTAGSROOT=%~dp0${proj_dirname}
@@ -114,9 +126,29 @@ EOF
 
 # "${workspaceFolder}/${projectname}/Plugins/**/Public"
 
-	local c_cpp_properties="$proj_root/.vscode/c_cpp_properties.json"
+	local c_cpp_properties="`dirname $uproj`/.vscode/c_cpp_properties.json"
 	local source_dir="$proj_dirname/Source"
 	local intermediate_ue4editor_inc_dir="$proj_dirname/Intermediate/Build/Win64/UE4Editor/Inc"
+
+# 	(
+# 		rm -f "$proj_root/.include_path"
+# 		cat <<EOF | python3 > "$proj_root/.include_path.win"
+# import json
+# context = json.load(open("""${c_cpp_properties}""", 'r'))
+# include_path = context["configurations"][0]["includePath"]
+# print ("\n".join(include_path))
+# EOF
+# 		for f in `cat "$proj_root/.include_path.win"`; do
+# 			wslpath -au "$f" >> "$proj_root/.include_path"
+# 		done
+# 		for f in `cd "$proj_root/$source_dir" && command ls`; do
+# 			echo "$proj_root/$source_dir/$f" >> "$proj_root/.include_path"
+# 		done
+# 		for f in `cd "$proj_root/$intermediate_ue4editor_inc_dir" && command ls`; do
+# 			echo "$proj_root/$intermediate_ue4editor_inc_dir/$f" >> "$proj_root/.include_path"
+# 		done
+# 	) &
+
 	cat <<EOF | python
 import os
 import json
@@ -137,7 +169,7 @@ for f in os.listdir("""${proj_root}/${intermediate_ue4editor_inc_dir}"""):
 json.dump(context, open("""${c_cpp_properties}""", 'w'), indent=4)
 EOF
 
-	local tasks_json="$proj_root/.vscode/tasks.json"
+	local tasks_json="`dirname $uproj`/.vscode/tasks.json"
 	cat <<EOF | python
 import os
 import json
@@ -173,7 +205,7 @@ for configure in ("Debug", "Development"):
 json.dump(context, open("""${tasks_json}""", 'w'), indent=4)
 EOF
 
-	local launch_json="$proj_root/.vscode/launch.json"
+	local launch_json="`dirname $uproj`/.vscode/launch.json"
 	cat <<EOF | python
 import os
 import json
@@ -305,25 +337,43 @@ ue.engine.build() { ___ue_build_internal Build "UE4" "$@" }
 ue.engine.rebuild() { ___ue_build_internal Rebuild "UE4" "$@" }
 ue.engine.clean() { ___ue_build_internal Clean "UE4" "$@" }
 
+alias ue="ue.editor"
+
 ue.editor() {
 	local exe=$1
 	local uproj=`___ue_find_uproject`
 	local cwd="`dirname $uproj`/.."
 	local proj_name="`basename ${uproj%.*}`"
 
-	if [ "${exe##*.}" = "exe" ]; then
-		shift
-		local platform=Win64
-		local engine="$cwd/Engine/Binaries/$platform/UE4Game-${platform}-${exe##*-}"
-		if [ -f $engine ]; then
-			(cd $cwd && open `wslpath -aw $engine` `wslpath -aw $exe` "$@")
-		fi
-		return 0
-	fi
-
+#	if [ "${exe##*.}" = "exe" ]; then
+#		shift
+#		local platform=Win64
+#		local engine="$cwd/Engine/Binaries/$platform/UE4Game-${platform}-${exe##*-}"
+#		if [ -f $engine ]; then
+#			(cd $cwd && open `wslpath -aw $engine` `wslpath -aw $exe` "$@")
+#		fi
+#		return 0
+#	fi
 	local editor="$cwd/Engine/Binaries/Win64/UE4Editor.exe"
 	if [ -f $editor ]; then
-		(cd $cwd && open `wslpath -aw $editor` `wslpath -aw $uproj` "$@" "-skipcompile")
+		for arg in $@; do
+			if [ "${arg#-*}" = "$arg" ]; then
+				break
+			fi
+			if [ $arg = "-game" ] || [ $arg = "-m" ]; then
+				local choose_map=yes
+			fi
+		done
+		if [ "$choose_map" = "yes" ]; then
+			local map=$(cd "`dirname $uproj`/Content" && rg -g '*.umap' --files . 2>/dev/null | peco --prompt="$proj_name: Choose map>")
+			if [ -z "$map" ]; then
+				exit 1
+			fi
+			map="/Game/`echo $map | sed -e 's/\..*$//'`"
+		fi
+
+		echo $editor $uproj $map "$@" "-skipcompile" "-fullcrashdump"
+		(cd $cwd && open `wslpath -aw $editor` `wslpath -aw $uproj` $map "$@" "-skipcompile" "-fullcrashdump")
 		return 0
 	fi
 

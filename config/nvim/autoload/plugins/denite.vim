@@ -19,7 +19,7 @@ nmap ,t [gtags]
 nnoremap [gtags]d :<C-u>DeniteCursorWord -buffer-name=gtags_def -mode=insert gtags_def<CR>
 nnoremap [gtags]r :<C-u>DeniteCursorWord -buffer-name=gtags_ref -mode=insert gtags_ref<CR>
 nnoremap [gtags]c :<C-u>DeniteCursorWord -buffer-name=gtags_context -mode=insert gtags_context<CR>
-
+nnoremap [gtags]e :<C-u>Denite -buffer-name=gtags_completion gtags_completion<cr>
 
 " Outline
 " nnoremap <silent> ,uo :<C-u>Unite -no-quit -vertical -winwidth=40 outline<CR>

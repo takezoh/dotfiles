@@ -51,7 +51,7 @@ _grep_options=(
 	"--line-number"
 )
 if type rg > /dev/null 2>&1; then
-	alias grep="rg"
+	alias grep="rg --with-filename --line-number --ignore-case"
 elif type ggrep > /dev/null 2>&1; then
 	alias ggrep="ggrep ${_grep_options}"
 	alias grep="ggrep ${_grep_options}"
@@ -95,6 +95,8 @@ if (( ${_platforms[(I)windows]} )); then
 			$wcmd /d /c start "$@"
 		fi
 	}
+
+	# alias msbuild="MSBuild.exe"
 
 	if [ "$OSTYPE" = "cygwin" ]; then
 		# alias wcmd="`echo ${^path}/cmd.exe(N)` /d /c"

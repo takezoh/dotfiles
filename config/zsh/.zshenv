@@ -9,6 +9,10 @@ umask 022
 # $PATH
 typeset -xU PATH path
 path=(
+	# /mnt/c/Program\ Files\ \(x86\)/MSBuild/*/Bin(N-/)
+	# /mnt/c/Program\ Files\ \(x86\)/MSBuild/14.0/Bin(N-/)
+	# /mnt/c/Program\ Files\ \(x86\)/MSBuild/12.0/Bin(N-/)
+	/mnt/c/Program\ Files\ \(x86\)/Microsoft\ Visual\ Studio/2017/Professional/MSBuild/15.0/Bin(N-/)
 	# debian gnu
 	/var/lib/gems/*/bin(N-/)
 	# system

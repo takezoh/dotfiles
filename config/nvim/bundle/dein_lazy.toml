@@ -1,12 +1,1 @@
-[[plugins]]
-repo = 'Shougo/denite.nvim'
-on_cmd = ['Denite', 'DeniteCursorWord']
-#on_event = 'VimEnter'
-if = 'has("nvim")'
-hook_add = 'source $XDG_CONFIG_HOME/nvim/autoload/plugins/denite.vim'
-hook_post_source = 'source $XDG_CONFIG_HOME/nvim/autoload/plugins/denite_lazy.vim'
 
-[[plugins]]
-repo = 'ozelentok/denite-gtags'
-on_cmd = ['Denite', 'DeniteCursorWord']
-depends = ['denite.nvim']

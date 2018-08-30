@@ -48,3 +48,4 @@ set hlsearch		" 検索文字ハイライト
 
 " 検索ハイライトの消去
 nmap <Esc><Esc> :nohlsearch<Enter>
+

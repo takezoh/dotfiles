@@ -1,0 +1,27 @@
+#!/usr/bin/env zsh
+
+newpath=()
+script_dir=$(cd `dirname $0` && pwd -P)
+
+for p in $path; do
+	if [ ! "$script_dir" = "$p" ]; then
+		newpath+=($p)
+	fi
+done
+
+# GTAGSLIBPATH=
+# GTAGSROOT=
+# GTAGSDBPATH=
+
+cmd=(`echo ${^newpath}/global(N)`)
+
+current_dir=`pwd`
+while [ ! "$current_dir" = "/" ]; do
+	if [ -f "$current_dir/.global" ]; then
+		GLOBALBIN=${cmd[1]} bash "$current_dir/.global" "$@"
+		exit $?
+	fi
+	current_dir="`dirname $current_dir`"
+done
+
+${cmd[1]} "$@"

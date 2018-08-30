@@ -1,39 +1,39 @@
 [[plugins]]
 repo = 'Shougo/dein.vim'
 
-[[plugins]]
-repo = 'vim-scripts/sudo.vim'
+# [[plugins]]
+# repo = 'vim-scripts/sudo.vim'
 
 [[plugins]]
 repo = 'osyo-manga/vim-watchdogs'
 
-[[plugins]]
-repo = 'sjl/gundo.vim'
-hook_add = '''
-	nnoremap <leader>g :GundoToggle<cr>
-'''
+# [[plugins]]
+# repo = 'sjl/gundo.vim'
+# hook_add = '''
+	# nnoremap <leader>g :GundoToggle<cr>
+# '''
 
 # " NeoBundle 'Shougo/vimshell'
 # " NeoBundle 'mattn/zencoding-vim'
 
-[[plugins]]
-repo = 'kana/vim-fakeclip'
+# [[plugins]]
+# repo = 'kana/vim-fakeclip'
 
 [[plugins]]
 repo = 'altercation/vim-colors-solarized'
 
 # filer
 
-[[plugins]]
-repo = 'scrooloose/nerdtree'
-hook_add = 'source $XDG_CONFIG_HOME/nvim/autoload/plugins/nerdtree.vim'
+# [[plugins]]
+# repo = 'scrooloose/nerdtree'
+# hook_add = 'source $XDG_CONFIG_HOME/nvim/autoload/plugins/nerdtree.vim'
 
-[[plugins]]
-repo = 'Shougo/vimfiler'
-hook_add = '''
-	nnoremap <leader>e :VimFilerExplorer<cr>
-	let g:vimfiler_ignore_pattern = '\%(\.pyc\|\.meta\)$'
-'''
+# [[plugins]]
+# repo = 'Shougo/vimfiler'
+# hook_add = '''
+	# nnoremap <leader>e :VimFilerExplorer<cr>
+	# let g:vimfiler_ignore_pattern = '\%(\.pyc\|\.meta\)$'
+# '''
 
 
 
@@ -57,3 +57,66 @@ depends = ['unite.vim', 'denite.nvim']
 #       \    },
 #       \ }
 
+
+[[plugins]]
+repo = 'Shougo/denite.nvim'
+#on_cmd = ['Denite', 'DeniteCursorWord']
+#on_event = 'VimEnter'
+if = 'has("nvim")'
+hook_add = 'source $XDG_CONFIG_HOME/nvim/autoload/plugins/denite.vim'
+hook_post_source = 'source $XDG_CONFIG_HOME/nvim/autoload/plugins/denite_lazy.vim'
+
+[[plugins]]
+repo = 'ozelentok/denite-gtags'
+#on_cmd = ['Denite', 'DeniteCursorWord']
+depends = ['denite.nvim']
+
+#[[plugins]]
+#repo = 'Valloric/YouCompleteMe'
+#hook_post_update = '''
+#cd $XDG_CACHE_HOME/dein/repos/github.com/Valloric/YouCompleteMe
+#git submodule update --init --recursive
+#./install.py --all
+#'''
+
+# [[plugins]]
+# repo = 'justmao945/vim-clang'
+
+
+[[plugins]]
+repo = "Shougo/deoplete.nvim"
+on_i = 1
+# on_event = "InsertCharPre"
+# hook_source = """
+hook_add = """
+  let g:deoplete#enable_at_startup = 1
+  let g:deoplete#auto_complete_delay = 0
+  let g:deoplete#auto_complete_start_length = 1
+  let g:deoplete#enable_camel_case = 0
+  let g:deoplete#enable_ignore_case = 0
+  let g:deoplete#enable_refresh_always = 0
+  let g:deoplete#enable_smart_case = 1
+  let g:deoplete#file#enable_buffer_path = 1
+  let g:deoplete#max_list = 10000
+"""
+#   set completeopt-=preview
+#   " autocmd InsertLeave,CompleteDone * if pumvisible() == 0 | pclose | endif
+#"""
+
+# [[plugins]]
+# repo = 'Shougo/neoinclude.vim'
+# on_ft = ["h", "hpp", "cpp", "cc", "cmake"]
+# depends = "deoplete.nvim"
+
+[[plugins]]
+repo = "zchee/deoplete-clang"
+on_ft = ["h", "hpp", "cpp", "cc", "cmake"]
+depends = "deoplete.nvim"
+#hook_add = """
+#let g:deoplete#sources#clang#libclang_path='/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/libclang.dylib'
+#let g:deoplete#sources#clang#clang_header='/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang'
+#"""
+hook_add = '''
+let g:deoplete#sources#clang#libclang_path='/usr/lib/llvm-6.0/lib/libclang-6.0.so'
+let g:deoplete#sources#clang#clang_header='/usr/lib/clang'
+'''

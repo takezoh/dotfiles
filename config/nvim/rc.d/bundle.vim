@@ -40,28 +40,30 @@ endif
 
 if executable('rg')
 	" using .ignore
-  call denite#custom#var('file_rec', 'command', ['rg', '--files'])
-  call denite#custom#var('grep', 'command', ['rg'])
+	call denite#custom#var('file_rec', 'command', ['rg', '--files'])
+	call denite#custom#var('grep', 'command', ['rg'])
+	call denite#custom#var('grep', 'recursive_opts', [])
+	call denite#custom#var('grep', 'default_opts', ['--vimgrep', '--no-heading'])
 endif
 
 call denite#custom#source('file_rec', 'matchers', ['matcher_fuzzy'])
 
 " unite-outline の自動更新
 let g:unite_source_outline_filetype_options = {
-      \ '*': {
-      \   'auto_update': 1,
-      \   'auto_update_event': 'write',
-      \ },
-      \ 'cpp': {
-      \   'ignore_types': ['enum', 'typedef', 'macro'],
-      \ },
-      \ 'javascript': {
-      \   'ignore_types': ['comment'],
-      \ },
-      \ 'markdown': {
-      \   'auto_update_event': 'hold',
-      \ },
-      \}
+			\ '*': {
+			\   'auto_update': 1,
+			\   'auto_update_event': 'write',
+			\ },
+			\ 'cpp': {
+			\   'ignore_types': ['enum', 'typedef', 'macro'],
+			\ },
+			\ 'javascript': {
+			\   'ignore_types': ['comment'],
+			\ },
+			\ 'markdown': {
+			\   'auto_update_event': 'hold',
+			\ },
+			\}
 
 
 "------------------------------------
