@@ -78,6 +78,7 @@ add_packages_linux() {
 		build-essential
 		zlib1g-dev
 		libssl-dev
+		libclang-dev
 		# libmysqlclient-dev
 		# mysql-client
 		# mysql-server
@@ -244,28 +245,37 @@ post_install_cygwin() {
 }
 
 install_windows() {
-	local cpath=wslpath
+	local wpath=wslpath
 	local sysdir=/mnt/c/Windows/System32
 	if [ "$OSTYPE" = "cygwin" ]; then
-		cpath=cygpath
+		wpath=cygpath
 	fi
 	if [ -d /cygdrive/c/Windows ]; then
 		sysdir=/cygdrive/c/Windows/System32
 	fi
-	$sysdir/cmd.exe /c del "%USERPROFILE%\\.vsvimrc"
-	$sysdir/cmd.exe /c mklink "%USERPROFILE%\\.vsvimrc" `$cpath -aw $dotfiles_dir/config/non-xdg/.vsvimrc`
-	$sysdir/cmd.exe /c rmdir /s /q "%APPDATA%\\Code\\User"
-	$sysdir/cmd.exe /c mklink /D "%APPDATA%\\Code\\User" `$cpath -aw $dotfiles_dir/config/vscode`
+	$sysdir/cmd.exe /c del /s /q "%USERPROFILE%\\.vsvimrc" || true
+	$sysdir/cmd.exe /c mklink "%USERPROFILE%\\.vsvimrc" `$wpath -aw $dotfiles_dir/config/non-xdg/.vsvimrc`
+	$sysdir/cmd.exe /c rmdir /s /q "%APPDATA%\\Code\\User" || true
+	$sysdir/cmd.exe /c mklink /D "%APPDATA%\\Code\\User" `$wpath -aw $dotfiles_dir/config/vscode`
 
 	cat <<EOF > $HOME/.local/platform-generated.gitconfig
 [core]
 	filemode = false
 EOF
+
+	$sysdir/cmd.exe /c rmdir /s /q "%LOCALAPPDATA%\\WSL.opt" || true
+	$sysdir/cmd.exe /c mkdir "%LOCALAPPDATA%\\WSL.opt"
+	local winoptdir=`$sysdir/cmd.exe /c 'echo %LOCALAPPDATA%\\WSL.opt'`
+	(
+		mkdir -p /usr/local/opt
+		cd /usr/local/opt
+		ln -snf `$wpath -au ${winoptdir:0:-1}` windows
+	)
 }
 
 post_install_windows() {
 	(
-		cd /usr/local/opt
+		cd /usr/local/opt/windows
 		if [ ! -d win32yank ]; then
 			(
 				cd /tmp
@@ -281,7 +291,7 @@ post_install_windows() {
 			)
 			(
 				cd /usr/local/bin
-				sudo ln -snf ../opt/win32yank/win32yank.exe win32yank
+				sudo ln -snf ../opt/windows/win32yank/win32yank.exe win32yank
 			)
 		fi
 	)
