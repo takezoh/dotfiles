@@ -1,0 +1,12 @@
+#!/usr/bin/env zsh
+
+cmd=`echo ${^path}/cmd.exe(N)`
+if [ -n "$cmd" ]; then
+	(
+		unsetopt bg_nice
+		$cmd /d /c "$@" | nkf -wu &
+		pid=$(( $! - 1 ))
+		trap "kill -INT $pid; exit(1)" INT
+		while `kill -0 $pid >/dev/null 2>&1`; do done
+	)
+fi

@@ -78,35 +78,19 @@ if (( ${_platforms[(I)windows]} )); then
 	alias -g C="| win32yank -i"
 	alias -g P="win32yank -o"
 
-	wcmd() {
-		local wcmd=`echo ${^path}/cmd.exe(N)`
-		if [ -n "$wcmd" ]; then
-			if type nkf >/dev/null 2>&1; then
-				$wcmd /d /c "$@" | nkf -wu
-			else
-				$wcmd /d /c "$@"
-			fi
-		fi
-	}
-
-	open() {
-		local wcmd=`echo ${^path}/cmd.exe(N)`
-		if [ -n "$wcmd" ]; then
-			$wcmd /d /c start "$@"
-		fi
-	}
-
+	alias open="wstart"
 	# alias msbuild="MSBuild.exe"
 
 	if [ "$OSTYPE" = "cygwin" ]; then
 		# alias wcmd="`echo ${^path}/cmd.exe(N)` /d /c"
 		# alias open="cygstart"
 		alias sudo=
-		alias wslpath="cygpath"
+		alias wpath="cygpath"
 
 		# alias -g C=" > /dev/clipboard"
 		# alias -g P="cat /dev/clipboard"
 	else
+		alias wpath="wslpath"
 		# alias wcmd="wsl-cmdtool wcmd"
 		# alias open="wsl-cmdtool wstart"
 	fi

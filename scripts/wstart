@@ -1,0 +1,6 @@
+#!/usr/bin/env zsh
+
+cmd=`echo ${^path}/cmd.exe(N)`
+if [ -n "$cmd" ]; then
+	$cmd /d /c start "$@"
+fi
