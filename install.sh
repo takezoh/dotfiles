@@ -246,26 +246,22 @@ post_install_cygwin() {
 
 install_windows() {
 	local wpath=wslpath
-	local sysdir=/mnt/c/Windows/System32
 	if [ "$OSTYPE" = "cygwin" ]; then
 		wpath=cygpath
 	fi
-	if [ -d /cygdrive/c/Windows ]; then
-		sysdir=/cygdrive/c/Windows/System32
-	fi
-	$sysdir/cmd.exe /c del /s /q "%USERPROFILE%\\.vsvimrc" || true
-	$sysdir/cmd.exe /c mklink "%USERPROFILE%\\.vsvimrc" `$wpath -aw $dotfiles_dir/config/non-xdg/.vsvimrc`
-	$sysdir/cmd.exe /c rmdir /s /q "%APPDATA%\\Code\\User" || true
-	$sysdir/cmd.exe /c mklink /D "%APPDATA%\\Code\\User" `$wpath -aw $dotfiles_dir/config/vscode`
+	cmd.exe /c del /s /q "%USERPROFILE%\\.vsvimrc" || true
+	cmd.exe /c mklink "%USERPROFILE%\\.vsvimrc" `$wpath -aw $dotfiles_dir/config/non-xdg/.vsvimrc`
+	cmd.exe /c rmdir /s /q "%APPDATA%\\Code\\User" || true
+	cmd.exe /c mklink /D "%APPDATA%\\Code\\User" `$wpath -aw $dotfiles_dir/config/vscode`
 
 	cat <<EOF > $HOME/.local/platform-generated.gitconfig
 [core]
 	filemode = false
 EOF
 
-	$sysdir/cmd.exe /c rmdir /s /q "%LOCALAPPDATA%\\WSL.opt" || true
-	$sysdir/cmd.exe /c mkdir "%LOCALAPPDATA%\\WSL.opt"
-	local winoptdir=`$sysdir/cmd.exe /c 'echo %LOCALAPPDATA%\\WSL.opt'`
+	cmd.exe /c rmdir /s /q "%LOCALAPPDATA%\\WSL.opt" || true
+	cmd.exe /c mkdir "%LOCALAPPDATA%\\WSL.opt"
+	local winoptdir=`cmd.exe /c 'echo %LOCALAPPDATA%\\WSL.opt'`
 	(
 		mkdir -p /usr/local/opt
 		cd /usr/local/opt

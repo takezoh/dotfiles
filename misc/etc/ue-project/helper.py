@@ -4,25 +4,109 @@ import sys
 import json
 import glob
 import subprocess
+import shutil
 
-UNREAL_VERSION_SELECTOR="/mnt/c/Program Files (x86)/Epic Games/Launcher/Engine/Binaries/Win64/UnrealVersionSelector.exe"
+UNREAL_VERSION_SELECTOR = "/mnt/c/Program Files (x86)/Epic Games/Launcher/Engine/Binaries/Win64/UnrealVersionSelector.exe"
+UNREAL_ENGINE_INSTALL_ROOT = '/mnt/c/Program Files/Epic Games'
+
+class HelperError(ValueError): pass
 
 
-def wslpath(winpath):
-    if not winpath:
-        return winpath
-    if winpath[-1] == '\\':
-        winpath = winpath[0:-1]
-    return subprocess.check_output(r'wslpath -au "{}"'.format(winpath), shell=True).strip().decode('utf-8')
+def upath(wpath):
+    if not wpath:
+        return wpath
+    if wpath[-1] == '\\':
+        wpath = wpath[0:-1]
+    return subp_output(['wslpath', '-au',  wpath]).strip()
+
+
+def wpath(upath):
+    if not upath:
+        return upath
+    return subp_output(['wslpath', '-aw',  upath]).strip()
+
+
+def subp_output(args):
+    p = subprocess.run(args, stdout=subprocess.PIPE, shell=False)
+    p.check_returncode()
+    return p.stdout.decode('utf-8')
+
+
+class Proc():
+    def __init__(self):
+        self.processes = []
+
+    def subp(self, args, cwd=None):
+        if args[0] == 'wcmd':
+            args = ['cmd.exe', '/c'] + args[1:]
+
+        p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd, shell=False)
+
+        if type(p.args) is list:
+            print ("exec: " + ' '.join(p.args))
+        else:
+            print ('exec: ' + p.args)
+
+        self.processes.append(p)
+        return p
+
+    def join(self, processes=None):
+        processes = processes or self.processes
+
+        def read(stream, outstream, linebuffer, readsize=0):
+            if stream.readable():
+                if readsize:
+                    linebuffer += stream.read(readsize).decode('utf-8').replace('\r\n', '\n')
+                else:
+                    linebuffer += stream.read().decode('utf-8').replace('\r\n', '\n')
+
+                temp = linebuffer.rsplit('\n', 1)
+                if len(temp) > 1:
+                    linebuffer = temp[1]
+                    print(temp[0].strip(), file=outstream)
+                else:
+                    linebuffer = temp[0]
+
+            return linebuffer
+
+        for p in processes:
+            p.stdout_line_buffer = ''
+            p.stderr_line_buffer = ''
+
+        error_codes = []
+        while processes:
+            for p in processes:
+                if p.returncode is None:
+                    p.poll()
+                    p.stdout_line_buffer = read(p.stdout, sys.stdout, p.stdout_line_buffer, 32)
+                    p.stderr_line_buffer = read(p.stderr, sys.stderr, p.stderr_line_buffer, 32)
+                else:
+                    processes.remove(p)
+                    if p.returncode is not 0:
+                        error_codes.append(p)
+                    read(p.stdout, sys.stdout, p.stdout_line_buffer)
+                    read(p.stderr, sys.stderr, p.stderr_line_buffer)
+
+        if any(error_codes):
+            raise OSError(error_codes)
 
 
 class UProject():
     def __init__(self, uproject_path):
+        context = json.load(open(uproject_path, 'r'))
+
+        self.file_version = context["FileVersion"]
+        self.engine_association = context["EngineAssociation"]
+
         self.uproject_path = uproject_path
-        self.root_path = os.path.dirname(os.path.dirname(uproject_path))
         self.name = os.path.basename(uproject_path)[:-len('.uproject')]
-        self.project_root = os.path.join(root_path, os.path.dirname(uproject_path))
-        self.engine_root = os.path.join(root_path, 'Engine')
+        self.project_root = os.path.dirname(uproject_path)
+
+        self.root_path = os.path.dirname(self.project_root)
+        self.engine_root = os.path.join(self.root_path, 'Engine')
+        if not os.path.exists(self.engine_root):
+            self.root_path = self.project_root
+            self.engine_root = os.path.join(UNREAL_ENGINE_INSTALL_ROOT, 'UE_' + self.engine_association, 'Engine')
 
 
 class UhtManifest():
@@ -41,14 +125,14 @@ class UhtManifest():
             self.save_exported_headers = ['SaveExportedHeaders']
             self.uht_generated_code_version = ['UHTGeneratedCodeVersion']
 
-            #  self.base_directory = wslpath(self.base_directory)
-            self.include_base = wslpath(self.include_base)
-            self.output_directory = wslpath(self.output_directory)
-            #  self.classes_headers = [wslpath(x) for x in self.classes_headers]
-            #  self.public_headers = [wslpath(x) for x in self.public_headers]
-            #  self.private_headers = [wslpath(x) for x in self.private_headers]
-            #  self.pch = wslpath(self.pch)
-            #  self.generated_cpp_filenamebase = wslpath(self.generated_cpp_filenamebase)
+            #  self.base_directory = upath(self.base_directory)
+            self.include_base = upath(self.include_base)
+            self.output_directory = upath(self.output_directory)
+            #  self.classes_headers = [upath(x) for x in self.classes_headers]
+            #  self.public_headers = [upath(x) for x in self.public_headers]
+            #  self.private_headers = [upath(x) for x in self.private_headers]
+            #  self.pch = upath(self.pch)
+            #  self.generated_cpp_filenamebase = upath(self.generated_cpp_filenamebase)
 
     def __init__(self, uproject):
         target = uproject.name + 'Editor'
@@ -62,39 +146,41 @@ class UhtManifest():
         self.external_dependencies_file = context['ExternalDependenciesFile']
         self.modules = [self.Module(x) for x in context['Modules']]
 
-        #  self.root_local_path = wslpath(self.root_local_path)
-        #  self.root_build_path = wslpath(self.root_build_path)
-        #  self.external_dependencies_file = wslpath(self.external_dependencies_file)
+        #  self.root_local_path = upath(self.root_local_path)
+        #  self.root_build_path = upath(self.root_build_path)
+        #  self.external_dependencies_file = upath(self.external_dependencies_file)
 
 
 class Command():
-    def __init__(self, current_dir):
-        self.processes = []
+    def __init__(self, proc, current_dir):
+        self.proc = proc
         self.uproject = None
 
         while current_dir != "/":
-            result = glob.glob(current_dir, '*/*.uproject')
+            result = glob.glob(current_dir + '/*.uproject')
+            if not result:
+                result = glob.glob(current_dir + '/*/*.uproject')
             if result:
-                print ('Found {}'.format(result[0]))
+                print ('Found {}'.format(result[0]), file=sys.stderr)
                 self.uproject = UProject(result[0])
                 return
 
             current_dir = os.path.dirname(current_dir)
 
-        raise "Not Found *.uproject"
+        raise HelperError("Not Found *.uproject")
 
     def __call__(self, cmd, *args):
-        self.__dict__[cmd.replace('-', '_')](*args)
+        getattr(self, cmd.replace('-', '_'))(*args)
 
     def maps(self, *args):
-        subprocess.check_call(['rg', '-g', '*.umap', '--files', wslpath(os.path.join(self.uproject.project_root, 'Content'))],
-                stdout=subprocess.PIPE, shell=True)
+        subprocess.Popen(['rg', '-g', '*.umap', '--files', os.path.join(self.uproject.project_root, 'Content')],
+                stdout=subprocess.STDOUT, shell=True).wait()
 
     def packages(self, *args):
         target_dir = self.uproject.project_root
         for _ in range(2):
             if target_dir == '/':
-                raise
+                raise HelperError()
             if os.path.exists(os.path.join(target_dir, 'packages')):
                 break
             target_dir = os.path.dirname(target_dir)
@@ -102,12 +188,17 @@ class Command():
         if os.path.exists(os.path.join(target_dir, 'packages')):
             target_dir = os.path.join(target_dir, 'packages')
 
-        subprocess.check_call(['rg', '-g', '{}.exe'.format(self.uproject.name), '--files', target_dir, '|', 'rg', '/WindowsNoEditor/'],
-                stdout=subprocess.PIPE, shell=True)
+        p1 = subprocess.Popen(['rg', '-g', '{}.exe'.format(self.uproject.name), '--files', target_dir], stdout=subprocess.PIPE, shell=True)
+        p2 = subprocess.Popen(['rg', '/WindowsNoEditor/'], stdin=p1.stdout, stdout=subprocess.STDOUT, shell=True)
+        p1.wait()
+        p1.stdout.close()
+        p2.wait()
 
-    def launch(self, *args):
-        if args[0].endswith('.exe'):
-            subprocess.check_call(args + ['-fullcrashdump'])
+    def launch_command(self, *args):
+        if len(args) > 0 and args[0].endswith('.exe'):
+            cmd = list(args) + ['-fullcrashdump']
+            print (' '.join(cmd), file=sys.stderr)
+            print (' '.join(cmd), file=sys.stdout)
             return
 
         os.chdir(self.uproject.root_path)
@@ -116,56 +207,41 @@ class Command():
 
         editor = os.path.join(self.uproject.engine_root, 'Binaries/Win64/UE4Editor.exe')
         if os.path.exists(editor):
-            cmdargs = ['open', wslpath(editor)]
+            cmdargs = [editor]
 
-        cmdargs = cmdargs + [wslpath(self.uproject.uproject_path)] + args + ['-skipcompile', '-fullcrashdump']
-        subprocess.check_call(cmdargs, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        cmd = cmdargs + [wpath(self.uproject.uproject_path)] + list(args) + ['-skipcompile', '-fullcrashdump']
+        print (' '.join(cmd), file=sys.stderr)
+        print (' '.join(cmd), file=sys.stdout)
 
-    def build(self, command, configuration, *args):
-        self._build_internal(command, self.uproject.name, configuration, 'Win64', wslpath(self.uproject.uproject_path), *args)
+    def project_root(self, *args):
+        print (self.uproject.project_root)
 
-    def _build_internal(self, command, target, configuration, platform, *args):
-        for suffix in ('Editor', 'Client', 'Server'):
-            if configuration.endswith(suffix):
-                target = target + suffix
-                configuration = configuration[:-len(suffix)]
+    def engine_root(self, *args):
+        print (self.uproject.engine_root)
 
-        #  self._build_unreal_buildtool(command, configuration, platform)
+    def build_command(self, command, configuration, *args):
+        cmd = _generate_build_command_internal(self.proc,
+                self.uproject.engine_root,
+                self.uproject.name,
+                'Win64',
+                command,
+                configuration,
+                wpath(self.uproject.uproject_path),
+                *args)
+        print (' '.join(cmd))
 
-        cmdargs = ['wcmd',
-            wslpath(os.path.join(self.uproject.engine_root, 'Build/BatchFiles/{}.bat'.format(command))),
-            target,
-            platform,
-            configuration]
-
-        subprocess.check_call(cmdargs + args + ['-waitmutex', '-FromMsBuild'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-
-    def _build_unreal_buildtool(self, command, configuration, platform):
-        command = command.lower()
-        if command is 'rebuild':
-            command = 'build'
-
-        cmdargs = ['wcmd',
-            wslpath(os.uproject.engine_root, 'Build/BatchFiles/MSBuild.bat'),
-            "/t:{}".format(command),
-            "Engine/Source/Programs/UnrealBuildTool/UnrealBuildTool.csproj",
-            "/p:GenerateFullPaths=true",
-            "/p:DebugType=portable",
-            "/p:Configuration={}".format(configuration),
-            "/verbosity:minimal"]
-
-        subprocess.check_call(cmdargs, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-
-    def generate_project_files(self, *args):
+    def project_files_command(self, *args):
         cmdargs = [UNREAL_VERSION_SELECTOR, '/projectfiles']
 
         builder = os.path.join(self.uproject.engine_root, 'Build/BatchFiles/GenerateProjectFiles.bat')
         if os.path.exists(builder):
-            cmdargs = ['wcmd', wslpath(builder)]
+            cmdargs = ['cmd.exe', '/c', wpath(builder)]
 
-        cmdargs = cmdargs + [wslpath(self.uproject.uproject_path), '-Game', '-Engine', '-2017', '-VSCode'] + args
-        subprocess.check_call(cmdargs, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        cmd = ' '.join(cmdargs + [wpath(self.uproject.uproject_path), '-Game', '-Engine', '-2017', '-VSCode'] + list(args))
+        print('exec: ' + cmd, file=sys.stderr)
+        print(cmd, file=sys.stdout)
 
+    def generate_user_support_files(self, *args):
         manifest = UhtManifest(self.uproject)
 
         self._configure(manifest)
@@ -176,7 +252,7 @@ class Command():
         # fetch include directories
         include_dirs = []
         for m in manifest.modules:
-            ii = subprocess.check_output('find "{}" -type d'.format(m.include_base), shell=True).decode('utf-8').strip()
+            ii = subp_output(['find', m.include_base, '-type', 'd']).strip()
             include_dirs[len(include_dirs):] = ii.split('\n')
             include_dirs.append(m.output_directory)
 
@@ -185,7 +261,7 @@ class Command():
                 ('ignore', '.ignore', {}),
                 ('project.gtags.conf', os.path.join('.uproject', 'gtags.game', 'gtags.conf'), {}),
                 ('engine.gtags.conf', os.path.join('.uproject', 'gtags.engine', 'gtags.conf'), {}),
-                ('globalrc', '.globalrc', {
+                ('globalrc.template', '.globalrc', {
                         'project_root': self.uproject.project_root,
                         'engine_root': self.uproject.engine_root,
                         'gtagsdb_root': os.path.join(self.uproject.root_path, '.uproject'),
@@ -196,14 +272,21 @@ class Command():
                         'gtagsdb_root': os.path.join(self.uproject.root_path, '.uproject'),
                     }),
                 ('clang.template', '.clang', {
-                        'compilation_database': os.path.join(self.uproject.root_path, '.uproject'),
+                        'compilation_database': os.path.join(self.uproject.root_path, '.uproject', 'cmake.build'),
                     }),
                 ('CMakeLists.template.txt', os.path.join('.uproject', 'CMakeLists.txt'), {
                         'include_directories': ' '.join(['"{}"'.format(x) for x in include_dirs]),
                     }),
                 ]:
-            open(os.path.join(self.uproject.root_path, to), 'w').write(
-                open(os.environ['HOME'] + '/.dotfiles/misc/etc/ue-project/' + frm, 'r').read().format(rep))
+            to = os.path.join(self.uproject.root_path, to)
+            frm = os.path.join(os.path.dirname(os.path.abspath(__file__)), frm)
+            try:
+                if not os.path.exists(os.path.dirname(to)):
+                    os.makedirs(os.path.dirname(to))
+                open(to, 'w').write(
+                    open(frm, 'r').read().format(**rep))
+            except Exception as e:
+                print (e, file=sys.stderr)
 
     def _patch_vscode_project(self, manifest):
         # VSCode UE4.code-workspace
@@ -229,11 +312,11 @@ class Command():
                 "args": [
                     "/d",
                     "/c",
-                    wslpath(os.path.join(self.uproject.engine_root, 'Build/BatchFiles/Build.bat')),
+                    wpath(os.path.join(self.uproject.engine_root, 'Build/BatchFiles/Build.bat')),
                     '{}Editor'.format(self.uproject.name),
                     "Win64",
                     configure,
-                    wslpath(self.uproject.uproject_path),
+                    wpath(self.uproject.uproject_path),
                     "-waitmutex"
                 ],
                 "problemMatcher": "$msCompile",
@@ -262,9 +345,9 @@ class Command():
                 "name": "Development",
                 "type": "cppvsdbg",
                 "request": "launch",
-                "program": wslpath(os.path.join(self.uproject.project_root, 'Binaries/Win64/UE4Editor.exe')),
+                "program": wpath(os.path.join(self.uproject.project_root, 'Binaries/Win64/UE4Editor.exe')),
                 "args": [
-                    wslpath(self.uproject.uproject_path),
+                    wpath(self.uproject.uproject_path),
                 ],
                 "cwd": "${workspaceRoot}"
             },
@@ -272,9 +355,9 @@ class Command():
                 "name": "Debug",
                 "type": "cppvsdbg",
                 "request": "launch",
-                "program": wslpath(os.path.join(self.uproject.project_root, 'Binaries/Win64/UE4Editor.exe')),
+                "program": wpath(os.path.join(self.uproject.project_root, 'Binaries/Win64/UE4Editor.exe')),
                 "args": [
-                    wslpath(self.uproject.uproject_path),
+                    wpath(self.uproject.uproject_path),
                     "-debug"
                 ],
                 "cwd": "${workspaceRoot}"
@@ -285,29 +368,116 @@ class Command():
 
     def _gen_compilation_databases(self, manifest):
         # JSON Compilation Database
-        cmake_command = 'rm -rf "{0}" && mkdir -p "{0}" && cd "{0}" && cmake ../.. -DCMAKE_EXPORT_COMPILE_COMMANDS=on'.format(os.path.join(self.uproject.root_path, '.uproject', 'cmake.build'))
-        processes.append(subprocess.Popen(cmake_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True))
+        cmake_build = os.path.join(self.uproject.root_path, '.uproject', 'cmake.build')
+        if os.path.exists(cmake_build):
+            shutil.rmtree(cmake_build)
+        os.makedirs(cmake_build)
+        self.proc.subp(['touch', 'main.cpp'], cwd=cmake_build)
+        self.proc.subp(['cmake', '..', '-DCMAKE_EXPORT_COMPILE_COMMANDS=on'], cwd=cmake_build)
 
         # gtags
-        gtags_command = 'cd "{}" && gtags "{}"'.format(
-                os.path.join(self.uproject.project_root),
-                os.path.join(self.uproject.root_path, '.uproject', 'gtags.game'))
-        processes.append(subprocess.Popen(, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True))
+        self.proc.subp(['gtags', os.path.join(self.uproject.root_path, '.uproject', 'gtags.game')], cwd=self.uproject.project_root)
+        self.proc.subp(['gtags', os.path.join(self.uproject.root_path, '.uproject', 'gtags.engine')], cwd=self.uproject.engine_root)
 
-        gtags_command = 'cd "{}" && gtags "{}"'.format(
-                os.path.join(self.uproject.engine_root),
-                os.path.join(self.uproject.root_path, '.uproject', 'gtags.engine'))
-        processes.append(subprocess.Popen(, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True))
 
-    def join(self):
-        for p in self.processes:
-            p.join()
+def _generate_build_command_internal(proc, engine_root, target, platform, command, configuration, *args):
+    for suffix in ('Editor', 'Client', 'Server'):
+        if configuration.endswith(suffix):
+            target = target + suffix
+            configuration = configuration[:-len(suffix)]
+
+    buildtool_cmd = _generate_unreal_buildtool_build_command(proc, engine_root, command, configuration, platform)
+
+    build_cmd = ['cmd.exe', '/c',
+        wpath(os.path.join(engine_root, 'Build/BatchFiles/{}.bat'.format(command.capitalize()))),
+        target,
+        platform,
+        configuration] + list(args) + ['-WaitMutex', '-FromMsBuild', '-2017']
+
+    print('exec: ' + ' '.join(buildtool_cmd), file=sys.stderr)
+    print('exec: ' + ' '.join(build_cmd), file=sys.stderr)
+    return buildtool_cmd + ['&&'] + build_cmd
+
+
+def _generate_unreal_buildtool_build_command(proc, engine_root, command, configuration, platform):
+    command = command.lower()
+    if command is 'rebuild':
+        command = 'build'
+
+    return ['cmd.exe', '/c',
+        wpath(os.path.join(engine_root, 'Build/BatchFiles/MSBuild.bat')),
+        "/t:{}".format(command),
+        wpath(os.path.join(engine_root, 'Source/Programs/UnrealBuildTool/UnrealBuildTool.csproj')),
+        "/p:GenerateFullPaths=true",
+        "/p:DebugType=portable",
+        "/p:Configuration={}".format(configuration),
+        "/verbosity:minimal"]
+
+
+def _generate_project_files(proc, engine_root, *args):
+    cmdargs = [UNREAL_VERSION_SELECTOR, '/projectfiles']
+
+    builder = os.path.join(engine_root, 'Build/BatchFiles/GenerateProjectFiles.bat')
+    if os.path.exists(builder):
+        cmdargs = ['wcmd', wpath(builder)]
+
+    proc.subp(cmdargs + ['-2017', '-VSCode'] + list(args))
+    proc.join()
+
+
+def _get_engine_root():
+    current_dir = os.getcwd()
+    while current_dir != "/":
+        if os.path.exists(os.path.join(current_dir, 'Engine')):
+            return os.path.join(current_dir, 'Engine')
+
+        current_dir = os.path.dirname(current_dir)
+
+    raise HelperError("Not Found Engine Directory.")
+
+
+def fallback_non_uproject(proc, cmd, *args):
+    engine_root = _get_engine_root()
+
+    if cmd == "generate-project-files" and \
+            _generate_project_files(proc, engine_root, *args):
+        return True
+
+    if cmd == 'build' and \
+            _build_internal(proc,
+                engine_root,
+                'UE4',
+                'Win64',
+                *args):
+        return True
+
+    return False
+
+
+def command(proc, cmd, *args):
+    command = Command(proc, os.getcwd())
+    command(cmd, *args)
+
+
+def guarded_main(func, *args):
+    proc = Proc()
+    try:
+        func(proc, *args)
+        return True
+    except HelperError as e:
+        print (e, file=sys.stderr)
+        return False
+    finally:
+        proc.join()
 
 
 if __name__ == '__main__':
-    command = Command(os.getcwd())
-    command(sys.argv[1], *sys.argv[2:])
-    command.join()
+    cmd = sys.argv[1]
+    args = sys.argv[2:]
+
+    if not guarded_main(command, cmd, *args):
+        if not guarded_main(fallback_non_uproject, cmd, *args):
+            sys.exit(1)
 
 #    for k, v in uproject.__dict__.items():
 #        print (k,v)

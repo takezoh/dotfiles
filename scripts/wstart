@@ -1,6 +1,5 @@
 #!/usr/bin/env zsh
 
-cmd=`echo ${^path}/cmd.exe(N)`
-if [ -n "$cmd" ]; then
-	$cmd /d /c start "$@"
+if `type cmd.exe >/dev/null 2>&1`; then
+	cmd.exe /d /c start "$@"
 fi

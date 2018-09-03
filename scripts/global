@@ -17,8 +17,8 @@ cmd=(`echo ${^newpath}/global(N)`)
 
 current_dir=`pwd`
 while [ ! "$current_dir" = "/" ]; do
-	if [ -f "$current_dir/.global" ]; then
-		GLOBALBIN=${cmd[1]} bash "$current_dir/.global" "$@"
+	if [ -x "$current_dir/.globalrc" ]; then
+		GLOBALBIN=${cmd[1]} "$current_dir/.globalrc" "$@"
 		exit $?
 	fi
 	current_dir="`dirname $current_dir`"

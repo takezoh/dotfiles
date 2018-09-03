@@ -1,0 +1,76 @@
+#!/usr/bin/env zsh
+
+unsetopt bg_nice
+
+HELPER="$HOME/.dotfiles/misc/etc/ue-project/helper.py"
+
+choose_map() {
+	local project_root=$1
+	local choose_map=no
+	shift
+	for arg in $@; do
+		if [ "${arg#-*}" = "$arg" ]; then
+			break
+		fi
+		if [ $arg = "-game" ] || [ $arg = "-m" ]; then
+			choose_map=yes
+		fi
+	done
+	if [ "$choose_map" = "yes" ]; then
+		local map=$(cd "$project_root/Content" && rg -g '*.umap' --files . 2>/dev/null | peco --prompt="Choose map>")
+		if [ -z "$map" ]; then
+			exit 1
+		fi
+		map="/Game/`echo $map | sed -e 's/\..*$//'`"
+		echo $map
+	fi
+}
+
+choose_package() {
+	local project_root=$1
+	shift
+
+	[ -z "$project_root" ] && return 1
+
+	local target_dir="$project_root"
+
+	for _ in `seq 2`; do
+		[ $target_dir = "/" ] && return 1
+		if [ -d "$target_dir/packages" ]; then
+			break
+		fi
+		target_dir="`dirname $target_dir`"
+	done
+
+	if [ -d "$target_dir/packages" ]; then
+		target_dir="$target_dir/packages"
+	fi
+
+	local name="*.exe"
+	local path=`rg -g $name --files $target_dir 2>/dev/null | rg '/WindowsNoEditor/' | peco --prompt="Search '$name' from $target_dir>"`
+	echo $path
+}
+
+case "$1" in
+	generate-project-files)
+		shift
+		`$HELPER project-files-command "$@"`
+		$HELPER generate-user-support-files "$@" &
+		;;
+	build|rebuild|clean)
+		`$HELPER build-command "$@"`
+		;;
+	packages)
+		shift
+		package=$(choose_package `$HELPER project-root` "$@")
+		`$HELPER launch-command $package "$@"` &
+		;;
+	editor)
+		shift
+		map=$(choose_map `$HELPER project-root` "$@")
+		`$HELPER launch-command $map "$@"` &
+		;;
+	*)
+		exec $0 editor "$@"
+		;;
+esac
