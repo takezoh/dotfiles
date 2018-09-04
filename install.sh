@@ -179,12 +179,14 @@ post_install_wsl() {
 	# sudo fc-cache -fv
 
 	# python3
-	LC_ALL="en_US.UTF-8" LC_CTYPE="en_US.UTF-8" sudo pip3 install --upgrade pip
+	LC_ALL="en_US.UTF-8" LC_CTYPE="en_US.UTF-8" sudo pip3 -H install --upgrade pip
 	[ ! -x /usr/local/bin/python3 ] && sudo ln -snf /usr/bin/python3 /usr/local/bin/python3
 
 	#neovim
-	sudo pip3 install --upgrade neovim
+	sudo pip3 -H install --upgrade neovim
 	#vim -c "UpdateRemotePlugins" -c "quit\!"
+
+	sudo pip3 -H install --upgrade pygments
 
 	sudo mkdir -p /usr/local/opt
 	sudo chown `whoami` /usr/local/opt
