@@ -1,3 +1,43 @@
-rg --line-number --ignore-case "$@" . 2>/dev/null | peco --prompt="$*>" --exec 'awk -F : '"'"'{print "+" $2 " " $1}'"'"' | xargs less -N '
-# rg --line-number --ignore-case "$@" . 2>/dev/null | fzf --reverse --bind 'enter:execute(awk -F : '"'"'{print "+" $2 " " $1}'"'"' | xargs less -N )'
-# rg --line-number --ignore-case "$@" . 2>/dev/null | fzf --select-1 --exit-0 --reverse --bind 'enter:execute:(echo {} | less -R)'
+#!/bin/bash
+
+main() {
+	rg --line-number --ignore-case "$@" . 2>/dev/null | peco --prompt="$*>" --exec 'awk -F : '"'"'{print "+" $2 " " $1}'"'"' | xargs less -N '
+	# rg --line-number --ignore-case "$@" . 2>/dev/null | fzf --exit-0 --reverse \
+		# --preview 'g -preview {}' \
+		# --bind 'enter:execute(echo {} | awk -F : '"'"'{ print "+" $2 " " $1 }'"'"' | xargs less)' \
+		# --bind 'ctrl-o:execute(echo {} | awk -F : '"'"'{ print "+" $2 " " $1 }'"'"' | xargs nvim)'
+}
+
+preview() {
+	local centerline=20
+	local filename=`echo $1 | awk -F : '{ print $1 }'`
+	local linenumber=`echo $1 | awk -F : '{ print $2 }'`
+	# local linenumber=$(( linenumber < 21 ? 21 : linenumber ))
+	src-hilite-lesspipe.sh $filename | \
+		sed -n $(( linenumber - centerline < 1 ? 1 : linenumber - centerline)),$(( linenumber + centerline))p
+}
+
+
+t=
+
+case "$1" in
+	--)
+		shift
+		;;
+	-preview)
+		shift
+		preview "$@"
+		;;
+	-cc)
+		t="-tcpp"
+		shift
+		;;
+	-*)
+		t="-t${1#-}"
+		shift
+		;;
+	*)
+		;;
+esac
+
+main $t "$@"
