@@ -3,6 +3,7 @@
 source $HOME/.config/zsh/environment.sh
 
 export ZDOTDIR=$XDG_CONFIG_HOME/zsh/
+export DOTDIR=$(cd `readlink -f $ZDOTDIR`/../.. && pwd -P)
 
 umask 022
 
