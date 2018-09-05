@@ -1,32 +1,56 @@
 #!/bin/bash
 
 main() {
-	rg --line-number --ignore-case "$@" . 2>/dev/null | peco --prompt="$*>" --exec 'awk -F : '"'"'{print "+" $2 " " $1}'"'"' | xargs less -N '
-	# rg --line-number --ignore-case "$@" . 2>/dev/null | fzf --exit-0 --reverse \
-		# --preview 'g -preview {}' \
-		# --bind 'enter:execute(echo {} | awk -F : '"'"'{ print "+" $2 " " $1 }'"'"' | xargs less)' \
-		# --bind 'ctrl-o:execute(echo {} | awk -F : '"'"'{ print "+" $2 " " $1 }'"'"' | xargs nvim)'
+	# exec rg --line-number --ignore-case "$@" . 2>/dev/null | peco --prompt="$*>" --exec 'awk -F : '"'"'{print "+" $2 " " $1}'"'"' | xargs less -N '
+	exec rg --line-number --ignore-case "$@" . 2>/dev/null | fzf --exit-0 --reverse --prompt="$* > " \
+		--preview 'exec g --preview {}' \
+		--bind 'enter:execute(g --open less {})' \
+		--bind 'ctrl-o:execute(g --open nvim {})'
 }
 
 preview() {
-	local centerline=20
-	local filename=`echo $1 | awk -F : '{ print $1 }'`
-	local linenumber=`echo $1 | awk -F : '{ print $2 }'`
-	# local linenumber=$(( linenumber < 21 ? 21 : linenumber ))
-	src-hilite-lesspipe.sh $filename | \
-		sed -n $(( linenumber - centerline < 1 ? 1 : linenumber - centerline)),$(( linenumber + centerline))p
+	exec cat <<EOF | python3
+import subprocess
+window_lines = `tput lines` - 2
+filename, linenumber, vars = '''$* '''.split(':', 2)
+linenumber = int(linenumber) - 1
+p = subprocess.run(['src-highlight.sh', filename], stdout=subprocess.PIPE, shell=False)
+p.check_returncode()
+
+context = p.stdout.decode('utf-8').replace('\r\n', '\n').split('\n')
+contextlines = len(context)
+headline = max(0, linenumber - (window_lines - 1) // 2)
+tailline = min(contextlines, window_lines - (linenumber - headline) + linenumber)
+headline = headline - max(0, min(window_lines, contextlines) - (tailline - headline))
+
+out = context[headline:linenumber]
+out.append(u'\u001b[38;5;253;48;5;163;01m' + vars.rstrip())
+out[linenumber + 1:] = context[linenumber + 1:tailline]
+print ('\n'.join(out))
+EOF
 }
 
+open() {
+	cmd=$1
+	shift
+	exec $cmd `echo $@ | awk -F : '{ print "+" $2 " " $1 }'`
+}
 
 t=
 
 case "$1" in
-	--)
-		shift
-		;;
-	-preview)
+	--preview)
 		shift
 		preview "$@"
+		exit $?
+		;;
+	--open)
+		shift
+		open "$@"
+		exit $?
+		;;
+	--)
+		shift
 		;;
 	-cc)
 		t="-tcpp"

@@ -11,12 +11,17 @@ for source in "$@"; do
 		*.tar|*.tgz|*.gz|*.bz2|*.xz)
 			lesspipe "$source" ;;
 		*)
-			# source-highlight --failsafe --infer-lang -f esc256 $style -i "$source" ;;
+			if `file --mime $source | grep "charset=binary"`; then
+				echo "Cannot be highlighing because this file is a binary."
+				exit 1
+			fi
+			# source-highlight --failsafe --infer-lang -f esc256 $style -i "$source"
 			# pygmentize -f terminal256 -O style=native -g "$source"
 			pygmentize -f terminal256 -O style=zenburn -g "$source"
 			# pygmentize -f terminal256 -O style=molokai -g "$source"
 			# pygmentize -f terminal256 -O style=jellybeans -g "$source"
 			# pygmentize -f terminal256 -O style=blackdust -g "$source"
 			# pygmentize -f terminal256 -O style=bensday -g "$source"
+			;;
     esac
 done
