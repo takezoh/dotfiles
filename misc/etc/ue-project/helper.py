@@ -251,10 +251,13 @@ class Command():
     def _configure(self, manifest):
         # fetch include directories
         include_dirs = []
+        source_directory = ''
         for m in manifest.modules:
             ii = subp_output(['find', m.include_base, '-type', 'd']).strip()
             include_dirs[len(include_dirs):] = ii.split('\n')
             include_dirs.append(m.output_directory)
+            if m.name == self.uproject.name:
+                source_directory = upath(m.base_directory)
 
         # copy files
         for frm, to, rep in [
@@ -271,12 +274,16 @@ class Command():
                         'engine_root': self.uproject.engine_root,
                         'gtagsdb_root': os.path.join(self.uproject.root_path, '.uproject'),
                     }),
-                ('clang.template', '.clang', {
-                        'compilation_database': os.path.join(self.uproject.root_path, '.uproject', 'cmake.build'),
+                #  ('clang.template', '.clang', {
+                        #  'compilation_database': os.path.join(self.uproject.root_path, '.uproject', 'cmake.build'),
+                    #  }),
+                ('clang.flags.template', '.clang', {
+                        'flags': '-x c++ -std=c++14 ' + ' '.join(['-I{}'.format(x) for x in include_dirs]),
                     }),
-                ('CMakeLists.template.txt', os.path.join('.uproject', 'CMakeLists.txt'), {
-                        'include_directories': ' '.join(['"{}"'.format(x) for x in include_dirs]),
-                    }),
+                #  ('CMakeLists.template.txt', os.path.join('.uproject', 'CMakeLists.txt'), {
+                        #  'include_directories': ' '.join(['"{}"'.format(x) for x in include_dirs]),
+                        #  'source_directory': source_directory,
+                    #  }),
                 ]:
             to = os.path.join(self.uproject.root_path, to)
             frm = os.path.join(os.path.dirname(os.path.abspath(__file__)), frm)
@@ -368,12 +375,12 @@ class Command():
 
     def _gen_compilation_databases(self, manifest):
         # JSON Compilation Database
-        cmake_build = os.path.join(self.uproject.root_path, '.uproject', 'cmake.build')
-        if os.path.exists(cmake_build):
-            shutil.rmtree(cmake_build)
-        os.makedirs(cmake_build)
-        self.proc.subp(['touch', 'main.cpp'], cwd=cmake_build)
-        self.proc.subp(['cmake', '..', '-DCMAKE_EXPORT_COMPILE_COMMANDS=on'], cwd=cmake_build)
+        #  cmake_build = os.path.join(self.uproject.root_path, '.uproject', 'cmake.build')
+        #  if os.path.exists(cmake_build):
+            #  shutil.rmtree(cmake_build)
+        #  os.makedirs(cmake_build)
+        #  self.proc.subp(['touch', 'main.cpp'], cwd=cmake_build)
+        #  self.proc.subp(['cmake', '..', '-DCMAKE_EXPORT_COMPILE_COMMANDS=on'], cwd=cmake_build)
 
         # gtags
         self.proc.subp(['gtags', os.path.join(self.uproject.root_path, '.uproject', 'gtags.game')], cwd=self.uproject.project_root)
@@ -475,9 +482,14 @@ if __name__ == '__main__':
     cmd = sys.argv[1]
     args = sys.argv[2:]
 
-    if not guarded_main(command, cmd, *args):
-        if not guarded_main(fallback_non_uproject, cmd, *args):
-            sys.exit(1)
+    if 'test' != cmd:
+        if not guarded_main(command, cmd, *args):
+            if not guarded_main(fallback_non_uproject, cmd, *args):
+                sys.exit(1)
+        sys.exit(0)
+
+    command = Command(None, os.getcwd())
+    manifest = UhtManifest(command.uproject)
 
 #    for k, v in uproject.__dict__.items():
 #        print (k,v)
@@ -489,12 +501,14 @@ if __name__ == '__main__':
 #    #  for k, v in manifest.modules[0].__dict__.items():
 #        #  print (k, v)
 #
-#    for m in manifest.modules:
-#        if m.base_directory != m.include_base:
-#            print ('name', m.name)
-#            print ('base', m.base_directory)
-#            print ('inc', m.include_base)
-#        #  for k, v in m.__dict__.items():
-#            #  if not k in ('base_directory', 'include_base', 'output_directory'):
-#                #  continue
-#            #  print (k, v)
+    for m in manifest.modules:
+       if m.base_directory != m.include_base:
+           if m.name == 'Gargantua':
+               print ('name', m.name)
+               print ('base', m.base_directory)
+               print ('inc', m.include_base)
+               print ('pub', m.public_headers)
+       #  for k, v in m.__dict__.items():
+           #  if not k in ('base_directory', 'include_base', 'output_directory'):
+               #  continue
+           #  print (k, v)

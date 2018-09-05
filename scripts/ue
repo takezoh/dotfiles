@@ -2,7 +2,7 @@
 
 unsetopt bg_nice
 
-HELPER="$HOME/.dotfiles/misc/etc/ue-project/helper.py"
+HELPER="$(cd `dirname $0` && pwd -P)/../misc/etc/ue-project/helper.py"
 
 choose_map() {
 	local project_root=$1
@@ -54,11 +54,11 @@ choose_package() {
 case "$1" in
 	generate-project-files)
 		shift
-		`$HELPER project-files-command "$@"`
+		`$HELPER project-files-command "$@"` | nkf -wu
 		$HELPER generate-user-support-files "$@" &
 		;;
 	build|rebuild|clean)
-		`$HELPER build-command "$@"`
+		`$HELPER build-command "$@"` | nkf -wu
 		;;
 	packages)
 		shift
