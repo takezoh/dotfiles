@@ -1,5 +1,7 @@
 ﻿LWin::vkF3sc029  ;Zenkaku/Hankaku [IME off]
 RWin::vkF2sc070  ;Hiragana  [ひらがなキー]
+sc07B::vkF3sc029
+sc079::vkF2sc070
 
 #LButton::Send, ^{Click}
 
@@ -12,6 +14,8 @@ RWin::vkF2sc070  ;Hiragana  [ひらがなキー]
 *<#c::
 	if (WinActive("ahk_class mintty")) {
 		Send,^{Insert}
+	; } else if (WinActive("ahk_exe vcxsrv.exe") && (WinActive("WinTitle" [ , "take@", "", ""])) {
+		; Send,^{Insert}
 	} else {
 		Send,^c
 	}
