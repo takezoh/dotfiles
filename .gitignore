@@ -7,3 +7,9 @@ config/zsh/.zcompdump
 .*.zwc
 
 .local/
+
+misc/etc/pygments/setup.py
+misc/etc/pygments/styles/*.py
+misc/etc/pygments/build/
+misc/etc/pygments/dist/
+misc/etc/pygments/*.egg-info/
