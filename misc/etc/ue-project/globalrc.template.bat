@@ -1,4 +1,4 @@
-@echo off↲
+@echo off
 if "%1" == "-u" (
 	cd {project_root}
 	call global {gtagsdb_root}\\gtags.game %*

@@ -12,18 +12,23 @@ UNREAL_ENGINE_INSTALL_ROOT = '/mnt/c/Program Files/Epic Games'
 class HelperError(ValueError): pass
 
 
+def _wslpath(path, opt):
+    if not path:
+        return ''
+    return subp_output(['wslpath', opt, path]).strip()
+
 def upath(wpath):
-    if not wpath:
-        return wpath
-    if wpath[-1] == '\\':
+    if wpath and wpath[-1] == '\\':
         wpath = wpath[0:-1]
-    return subp_output(['wslpath', '-au',  wpath]).strip()
+    return _wslpath(wpath, '-au')
 
 
 def wpath(upath):
-    if not upath:
-        return upath
-    return subp_output(['wslpath', '-aw',  upath]).strip()
+    return _wslpath(upath, '-aw')
+
+
+def mpath(upath):
+    return _wslpath(upath, '-am')
 
 
 def subp_output(args):
@@ -270,9 +275,9 @@ class Command():
                         'gtagsdb_root': os.path.join(self.uproject.root_path, '.uproject'),
                     }),
                 ('globalrc.template.bat', 'globalrc.bat', {
-                        'project_root': self.uproject.project_root,
-                        'engine_root': self.uproject.engine_root,
-                        'gtagsdb_root': os.path.join(self.uproject.root_path, '.uproject'),
+                        'project_root': mpath(self.uproject.project_root),
+                        'engine_root': mpath(self.uproject.engine_root),
+                        'gtagsdb_root': mpath(os.path.join(self.uproject.root_path, '.uproject')),
                     }),
                 #  ('clang.template', '.clang', {
                         #  'compilation_database': os.path.join(self.uproject.root_path, '.uproject', 'cmake.build'),
