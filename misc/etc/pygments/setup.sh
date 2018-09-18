@@ -7,7 +7,7 @@ for s in `cd ../../../config/nvim/colors && command ls`; do
 done
 
 # generate setup.py
-cat <<EOF | python3
+cat <<EOF | python3 > setup.py
 import os
 
 def style_entry_point(f):
@@ -15,10 +15,10 @@ def style_entry_point(f):
 	capitalized_name = '_'.join(x.capitalize() for x in name.split('_'))
 	return "{0} = styles.{0}:{1}Style".format(name, capitalized_name)
 
-open("setup.py", "w").write(
-	open("setup.template.py", "r").read().format(
+template = open("setup.template.py", "r").read()
+print (template.format(
 		lexers="",
-		styles="\n".join([style_entry_point(x) for x in os.listdir("styles")])))
+		styles="\n".join([style_entry_point(x) for x in os.listdir("styles") if x != '__init__.py'])))
 EOF
 
-sudo -H python3 setup.py install
+ # sudo -H python3 setup.py install
