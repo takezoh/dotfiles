@@ -1,26 +1,24 @@
 #!/bin/bash
 set -ex
 
-packages=(
-	lv tree
-	wget curl
-
-	zsh python
-	git tig
-
-	# make
-	cmake
-
-	nkf
-	source-highlight
-)
-
 add_packages_darwin() {
-	packages+=(
+	packages=(
+		lv tree
+		wget curl
+
+		zsh python
+		git tig
+
+		# make
+		cmake
+
+		nkf
+		source-highlight
+
 		# htop
 		# ant
 		awscli
-		peco
+		peco fzf
 		nvim python3
 		ripgrep
 		ctags global
@@ -41,25 +39,76 @@ add_packages_darwin() {
 		# java
 		jenv
 	)
+
+	brew install ${packages[@]}
 }
 
-add_packages_linux() {
+add_packages_arch() {
+	packages=(
+		openssh
+		dnsutils
+		net-tools
+
+		less
+		tree
+		wget curl
+
+		zsh python python-pip
+		git tig
+
+		# make
+		cmake
+
+		# nkf
+		source-highlight
+
+		ripgrep
+		fzf
+		# peco
+		# awscli
+		neovim python3
+		# python3-pip
+		# global
+		zip unzip
+	)
+
+	aur_packages=(
+		pyenv pyenv-virtualenv
+		peco
+		nkf
+		global
+		aws-cli
+	)
+
+	sudo pacman -S --needed --noconfirm ${packages[@]}
+	aurman -S --needed --noconfirm ${aur_packages[@]}
+}
+
+add_packages_ubuntu() {
 	if ! `dpkg -s "ripgrep" > /dev/null 2>&1`; then (
 		cd /tmp
 		curl -LO https://github.com/BurntSushi/ripgrep/releases/download/0.9.0/ripgrep_0.9.0_amd64.deb
 		sudo dpkg -i ripgrep_0.9.0_amd64.deb
 	) fi
 
-	packages+=(
+	packages=(
+		lv tree
+		wget curl
+
+		zsh python
+		git tig
+
+		# make
+		cmake
+
+		nkf
+		source-highlight
+
 		ripgrep
 		peco
 		awscli
 		neovim python3 python3-pip
-		# ctags
 		global
-		# mono
-
-		# direnv
 		zip
 
 		lua5.1
@@ -84,21 +133,21 @@ add_packages_linux() {
 		# mysql-server
 		# redis-server
 
-		# terminal
-		gnome-terminal dbus-x11 uim uim-xim uim-anthy
-		language-pack-ja fonts-ipafont
-
-		# X11
-		# x11-utils x11-xserver-utils # libxslt1-dev
-		# lxde lxsession-logout
-		# fontconfig
+		g++-i686-linux-gnu
+		g++-arm-linux-gnueabi
+		g++-x86-64-linux-gnux32
+		g++-mingw-w64
 	)
+
+	sudo apt install -y ${packages[@]}
 }
 
 add_packages_cygwin() {
-	packages+=(
+	packages=(
 		vim lua
 	)
+
+	apt install ${packages[@]}
 }
 
 install() {
@@ -162,34 +211,45 @@ post_install_darwin() {
 	pip3 install --upgrade pip
 	pip3 install --upgrade neovim
 	# vim -c "UpdateRemotePlugins" -c "quit\!"
+	pip3 install --upgrade pygments
 }
 
-install_wsl() {
-	return 0
+install_arch() {
+	sudo mkdir -p /usr/local/opt
+	sudo chown `whoami` /usr/local/opt
 }
 
-post_install_wsl() {
-	if [ ! `basename $SHELL` = "zsh" ]; then
-		chsh -s `which zsh`
-	fi
-
-	# X11
-	# lxpanel --profile LXDE
-	# sudo ln -snf /mnt/c/Windows/Fonts /usr/share/fonts/windows
-	# sudo fc-cache -fv
-
+post_install_arch() {
 	# python3
-	LC_ALL="en_US.UTF-8" LC_CTYPE="en_US.UTF-8" sudo pip3 -H install --upgrade pip
+	sudo -H pip3 install --upgrade pip
 	[ ! -x /usr/local/bin/python3 ] && sudo ln -snf /usr/bin/python3 /usr/local/bin/python3
 
 	#neovim
-	sudo pip3 -H install --upgrade neovim
+	sudo -H pip3 install --upgrade neovim
 	#vim -c "UpdateRemotePlugins" -c "quit\!"
 
-	sudo pip3 -H install --upgrade pygments
+	sudo -H pip3 install --upgrade pygments
+}
 
+install_ubuntu() {
 	sudo mkdir -p /usr/local/opt
 	sudo chown `whoami` /usr/local/opt
+}
+
+post_install_ubuntu() {
+	# if [ ! `basename $SHELL` = "zsh" ]; then
+		# chsh -s `which zsh`
+	# fi
+
+	# python3
+	LC_ALL="en_US.UTF-8" LC_CTYPE="en_US.UTF-8" sudo -H pip3 install --upgrade pip
+	[ ! -x /usr/local/bin/python3 ] && sudo ln -snf /usr/bin/python3 /usr/local/bin/python3
+
+	#neovim
+	sudo -H pip3 install --upgrade neovim
+	#vim -c "UpdateRemotePlugins" -c "quit\!"
+
+	sudo -H pip3 install --upgrade pygments
 
 	(
 		cd /usr/local/opt
@@ -212,7 +272,7 @@ post_install_wsl() {
 		cd /usr/local/bin
 
 		# fzf
-		# [ ! -x fzf ] && sudo ln -snf $dotfiles_dir/misc/platform/linux/fzf-0.16.2-linux_amd64 fzf
+		[ ! -x fzf ] && sudo ln -snf $dotfiles_dir/misc/platform/linux/fzf-0.16.2-linux_amd64 fzf
 	)
 }
 
@@ -251,8 +311,8 @@ install_windows() {
 	if [ "$OSTYPE" = "cygwin" ]; then
 		wpath=cygpath
 	fi
-	cmd.exe /c del /s /q "%USERPROFILE%\\.vsvimrc" || true
-	cmd.exe /c mklink "%USERPROFILE%\\.vsvimrc" `$wpath -aw $dotfiles_dir/config/non-xdg/.vsvimrc`
+#	cmd.exe /c del /s /q "%USERPROFILE%\\.vsvimrc" || true
+#	cmd.exe /c mklink "%USERPROFILE%\\.vsvimrc" `$wpath -aw $dotfiles_dir/config/non-xdg/.vsvimrc`
 	cmd.exe /c rmdir /s /q "%APPDATA%\\Code\\User" || true
 	cmd.exe /c mklink /D "%APPDATA%\\Code\\User" `$wpath -aw $dotfiles_dir/config/vscode`
 
@@ -265,7 +325,6 @@ EOF
 	cmd.exe /c mkdir "%LOCALAPPDATA%\\WSL.opt"
 	local winoptdir=`cmd.exe /c 'echo %LOCALAPPDATA%\\WSL.opt'`
 	(
-		mkdir -p /usr/local/opt
 		cd /usr/local/opt
 		ln -snf `$wpath -au ${winoptdir:0:-1}` windows
 	)

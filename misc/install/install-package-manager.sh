@@ -5,6 +5,10 @@ cd $(cd `dirname $0` && pwd -P)
 source ../../config/zsh/environment.sh
 
 darwin() {
+	# if [ ! -f /Library/LaunchDaemons/com.apple.relatime.plist ]; then
+		# sudo cp darwin_files/com.apple.relatime.plist /Library/LaunchDaemons
+	# fi
+
 	if ! type brew >/dev/null 2>&1; then
 		if xcode-select --install >/dev/null 2>&1; then
 			return 1
@@ -14,14 +18,35 @@ darwin() {
 	fi
 	brew update
 	brew upgrade
-	return 0
 }
 
 freebsd() {
 	return 0
 }
 
-linux() {
+arch() {
+	sudo sed -i -e 's/#ja_JP.UTF8 .*$/ja_JP.UTF8 UTF8/' /etc/locale.gen
+	locale-gen
+
+	# sudo pacman -g
+	yes | sudo pacman -Syyu
+	# yes | sudo paccache -r
+	# yes | sudo paccache -ruk0
+
+	if ! type aurman >/dev/null 2>&1; then (
+		yes | sudo pacman -S git
+		gpg --recv-keys 4C3CE98F9579981C21CA1EC3465022E743D71E39
+		cd `mktemp -d`
+		git clone https://aur.archlinux.org/aurman.git
+		cd aurman
+		yes | makepkg -si
+		hash -r
+	) fi
+
+	aurman -Syyu --noconfirm
+}
+
+ubuntu() {
 	sudo apt install -y software-properties-common
 
 	find /etc/apt/sources.list.d -type f -name "*.list" -print0 | \
@@ -33,7 +58,6 @@ linux() {
 	sudo add-apt-repository -y ppa:neovim-ppa/unstable
 	sudo apt update -y
 	sudo apt upgrade -y
-	return 0
 }
 
 windows() {
@@ -48,10 +72,8 @@ cygwin() {
 	return 0
 }
 
-for platform in ${_platforms[@]}; do
-	if type $platform >/dev/null 2>&1; then
-		$platform
-	fi
-done
+if type $1 >/dev/null 2>&1; then
+	$1
+fi
 
 hash -r
