@@ -58,6 +58,21 @@ case "$1" in
 		$HELPER generate-user-support-files "$@" &
 		;;
 	build|rebuild|clean)
+		mod-configure() {
+			sed -i -e 's/#define\s\+ALLOW_PROFILEGPU_IN_TEST\s\+0/#define ALLOW_PROFILEGPU_IN_TEST 1/' $1
+			sed -i -e 's/#define\s\+NO_LOGGING\s\+.*$/#define NO_LOGGING 0/' $1
+			sed -i -e 's/#define\s\+ENABLE_STATNAMEDEVENTS\s\+0/#define ENABLE_STATNAMEDEVENTS !UE_BUILD_TEST/' $1
+		}
+		BUILD_H=`$HELPER engine-root`/Source/Runtime/Core/Public/Misc/Build.h
+		if [ -f "$BUILD_H" ]; then
+			sudo cp $BUILD_H /tmp/Build.h
+			mod-configure /tmp/Build.h
+			if ! diff $BUILD_H /tmp/Build.h >/dev/null; then
+				mod-configure $BUILD_H
+			fi
+		else
+			echo "Not Found: $BUILD_H" >&2
+		fi
 		`$HELPER build-command "$@"` | nkf -wu
 		;;
 	packages)

@@ -414,7 +414,7 @@ def _generate_build_command_internal(proc, engine_root, target, platform, comman
         wpath(os.path.join(engine_root, 'Build/BatchFiles/{}.bat'.format(command.capitalize()))),
         target,
         platform,
-        configuration] + list(args) + ['-WaitMutex', '-FromMsBuild', '-2017']
+        configuration] + list(args) + ['-WaitMutex', '-FromMsBuild', '-2017'] #, '-CanSkipLink', '-Define', 'USE_LOGGING_IN_SHIPPING=1']
 
     print('exec: ' + ' '.join(buildtool_cmd), file=sys.stderr)
     print('exec: ' + ' '.join(build_cmd), file=sys.stderr)
@@ -432,7 +432,9 @@ def _generate_unreal_buildtool_build_command(proc, engine_root, command, configu
         wpath(os.path.join(engine_root, 'Source/Programs/UnrealBuildTool/UnrealBuildTool.csproj')),
         "/p:GenerateFullPaths=true",
         "/p:DebugType=portable",
-        "/p:Configuration={}".format(configuration),
+        #  "/p:Configuration={}".format(configuration),
+        "/p:Configuration={}".format("Development"),
+        #  "/p:Platform={}".format(platform),
         "/verbosity:minimal"]
 
 
