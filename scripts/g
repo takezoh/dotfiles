@@ -2,18 +2,21 @@
 
 main() {
 	# exec rg --line-number --ignore-case "$@" . 2>/dev/null | peco --prompt="$*>" --exec 'awk -F : '"'"'{print "+" $2 " " $1}'"'"' | xargs less -N '
-	exec rg --line-number --ignore-case "$@" . 2>/dev/null | fzf -e --multi --exit-0 --reverse --prompt="$* > " \
+	exec rg --line-number --ignore-case "$@" . 2>/dev/null | fzf -e --multi --no-sort --exit-0 --reverse --prompt="$* > " \
 		--preview 'exec g --preview {}' \
 		--preview-window up \
 		--bind 'enter:execute(g --open less {})' \
 		--bind 'ctrl-o:execute(g --open nvim {})' \
-		--bind 'ctrl-v:execute-silent(g --open code {})'
+		--bind 'ctrl-v:execute-silent(g --open code {})' \
+		--bind 'ctrl-t:execute-silent(g --open vs {})' \
+		--bind 'ctrl-y:execute-silent(echo {} | clipboard -i)'
 }
 
 preview() {
 	exec cat <<EOF | python3
 import subprocess
-window_lines = `tput lines` // 2 - 2
+#window_lines = `tput lines` // 2 - 2
+window_lines = `tput lines`
 filename, linenumber, vars = '''$* '''.split(':', 2)
 linenumber = int(linenumber) - 1
 p = subprocess.run(['src-highlight.sh', filename], stdout=subprocess.PIPE, shell=False)
@@ -33,15 +36,22 @@ EOF
 }
 
 open() {
-	cmd=$1
+	local cmd=$1
 	shift
 
+	local args=(`echo $@ | awk -F : '{ print $1 " " $2 }'`)
+	local filename=${args[0]}
+	local linenumber=${args[1]}
+
 	case "$cmd" in
+	vs)
+		(wcmd `wpath -aw ~/.dotfiles/misc/etc/vshelper/openfile.vbs` `wpath -aw $filename` $linenumber) &
+		;;
 	code)
-		code --reuse-window --goto $(wslpath -aw `echo $@ | awk -F : '{ print $1 ":" $2 }'`)
+		code --reuse-window --goto "`wpath -aw $filename`:$linenumber"
 		;;
 	*)
-		exec $cmd `echo $@ | awk -F : '{ print "+" $2 " " $1 }'`
+		exec $cmd "+${linenumber}" $filename
 		;;
 	esac
 }
