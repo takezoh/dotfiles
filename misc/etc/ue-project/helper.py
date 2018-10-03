@@ -308,12 +308,18 @@ class Command():
         context["settings"]["codegnuglobal.autoupdate"] = True
         json.dump(context, open(vscode_project, 'w'), indent=4)
 
-        # VSCode .vscode/c_cpp_properties.json
-        #  vscode_c_cpp_properties = os.path.join(self.uproject.project_root, '.vscode', 'c_cpp_properties.json')
+        try:
+            os.makedirs(os.path.join(self.uproject.root_path, '.vscode'))
+        except OSError:
+            pass
 
         # VSCode .vscode/tasks.json
-        vscode_tasks = os.path.join(self.uproject.project_root, '.vscode', 'tasks.json')
-        context = json.load(open(vscode_tasks, 'r'))
+        vscode_tasks = os.path.join(self.uproject.root_path, '.vscode', 'tasks.json')
+
+        context = {}
+        if os.path.exists(vscode_tasks):
+            context = json.load(open(vscode_tasks, 'r'))
+
         context["tasks"] = []
 
         for configure in ("Development", "DebugGame", "Debug"):
@@ -344,8 +350,12 @@ class Command():
         json.dump(context, open(vscode_tasks, 'w'), indent=4)
 
         # VSCode .vscode/launch.json
-        vscode_launch = os.path.join(self.uproject.project_root, '.vscode', 'launch.json')
-        context = json.load(open(vscode_launch, 'r'))
+        vscode_launch = os.path.join(self.uproject.root_path, '.vscode', 'launch.json')
+
+        context = {}
+        if os.path.exists(vscode_launch):
+            context = json.load(open(vscode_launch, 'r'))
+
         context["configurations"] = [
             {
                 "name": "Attach",

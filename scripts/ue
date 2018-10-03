@@ -21,7 +21,7 @@ choose_map() {
 		if [ -z "$map" ]; then
 			exit 1
 		fi
-		map="/Game/`echo $map | sed -e 's/\..*$//'`"
+		map="/Game/`echo ${map:2} | sed -e 's/\.umap$//'`"
 		echo $map
 	fi
 }
