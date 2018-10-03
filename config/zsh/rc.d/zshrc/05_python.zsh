@@ -6,7 +6,8 @@ if type pyenv >/dev/null 2>&1; then
 		if type brew >/dev/null 2>&1; then
 			export PYENV_ROOT=`brew --prefix pyenv`
 		else
-			export PYENV_ROOT=$(cd $(dirname $(readlink -f `where pyenv`))/.. && pwd -P)
+			# export PYENV_ROOT=$(cd $(dirname $(readlink -f `where pyenv`))/.. && pwd -P)
+			export PYENV_ROOT=/usr/local/opt/pyenv
 		fi
 
 		eval "$(pyenv init -)"

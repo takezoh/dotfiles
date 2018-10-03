@@ -74,10 +74,10 @@ alias -g H="| head"
 alias -g T="| tail"
 alias -g S="| sed"
 
-if (( ${_platforms[(I)windows]} )); then
-	alias -g C="| win32yank -i"
-	alias -g P="win32yank -o"
+alias -g C="| clipboard -i"
+alias -g P="clipboard -o"
 
+if (( ${_platforms[(I)windows]} )); then
 	alias open="wstart"
 	# alias msbuild="MSBuild.exe"
 
@@ -85,22 +85,9 @@ if (( ${_platforms[(I)windows]} )); then
 		# alias wcmd="`echo ${^path}/cmd.exe(N)` /d /c"
 		# alias open="cygstart"
 		alias sudo=
-		alias wpath="cygpath"
-
-		# alias -g C=" > /dev/clipboard"
-		# alias -g P="cat /dev/clipboard"
 	else
-		alias wpath="wslpath"
 		# alias wcmd="wsl-cmdtool wcmd"
 		# alias open="wsl-cmdtool wstart"
-	fi
-elif (( ${_platforms[(I)darwin]} )); then
-	alias -g C="| pbcopy"
-	alias -g P="pbpaste"
-else
-	if type xclip >/dev/null 2>&1; then
-		alias -g C="| xclip -i -selection clipboard"
-		alias -g P="xclip -o -selection clipboard"
 	fi
 fi
 

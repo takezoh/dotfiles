@@ -1,0 +1,28 @@
+#!/usr/bin/zsh
+
+if (( ${_platforms[(I)windows]} )); then
+	C="| win32yank -i"
+	P="win32yank -o"
+
+	if [ "$OSTYPE" = "cygwin" ]; then
+		# C=" > /dev/clipboard"
+		# P="cat /dev/clipboard"
+	fi
+elif (( ${_platforms[(I)darwin]} )); then
+	C="| pbcopy"
+	P="pbpaste"
+else
+	if type xclip >/dev/null 2>&1; then
+		C="| xclip -i -selection clipboard"
+		P="xclip -o -selection clipboard"
+	fi
+fi
+
+case "$1" in
+	-i)
+		eval "cat - $C"
+		;;
+	-o)
+		eval "$P"
+		;;
+esac
