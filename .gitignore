@@ -1,6 +1,7 @@
 .dropbox
 
 config/zsh/.zcompdump
+config/zsh/.zcompdump.*
 
 .*_history
 .*.local
