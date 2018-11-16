@@ -1,4 +1,4 @@
-#!/usr/bin/zsh
+#!/usr/bin/env zsh
 
 if (( ${_platforms[(I)windows]} )); then
 	C="| win32yank -i"
