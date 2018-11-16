@@ -7,7 +7,6 @@ BellType=0
 BellTaskbar=no
 Printer=*
 Language=@
-BoldAsFont=-1
 
 Columns=150
 Rows=40
@@ -16,4 +15,4 @@ FontHeight=13
 Charset=UTF-8
 Transparency=high
 CursorType=block
-Scrollbar=none
+Scrollbar=right
