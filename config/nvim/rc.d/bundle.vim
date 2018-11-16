@@ -43,10 +43,17 @@ if executable('rg')
 	call denite#custom#var('file_rec', 'command', ['rg', '--files'])
 	call denite#custom#var('grep', 'command', ['rg'])
 	call denite#custom#var('grep', 'recursive_opts', [])
+	call denite#custom#var('grep', 'final_opts', [])
 	call denite#custom#var('grep', 'default_opts', ['--vimgrep', '--no-heading'])
+
+	call denite#custom#map('insert', "<C-n>", '<denite:move_to_next_line>')
+	call denite#custom#map('insert', "<C-p>", '<denite:move_to_previous_line>')
+	call denite#custom#map('insert', "<C-g>", '<denite:assign_next_text>')
+	call denite#custom#map('insert', "<C-t>", '<denite:assign_previous_text>')
 endif
 
 call denite#custom#source('file_rec', 'matchers', ['matcher_fuzzy'])
+" call denite#custom#source('file_rec', 'matchers', ['matcher_cpsm'])
 
 " unite-outline の自動更新
 let g:unite_source_outline_filetype_options = {

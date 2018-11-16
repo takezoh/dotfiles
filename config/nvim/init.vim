@@ -17,8 +17,7 @@ source $XDG_CONFIG_HOME/nvim/rc.d/coding.vim
 
 " VSCode で開く
 command Code call system('code --reuse-window --goto ' . expand("%.p") . ':' . line("."))
+command Vs call system('(wcmd `wpath -aw ~/.dotfiles/misc/etc/vshelper/openfile.vbs` `wpath -aw ' . expand("%.p") . '` ' . line(".") . ') &')
 
-set sh="zsh -l"
+set shell=zsh
 tnoremap <slent> <esc> <C-\><C-n>
-
-" let g:ycm_global_ycm_extra_conf = $XDG_CONFIG_HOME . '/nvim/ycm/extra_conf.py'

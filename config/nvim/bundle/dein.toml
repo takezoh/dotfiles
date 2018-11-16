@@ -90,7 +90,7 @@ on_i = 1
 # hook_source = """
 hook_add = """
   let g:deoplete#enable_at_startup = 1
-  let g:deoplete#auto_complete_delay = 0
+  let g:deoplete#auto_complete_delay = 1
   let g:deoplete#auto_complete_start_length = 1
   let g:deoplete#enable_camel_case = 0
   let g:deoplete#enable_ignore_case = 0
@@ -98,6 +98,7 @@ hook_add = """
   let g:deoplete#enable_smart_case = 1
   let g:deoplete#file#enable_buffer_path = 1
   let g:deoplete#max_list = 10000
+	inoremap <expr><tab> pumvisible() ? "\<C-n>" : "\<tab>"
 """
 #   set completeopt-=preview
 #   " autocmd InsertLeave,CompleteDone * if pumvisible() == 0 | pclose | endif
@@ -108,15 +109,15 @@ hook_add = """
 # on_ft = ["h", "hpp", "cpp", "cc", "cmake"]
 # depends = "deoplete.nvim"
 
-[[plugins]]
-repo = "zchee/deoplete-clang"
-on_ft = ["h", "hpp", "cpp", "cc", "cmake"]
-depends = "deoplete.nvim"
-#hook_add = """
-#let g:deoplete#sources#clang#libclang_path='/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/libclang.dylib'
-#let g:deoplete#sources#clang#clang_header='/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang'
-#"""
-hook_add = '''
-let g:deoplete#sources#clang#libclang_path='/usr/lib/llvm-6.0/lib/libclang-6.0.so'
-let g:deoplete#sources#clang#clang_header='/usr/lib/clang'
-'''
+# [[plugins]]
+# repo = "zchee/deoplete-clang"
+# on_ft = ["h", "hpp", "cpp", "cc", "cmake"]
+# depends = "deoplete.nvim"
+# #hook_add = """
+# #let g:deoplete#sources#clang#libclang_path='/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/libclang.dylib'
+# #let g:deoplete#sources#clang#clang_header='/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang'
+# #"""
+# hook_add = '''
+# let g:deoplete#sources#clang#libclang_path='/usr/lib/llvm-6.0/lib/libclang-6.0.so'
+# let g:deoplete#sources#clang#clang_header='/usr/lib/clang'
+# '''
