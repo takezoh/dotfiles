@@ -224,11 +224,22 @@ class Command():
     def engine_root(self, *args):
         print (self.uproject.engine_root)
 
+    def uat_command(self, *args):
+        cmd = ['cmd.exe', '/c',
+            wpath(os.path.join(self.uproject.engine_root, 'Build/BatchFiles/RunUAT.bat')),
+            ] + list(args)
+        print (' '.join(cmd))
+
     def build_command(self, command, configuration, *args):
-        cmd = _generate_build_command_internal(self.proc,
+        platform = 'Win64'
+        if len(args) > 0 and args[0] in ('Win64', 'Android', 'Linux', 'Mac', 'iOS'):
+            platform = args[0]
+            args = args[1:]
+
+        cmd = _generate_build_command_internal(self,
                 self.uproject.engine_root,
                 self.uproject.name,
-                'Win64',
+                platform,
                 command,
                 configuration,
                 wpath(self.uproject.uproject_path),
@@ -242,7 +253,61 @@ class Command():
         if os.path.exists(builder):
             cmdargs = ['cmd.exe', '/c', wpath(builder)]
 
-        cmd = ' '.join(cmdargs + [wpath(self.uproject.uproject_path), '-Game', '-Engine', '-2017', '-VSCode'] + list(args))
+        cmd = ' '.join(cmdargs + [wpath(self.uproject.uproject_path), '-Game', '-Engine', '-makefile', '-2017', '-VSCode'] + list(args))
+        print('exec: ' + cmd, file=sys.stderr)
+        print(cmd, file=sys.stdout)
+
+    def cook_command(self, configure, *args):
+        ue4exe = 'UE4Editor-Cmd.exe'
+        platform = 'WindowsNoEditor'
+        if len(args) > 0:
+            for target in ('Windows', 'Android', 'IOS'):
+                if args[0].startswith(target):
+                    platform = args[0]
+                    args = args[1:]
+
+        cmdargs = [#'cmd.exe', '/c',
+            os.path.join(self.uproject.engine_root, 'Binaries/Win64/{}'.format(ue4exe)),
+            wpath(self.uproject.uproject_path),
+            '-run=Cook', 
+            '-NoLogTimes', '-TargetPlatform={}'.format(platform), '-fileopenlog', '-unversioned', '-skipeditorcontent', 
+            '-abslog={}'.format(wpath(os.path.join(self.uproject.project_root, 'Saved/Logs/HelperCook.txt'))), '-stdout',
+            #  '-CrashForUAT', 
+            '-unattended',  '-UTF8Output']
+
+        cmd = ' '.join(cmdargs + list(args))
+        print('exec: ' + cmd, file=sys.stderr)
+        print(cmd, file=sys.stdout)
+
+    def package_command(self, configure, *args):
+        ue4exe = 'UE4Editor-Cmd.exe'
+        platform, flavor = 'Win64', None
+        if len(args) > 0:
+            for target in ('Win64', 'Linux', 'Android', 'IOS'):
+                if args[0].startswith(target):
+                    try:
+                        platform, flavor = args[0].split('_', 1)
+                    except ValueError:
+                        platform, flavor = args[0], None
+                    args = args[1:]
+                    break
+
+        cmdargs = ['cmd.exe', '/c',
+            wpath(os.path.join(self.uproject.engine_root, 'Build/BatchFiles/RunUAT.bat')),
+            '-ScriptsForProject={}'.format(wpath(self.uproject.uproject_path)),
+            'BuildCookRun',
+            '-nocompileeditor',
+            '-nop4',
+            '-project={}'.format(wpath(self.uproject.uproject_path)),
+            '-cook', '-stage', '-archive', '-mapsonly',
+            '-archivedirectory={}'.format(wpath(os.path.join(self.uproject.project_root, 'Saved/Packages'))),
+            '-package', '-clientconfig={}'.format(configure), '-ue4exe={}'.format(ue4exe), '-compressed', '-SkipCookingEditorContent',
+            '-pak', '-prereqs', '-nodebuginfo', '-targetplatform={}'.format(platform), '-build', '-CrashReporter', '-utf8output', '-compile']
+
+        if flavor:
+            cmdargs.append('-cookflavor={}'.format(flavor)) 
+
+        cmd = ' '.join(cmdargs + list(args))
         print('exec: ' + cmd, file=sys.stderr)
         print(cmd, file=sys.stdout)
 
@@ -402,23 +467,38 @@ class Command():
         self.proc.subp(['gtags', os.path.join(self.uproject.root_path, '.uproject', 'gtags.engine')], cwd=self.uproject.engine_root)
 
 
-def _generate_build_command_internal(proc, engine_root, target, platform, command, configuration, *args):
+def _generate_build_command_internal(builder, engine_root, target, platform, command, configuration, *args):
     for suffix in ('Editor', 'Client', 'Server'):
         if configuration.endswith(suffix):
             target = target + suffix
             configuration = configuration[:-len(suffix)]
 
-    buildtool_cmd = _generate_unreal_buildtool_build_command(proc, engine_root, command, configuration, platform)
-
-    build_cmd = ['cmd.exe', '/c',
-        wpath(os.path.join(engine_root, 'Build/BatchFiles/{}.bat'.format(command.capitalize()))),
-        target,
-        platform,
-        configuration] + list(args) + ['-WaitMutex', '-FromMsBuild', '-2017'] #, '-CanSkipLink', '-Define', 'USE_LOGGING_IN_SHIPPING=1']
-
-    print('exec: ' + ' '.join(buildtool_cmd), file=sys.stderr)
+    build_cmd = _generate_unreal_buildtool_build_command(builder.proc, engine_root, command, configuration, platform)
     print('exec: ' + ' '.join(build_cmd), file=sys.stderr)
-    return buildtool_cmd + ['&&'] + build_cmd
+
+    def push_cmd(*args):
+        print('exec: ' + ' '.join(args), file=sys.stderr)
+        build_cmd[len(build_cmd):] = ['&&'] + list(args)
+
+    executer = wpath(os.path.join(engine_root, 'Build/BatchFiles/{}.bat'.format(command.capitalize())))
+    if platform != 'Win64' and target.endswith('Editor'):
+        target = target[0:-len('Editor')]
+
+    if platform == 'Linux':
+        #  push_cmd('nkf', '-Lu', os.path.join(builder.uproject.engine_root, 'Build/BatchFiles/Linux/GenerateGDBInit.sh'),
+            #  '|', 'bash')
+        #  push_cmd('nkf', '-Lu', os.path.join(builder.uproject.engine_root, 'Build/BatchFiles/Linux/GenerateProjectFiles.sh'),
+            #  '|', 'bash')
+        pass
+    else:
+        push_cmd('cmd.exe', '/c',
+            executer ,
+            target,
+            platform,
+            configuration,
+            *args, '-WaitMutex', '-FromMsBuild', '-2017') #, '-CanSkipLink', '-Define', 'USE_LOGGING_IN_SHIPPING=1']
+
+    return build_cmd
 
 
 def _generate_unreal_buildtool_build_command(proc, engine_root, command, configuration, platform):
@@ -435,6 +515,7 @@ def _generate_unreal_buildtool_build_command(proc, engine_root, command, configu
         #  "/p:Configuration={}".format(configuration),
         "/p:Configuration={}".format("Development"),
         #  "/p:Platform={}".format(platform),
+        "/p:Platform=AnyCPU",
         "/verbosity:minimal"]
 
 
@@ -445,7 +526,7 @@ def _generate_project_files(proc, engine_root, *args):
     if os.path.exists(builder):
         cmdargs = ['wcmd', wpath(builder)]
 
-    proc.subp(cmdargs + ['-2017', '-VSCode'] + list(args))
+    proc.subp(cmdargs + ['-makefile', '-2017', '-VSCode'] + list(args))
     proc.join()
 
 

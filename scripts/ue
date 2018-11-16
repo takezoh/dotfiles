@@ -57,11 +57,19 @@ case "$1" in
 		`$HELPER project-files-command "$@"` | nkf -wu
 		$HELPER generate-user-support-files "$@" &
 		;;
+	uat)
+		shift
+		`$HELPER uat-command "$@"` | nkf -wu
+		;;
 	build|rebuild|clean)
 		mod-configure() {
-			sed -i -e 's/#define\s\+ALLOW_PROFILEGPU_IN_TEST\s\+0/#define ALLOW_PROFILEGPU_IN_TEST 1/' $1
+			sed -i -e 's/#define\s\+ALLOW_PROFILEGPU_IN_TEST\s\+.*$/#define ALLOW_PROFILEGPU_IN_TEST 1/' $1
+			# sed -i -e 's/#define\s\+ALLOW_PROFILEGPU_IN_TEST\s\+.*$/#define ALLOW_PROFILEGPU_IN_TEST 0/' $1
 			sed -i -e 's/#define\s\+NO_LOGGING\s\+.*$/#define NO_LOGGING 0/' $1
-			sed -i -e 's/#define\s\+ENABLE_STATNAMEDEVENTS\s\+0/#define ENABLE_STATNAMEDEVENTS !UE_BUILD_TEST/' $1
+			# sed -i -e 's/#define\s\+FORCE_USE_STATS\s\+.*$/#define FORCE_USE_STATS 1/' $1
+			sed -i -e 's/#define\s\+ENABLE_STATNAMEDEVENTS\s\+.*$/#define ENABLE_STATNAMEDEVENTS UE_BUILD_TEST/' $1
+			# sed -i -e 's/#define\s\+ENABLE_STATNAMEDEVENTS\s\+.*$/#define ENABLE_STATNAMEDEVENTS 0/' $1
+			return 0
 		}
 		BUILD_H=`$HELPER engine-root`/Source/Runtime/Core/Public/Misc/Build.h
 		if [ -f "$BUILD_H" ]; then
@@ -74,6 +82,11 @@ case "$1" in
 			echo "Not Found: $BUILD_H" >&2
 		fi
 		`$HELPER build-command "$@"` | nkf -wu
+		;;
+	cook|package)
+		cmd=${1}-command
+		shift
+		`$HELPER $cmd "$@"` | nkf -wu 
 		;;
 	packages)
 		shift
