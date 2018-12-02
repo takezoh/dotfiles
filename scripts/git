@@ -1,0 +1,36 @@
+#!/usr/bin/env zsh
+
+WINGIT="/mnt/c/Program Files/Git/bin/git.exe"
+
+ugit() {
+	newpath=()
+	script_dir=$(cd `dirname $0` && pwd -P)
+
+	for p in $path; do
+		if [ ! "$script_dir" = "$p" ]; then
+			newpath+=($p)
+		fi
+	done
+
+	bins=(`echo ${^newpath}/git(N)`)
+
+	${bins[1]} "$@"
+}
+
+
+if (( ${_platforms[(I)windows]} )); then
+	err="$(wslpath -w `pwd` 2>&1 >/dev/null)"
+	ret=$?
+
+	if [ $ret -eq 0 ]; then
+		exec $WINGIT "$@"
+	fi
+
+	if [ "$err" = "wslpath: .: Result not representable" ]; then
+		exec ugit "$@"
+	fi
+
+	exit 1
+fi
+
+exec ugit "$@"

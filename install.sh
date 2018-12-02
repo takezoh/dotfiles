@@ -38,6 +38,9 @@ add_packages_darwin() {
 		yarn nodenv node-build
 		# java
 		jenv
+
+		jadx
+		dex2jar
 	)
 
 	brew install ${packages[@]}
@@ -78,10 +81,12 @@ add_packages_arch() {
 		nkf
 		global
 		aws-cli
+		jadx
+		dex2jar
 	)
 
 	sudo pacman -S --needed --noconfirm ${packages[@]}
-	aurman -S --needed --noconfirm ${aur_packages[@]}
+	LC_ALL=C aurman -S --needed --noconfirm ${aur_packages[@]}
 }
 
 add_packages_ubuntu() {
@@ -311,18 +316,24 @@ install_windows() {
 	if [ "$OSTYPE" = "cygwin" ]; then
 		wpath=cygpath
 	fi
-#	cmd.exe /c del /s /q "%USERPROFILE%\\.vsvimrc" || true
-#	cmd.exe /c mklink "%USERPROFILE%\\.vsvimrc" `$wpath -aw $dotfiles_dir/config/non-xdg/.vsvimrc`
-	cmd.exe /c rmdir /s /q "%APPDATA%\\Code\\User" || true
-	cmd.exe /c mklink /D "%APPDATA%\\Code\\User" `$wpath -aw $dotfiles_dir/config/vscode`
 
-	cat <<EOF > $HOME/.local/platform-generated.gitconfig
-[core]
-	filemode = false
-EOF
+	# non-xdg dotfiles
+	for name in $(cd $XDG_CONFIG_HOME/non-xdg && command ls); do
+		cmd.exe /d /c del /q "%USERPROFILE%\\.${name}" || true
+		cmd.exe /d /c mklink "%USERPROFILE%\\.${name}" `$wpath -aw $dotfiles_dir/config/non-xdg/${name}`
+	done
 
-	cmd.exe /c rmdir /s /q "%LOCALAPPDATA%\\WSL.opt" || true
-	cmd.exe /c mkdir "%LOCALAPPDATA%\\WSL.opt"
+	cmd.exe /d /c rmdir /q "%APPDATA%\\Code\\User" || true
+	cmd.exe /d /c mkdir "%APPDATA%\\Code"
+	cmd.exe /d /c mklink /D "%APPDATA%\\Code\\User" `$wpath -aw $dotfiles_dir/config/vscode`
+
+# 	cat <<EOF > $HOME/.local/platform-generated.gitconfig
+# [core]
+# 	filemode = false
+# EOF
+
+	cmd.exe /d /c rmdir /q "%LOCALAPPDATA%\\WSL.opt" || true
+	cmd.exe /d /c mkdir "%LOCALAPPDATA%\\WSL.opt"
 	local winoptdir=`cmd.exe /c 'echo %LOCALAPPDATA%\\WSL.opt'`
 	(
 		cd /usr/local/opt
