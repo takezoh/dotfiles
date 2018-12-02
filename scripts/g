@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env zsh
 
 main() {
 	# exec rg --line-number --ignore-case "$@" . 2>/dev/null | peco --prompt="$*>" --exec 'awk -F : '"'"'{print "+" $2 " " $1}'"'"' | xargs less -N '
@@ -13,10 +13,13 @@ main() {
 }
 
 preview() {
+	local lines=`tput lines`
+	# if (( ${_platforms[(I)darwin]} )); then
+		lines=$(( $lines / 2 - 2 ))
+	# fi
 	exec cat <<EOF | python3
 import subprocess
-#window_lines = `tput lines` // 2 - 2
-window_lines = `tput lines`
+window_lines = ${lines}
 filename, linenumber, vars = '''$* '''.split(':', 2)
 linenumber = int(linenumber) - 1
 p = subprocess.run(['src-highlight.sh', filename], stdout=subprocess.PIPE, shell=False)
@@ -40,8 +43,10 @@ open() {
 	shift
 
 	local args=(`echo $@ | awk -F : '{ print $1 " " $2 }'`)
-	local filename=${args[0]}
-	local linenumber=${args[1]}
+	# local filename=${args[0]}
+	# local linenumber=${args[1]}
+	local filename=${args[1]}
+	local linenumber=${args[2]}
 
 	case "$cmd" in
 	vs)
