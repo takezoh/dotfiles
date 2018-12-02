@@ -11,6 +11,7 @@ var Shell = "/usr/bin/zsh --login"
 var Command = Terminal + " " + Icon + " --WSL=\"" + Distro + "\" " + Config + " -~ " + Shell
 
 env.item("SHELL") = "/usr/bin/zsh"
-env.item("WSLENV") = "SHELL/u:PATH/lu:USERPROFILE/pu"
+env.item("WSL_SHELL") = "/usr/bin/zsh"
+env.item("WSLENV") = "SHELL/u:WSL_SHELL/u:PATH/lu:USERPROFILE/pu:ANDROID_HOME/pu:NDK_ROOT/pu"
 
 WshShell.Run("cmd /c start " + Command, 0);
