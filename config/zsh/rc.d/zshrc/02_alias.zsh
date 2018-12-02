@@ -61,7 +61,7 @@ fi
 
 alias top="htop"
 alias tree="tree -C"
-alias v="less"
+# alias v="less"
 
 # psg() {
 # 	local str=$1

@@ -1,14 +1,14 @@
-path=(
-	$HOME/android-sdks/tools(N-/)
-	$HOME/android-sdks/platform-tools(N-/)
-	# $HOME/android-sdks/build-tools/19.1.0(N-/)
-	$HOME/android-sdks/build-tools/*(N-/)
-	$HOME/android-ndk-*(N-/)
-	$path
-)
-
-export NDK_ROOT=~/android-ndk-r10d/
-export ANDROID_HOME=~/android-sdks/
+# path=(
+# 	$HOME/android-sdks/tools(N-/)
+# 	$HOME/android-sdks/platform-tools(N-/)
+# 	# $HOME/android-sdks/build-tools/19.1.0(N-/)
+# 	$HOME/android-sdks/build-tools/*(N-/)
+# 	$HOME/android-ndk-*(N-/)
+# 	$path
+# )
+# 
+# export NDK_ROOT=~/android-ndk-r10d/
+# export ANDROID_HOME=~/android-sdks/
 
 if type ccache > /dev/null 2>&1; then
 	export USE_CCACHE=1
@@ -26,7 +26,7 @@ jar.rev() {
 		unzip $jar
 		# jad -s java -r **/*.class
 		# jad -s java -r `find . -name "*.class"`
-		find . -name "*.class" | xargs jad -s java -r
+		find . -name "*.class" | xargs jadx -s java -r
 		find . -name "*.class" | xargs rm
 	)
 	rm $dir/$jar
@@ -40,7 +40,11 @@ apk.rev() {
 	(
 		cd $dir
 		unzip $apk
-		d2j-dex2jar classes.dex
+		if type dex2jar >/dev/null 2>&1; then
+			dex2jar classes.dex
+		elif type d2j-dex2jar >/dev/null 2>&1; then
+			d2j-dex2jar classes.dex
+		fi
 		mv classes-dex2jar.jar classes.jar.jar
 		jar.rev classes.jar.jar
 		rm -f classes.jar.jar
