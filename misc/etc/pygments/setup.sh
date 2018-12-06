@@ -1,9 +1,13 @@
 #!/bin/bash
-cd `dirname $0`
+rootdir=$(cd `dirname $0` && pwd -P)
+sharedir=$HOME/.local/share/pygments_ex
+mkdir -p $sharedir/styles
+touch $sharedir/styles/__init__.py
+cd $sharedir
 
 # Vim Color Scheme Editor "Vivify" [http://bytefluent.com/devify]
-for s in `cd ../../../config/nvim/colors && command ls`; do
-	python3 ../../../external/vim2pygments/vimpygments.py ../../../config/nvim/colors/$s > styles/${s%%.*}.py
+for s in `cd $rootdir/../../../config/nvim/colors && command ls`; do
+	python3 $rootdir/../../../external/vim2pygments/vimpygments.py $rootdir/../../../config/nvim/colors/$s > styles/${s%%.*}.py
 done
 
 # generate setup.py
@@ -15,10 +19,10 @@ def style_entry_point(f):
 	capitalized_name = '_'.join(x.capitalize() for x in name.split('_'))
 	return "{0} = styles.{0}:{1}Style".format(name, capitalized_name)
 
-template = open("setup.template.py", "r").read()
+template = open("$rootdir/setup.template.py", "r").read()
 print (template.format(
 		lexers="",
 		styles="\n".join([style_entry_point(x) for x in os.listdir("styles") if x != '__init__.py'])))
 EOF
 
- # sudo -H python3 setup.py install
+sudo -H python3 setup.py install
