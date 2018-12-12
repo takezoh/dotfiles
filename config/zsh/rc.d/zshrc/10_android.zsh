@@ -25,8 +25,7 @@ jar.rev() {
 		cd $dir
 		unzip $jar
 		# jad -s java -r **/*.class
-		# jad -s java -r `find . -name "*.class"`
-		find . -name "*.class" | xargs jadx -s java -r
+		jad -s java -r `find . -name "*.class"`
 		find . -name "*.class" | xargs rm
 	)
 	rm $dir/$jar
@@ -40,14 +39,15 @@ apk.rev() {
 	(
 		cd $dir
 		unzip $apk
-		if type dex2jar >/dev/null 2>&1; then
-			dex2jar classes.dex
-		elif type d2j-dex2jar >/dev/null 2>&1; then
-			d2j-dex2jar classes.dex
-		fi
-		mv classes-dex2jar.jar classes.jar.jar
-		jar.rev classes.jar.jar
-		rm -f classes.jar.jar
+		jadx classes.dex
+		# if type dex2jar >/dev/null 2>&1; then
+		# 	dex2jar classes.dex
+		# elif type d2j-dex2jar >/dev/null 2>&1; then
+		# 	d2j-dex2jar classes.dex
+		# fi
+		# mv classes-dex2jar.jar classes.jar.jar
+		# jar.rev classes.jar.jar
+		# rm -f classes.jar.jar
 	)
 	# rm $dir/classes.dex
 	rm $dir/$apk
