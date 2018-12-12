@@ -1,0 +1,11 @@
+#!/bin/sh -e
+DISTRO=$1
+
+if [ -f $HOME/.local/wsl/rc.local ]; then
+	$HOME/.local/wsl/rc.local
+fi
+if [ -f $HOME/.local/wsl/$DISTRO/rc.local ]; then
+	$HOME/.local/wsl/$DISTRO/rc.local
+fi
+
+sleep 365d
