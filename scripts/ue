@@ -1,68 +1,34 @@
 #!/usr/bin/env zsh
+set -e
 
 unsetopt bg_nice
 
-HELPER="$(cd `dirname $0` && pwd -P)/../misc/etc/ue-project/helper.py"
+HELPER_DIR="$(cd `dirname $0` && pwd -P)/../misc/etc/uehelper"
 
-choose_map() {
-	local project_root=$1
-	local choose_map=no
-	shift
-	for arg in $@; do
-		if [ "${arg#-*}" = "$arg" ]; then
-			break
-		fi
-		if [ $arg = "-game" ] || [ $arg = "-m" ]; then
-			choose_map=yes
-		fi
-	done
-	if [ "$choose_map" = "yes" ]; then
-		local map=$(cd "$project_root/Content" && rg -g '*.umap' --files . 2>/dev/null | peco --prompt="Choose map>")
-		if [ -z "$map" ]; then
-			exit 1
-		fi
-		map="/Game/`echo ${map:2} | sed -e 's/\.umap$//'`"
-		echo $map
+invoke() {
+	if ! which fab >/dev/null 2>&1; then
+		pip3 install fabric
 	fi
-}
-
-choose_package() {
-	local project_root=$1
-	shift
-
-	[ -z "$project_root" ] && return 1
-
-	local target_dir="$project_root"
-
-	for _ in `seq 2`; do
-		[ $target_dir = "/" ] && return 1
-		if [ -d "$target_dir/packages" ]; then
-			break
-		fi
-		target_dir="`dirname $target_dir`"
-	done
-
-	if [ -d "$target_dir/packages" ]; then
-		target_dir="$target_dir/packages"
-	fi
-
-	local name="*.exe"
-	local path=`rg -g $name --files $target_dir 2>/dev/null | rg '/WindowsNoEditor/' | peco --prompt="Search '$name' from $target_dir>"`
-	echo $path
+	local current_dir=$(pwd -P)
+	(cd $HELPER_DIR && TARGET_DIR="$current_dir" $HELPER_DIR/fabfile/bin/ue "$@")
 }
 
 case "$1" in
-	generate-project-files)
+	configure)
 		shift
-		`$HELPER project-files-command "$@"` | nkf -wu
-		$HELPER generate-user-support-files "$@" &
+		invoke projectfiles "$@"
+		invoke supportfiles "$@" &
 		;;
 	uat)
-		shift
-		`$HELPER uat-command "$@"` | nkf -wu
+		invoke "$@"
 		;;
 	build|rebuild|clean)
 		mod-configure() {
+			sed -i -e 's/;\?\s*r\.ShaderDevelopmentMode=.*$/r.ShaderDevelopmentMode=1/' $1
+			sed -i -e 's/;\?\s*r\.DumpShaderDebugInfo=.*$/r.DumpShaderDebugInfo=1/' $1
+			sed -i -e 's/;\?\s*r\.DumpShaderDebugShortNames=.*$/r.DumpShaderDebugShortNames=1/' $1
+			sed -i -e 's/;\?\s*r\.DumpShaderDebugWorkerCommandLine=.*$/r.DumpShaderDebugWorkerCommandLine=1/' $1
+
 			sed -i -e 's/#define\s\+ALLOW_PROFILEGPU_IN_TEST\s\+.*$/#define ALLOW_PROFILEGPU_IN_TEST 1/' $1
 			# sed -i -e 's/#define\s\+ALLOW_PROFILEGPU_IN_TEST\s\+.*$/#define ALLOW_PROFILEGPU_IN_TEST 0/' $1
 			sed -i -e 's/#define\s\+NO_LOGGING\s\+.*$/#define NO_LOGGING 0/' $1
@@ -71,32 +37,31 @@ case "$1" in
 			# sed -i -e 's/#define\s\+ENABLE_STATNAMEDEVENTS\s\+.*$/#define ENABLE_STATNAMEDEVENTS 0/' $1
 			return 0
 		}
-		BUILD_H=`$HELPER engine-root`/Source/Runtime/Core/Public/Misc/Build.h
-		if [ -f "$BUILD_H" ]; then
-			sudo cp $BUILD_H /tmp/Build.h
-			mod-configure /tmp/Build.h
-			if ! diff $BUILD_H /tmp/Build.h >/dev/null; then
-				mod-configure $BUILD_H
+		for s in "Config/ConsoleVariables.ini" "Source/Runtime/Core/Public/Misc/Build.h"; do
+			SOURCE=`invoke editor --which=engine-root`/$s
+			if [ -f "$SOURCE" ]; then
+				sudo cp $SOURCE /tmp/`basename $SOURCE`
+				mod-configure /tmp/`basename $SOURCE`
+				if ! diff $SOURCE /tmp/`basename $SOURCE` >/dev/null; then
+					mod-configure $SOURCE
+				fi
+			else
+				echo "Not Found: $SOURCE" >&2
 			fi
-		else
-			echo "Not Found: $BUILD_H" >&2
-		fi
-		`$HELPER build-command "$@"` | nkf -wu
+		done
+		invoke "$@"
 		;;
 	cook|package)
-		cmd=${1}-command
-		shift
-		`$HELPER $cmd "$@"` | nkf -wu 
-		;;
-	packages)
-		shift
-		package=$(choose_package `$HELPER project-root` "$@")
-		`$HELPER launch-command $package "$@"` &
+		invoke "$@"
 		;;
 	editor)
-		shift
-		map=$(choose_map `$HELPER project-root` "$@")
-		`$HELPER launch-command $map "$@"` &
+		invoke "$@" &
+		;;
+	update)
+		invoke "$@" &
+		;;
+	test)
+		invoke "$@" &
 		;;
 	*)
 		exec $0 editor "$@"
