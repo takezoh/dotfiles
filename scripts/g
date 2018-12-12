@@ -81,6 +81,14 @@ case "$1" in
 		t="-tcpp"
 		shift
 		;;
+	-t*)
+		t="$1"
+		shift
+		;;
+	-g)
+		t="-g"
+		shift
+		;;
 	-*)
 		t="-t${1#-}"
 		shift

@@ -26,11 +26,11 @@ if (( ${_platforms[(I)windows]} )); then
 		exec $WINGIT "$@"
 	fi
 
-	if [ "$err" = "wslpath: .: Result not representable" ]; then
-		exec ugit "$@"
-	fi
+	# if [ "$err" = "wslpath: .: Result not representable" ]; then
+	# 	exec ugit "$@"
+	# fi
 
-	exit 1
+	# exit 1
 fi
 
 exec ugit "$@"
