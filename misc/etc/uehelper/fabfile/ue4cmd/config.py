@@ -68,7 +68,7 @@ class Config(FabConfig):
         defaults = FabConfig.global_defaults()
         ours = {
             'platform': 'Win64',
-            'configuration': 'Development',
+            'configuration': 'DevelopmentEditor',
             'type': 'Editor',
         }
         merge_dicts(defaults, ours)

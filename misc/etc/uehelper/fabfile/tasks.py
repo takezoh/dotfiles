@@ -5,10 +5,10 @@ from .editorsupport import EditorSupport
 
 
 def _build_task(name):
-    @task(name=name, optional=('target', 'configuration', 'platform', 'opts'))
-    def inner(c, target=None, configuration='DevelopmentEditor', platform='Win64', opts=()):
-        builder = BuildCommand(c, opts=opts)
-        builder.build(target, name, configuration, platform)
+    @task
+    def inner(c, target=None, opts=None):
+        builder = BuildCommand(c)
+        builder.build(target, name)
     return inner
 
 
@@ -19,20 +19,20 @@ clean = _build_task('clean')
 
 @task(optional=('platform', 'opts'))
 def cook(c, platform='WindowsNoEditor', opts=None):
-    builder = BuildCommand(c, opts=opts)
+    builder = BuildCommand(c)
     builder.cook(platform)
 
 
-@task(optional=('configuration', 'platform', 'opts'))
-def package(c, configuration='Development', platform='Win64', opts=None):
-    try:
-        platform, flavor = platform.split('_', 1)
-    except ValueError:
-        platform, flavor = platform, None
+@task
+def package(c, flavor=None, opts=None):
+    builder = BuildCommand(c)
+    builder.package(flavor)
 
-    builder = BuildCommand(c, opts=opts)
-    builder.package(configuration, platform, flavor)
 
+@task
+def deploy(c, map=None, flavor=None, opts=None):
+    builder = BuildCommand(c)
+    builder.deploy(map, flavor, opts)
 
 
 @task
@@ -50,14 +50,14 @@ def supportfiles(c, *args, **kwargs):
 
 
 
-@task(optional=('which', 'opts'))
+@task
 def editor(c, which=None, opts=None):
-    support = EditorSupport(c, opts=opts)
+    support = EditorSupport(c)
     if which:
         print(getattr(support.uproject, which.replace('-', '_')))
         return
 
-    support.launch()
+    support.launch('', opts or '')
 
 
 @task

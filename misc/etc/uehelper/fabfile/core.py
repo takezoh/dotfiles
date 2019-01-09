@@ -11,7 +11,6 @@ class CoreBuilder():
 
     def __init__(self, ctx, *args, **kwargs):
         self.ctx = ctx
-        self.opts = [x.strip() for x in (kwargs.get('opts') or '').split(' ')]
         self.env = {
             'PATH': '{}/bin:/usr/bin:/bin'.format(os.path.dirname(__file__)),
             }
@@ -30,6 +29,11 @@ class CoreBuilder():
             current_dir = os.path.dirname(current_dir)
 
         raise HelperError("Not Found *.uproject")
+
+    def select_map(self):
+        return self.ctx.run(
+            '''cd {}/Content && rg -g '*.umap' --files . 2>/dev/null | fzf -e --multi --no-sort --reverse --prompt='Choose map> ' '''.format(self.uproject.project_root),
+            hide=False)
 
     @classmethod
     def _wslpath(cls, ctx, path, opt):

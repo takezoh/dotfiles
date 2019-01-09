@@ -51,7 +51,7 @@ case "$1" in
 		done
 		invoke "$@"
 		;;
-	cook|package)
+	cook|package|deploy|editor)
 		invoke "$@"
 		;;
 	editor)

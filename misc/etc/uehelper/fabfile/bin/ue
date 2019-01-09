@@ -4,6 +4,59 @@
 import re
 import os
 import sys
+import itertools
+
+
+class Task():
+    def __init__(self, name):
+        self.name = name
+        self.opts = []
+        self.rawopts = []
+
+    def add_opt(self, opt):
+        self.opts.append(opt)
+
+    def add_rawopt(self, opt):
+        self.rawopts.append(opt)
+
+    def get_command(self):
+        result = [
+            self.name,
+            *self.opts,
+        ]
+
+        if self.rawopts:
+            result.append('--opts={}'.format(' '.join(self.rawopts)))
+
+        return result
+
+
+def parse(args):
+    core_opts = []
+    tasks = []
+    current_task = None
+
+    for arg in args:
+        if not arg:
+            continue
+
+        if arg[0:2] == '--':
+            name = arg[2:].split('=', 1)[0]
+            if name in ('configuration', 'platform', 'target'):
+                core_opts.append(arg)
+                continue
+
+            current_task.add_opt(arg)
+
+        elif arg[0] == '-':
+            current_task.add_rawopt(arg)
+
+        else:
+            current_task = Task(arg)
+            tasks.append(current_task)
+
+    return list(itertools.chain(core_opts, *[x.get_command() for x in tasks]))
+
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
@@ -11,4 +64,5 @@ from ue4cmd.main import program
 
 if __name__ == '__main__':
     sys.argv[0] = re.sub(r'(-script\.pyw?|\.exe)?$', '', sys.argv[0])
+    sys.argv[1:] = parse(sys.argv[1:])
     sys.exit(program.run())
