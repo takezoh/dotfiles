@@ -16,6 +16,13 @@ if type ccache > /dev/null 2>&1; then
 	export NDK_CCACHE=`which ccache`
 fi
 
+if type adb.exe > /dev/null 2>&1; then
+	alias adb=adb.exe
+fi
+if type ndk-stack.exe > /dev/null 2>&1; then
+	alias ndk-stack=ndk-stack.exe
+fi
+
 jar.rev() {
 	local jar=$1
 	local dir=`echo $jar | sed -e 's/\.jar$//'`

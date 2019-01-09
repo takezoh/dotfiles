@@ -23,6 +23,10 @@ alias ln="ln -n"
 # alias mkdir="mkdir -p"
 alias mv="mv -i"
 
+if (( ${_platforms[(I)darwin]} )); then
+	alias cp="cp -c"
+fi
+
 # alias rm="rm -r"
 # alias rr="command rm -rf"
 
@@ -77,20 +81,6 @@ alias -g S="| sed"
 alias -g C="| clipboard -i"
 alias -g P="clipboard -o"
 
-if (( ${_platforms[(I)windows]} )); then
-	alias open="wstart"
-	# alias msbuild="MSBuild.exe"
-
-	if [ "$OSTYPE" = "cygwin" ]; then
-		# alias wcmd="`echo ${^path}/cmd.exe(N)` /d /c"
-		# alias open="cygstart"
-		alias sudo=
-	else
-		# alias wcmd="wsl-cmdtool wcmd"
-		# alias open="wsl-cmdtool wstart"
-	fi
-fi
-
 # filetype alias
 alias -s txt="less"
 alias -s readme="less"
@@ -102,3 +92,20 @@ alias -s tgz="tar zxf"
 alias -s gz="tar zxf"
 alias -s tbz="tar jxf"
 alias -s bz2="tar jxf"
+
+
+if (( ${_platforms[(I)windows]} )); then
+	alias open="wstart"
+
+	if [ "$OSTYPE" = "cygwin" ]; then
+		alias sudo=
+	fi
+
+	_launch_bat() {
+		batchfile=$1
+		shift
+		cmd.exe /c "`wpath -aw $batchfile`" "$@"
+	}
+
+	alias -s bat="_launch_bat"
+fi
