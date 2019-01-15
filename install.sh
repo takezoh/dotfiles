@@ -1,375 +1,65 @@
 #!/bin/bash
+
 set -ex
 
-add_packages_darwin() {
-	packages=(
-		lv tree
-		wget curl
-
-		zsh python
-		git tig
-
-		# make
-		cmake
-
-		nkf
-		source-highlight
-
-		# htop
-		# ant
-		awscli
-		peco fzf
-		nvim python3
-		ripgrep
-		ctags global
-		mono
-
-		direnv
-
-		# lua
-		# luaenv lua-build
-		# python
-		pyenv pyenv-virtualenv
-		# golang
-		goenv
-		# ruby
-		rbenv ruby-build rbenv-gemset
-		# web
-		yarn nodenv node-build
-		# java
-		jenv
-
-		jadx
-		dex2jar
-	)
-
-	brew install ${packages[@]}
-}
-
-add_packages_arch() {
-	packages=(
-		openssh
-		dnsutils
-		net-tools
-
-		less
-		tree
-		wget curl
-
-		zsh python python-pip
-		git tig
-
-		# make
-		cmake
-
-		# nkf
-		source-highlight
-
-		ripgrep
-		fzf
-		# peco
-		# awscli
-		neovim python3
-		# python3-pip
-		# global
-		zip unzip
-	)
-
-	aur_packages=(
-		pyenv pyenv-virtualenv
-		peco
-		nkf
-		global
-		aws-cli
-		jadx
-		dex2jar
-	)
-
-	sudo pacman -S --needed --noconfirm ${packages[@]}
-	LC_ALL=C aurman -S --needed --noconfirm ${aur_packages[@]}
-}
-
-add_packages_ubuntu() {
-	if ! `dpkg -s "ripgrep" > /dev/null 2>&1`; then (
-		cd /tmp
-		curl -LO https://github.com/BurntSushi/ripgrep/releases/download/0.9.0/ripgrep_0.9.0_amd64.deb
-		sudo dpkg -i ripgrep_0.9.0_amd64.deb
-	) fi
-
-	packages=(
-		lv tree
-		wget curl
-
-		zsh python
-		git tig
-
-		# make
-		cmake
-
-		nkf
-		source-highlight
-
-		ripgrep
-		peco
-		awscli
-		neovim python3 python3-pip
-		global
-		zip
-
-		lua5.1
-
-		# python
-		# pyenv pyenv-virtualenv
-		# golang
-		# goenv
-		# ruby
-		# rbenv ruby-build rbenv-gemset
-		# web
-		# yarn nodenv node-build
-		# java
-		# jenv
-
-		build-essential
-		zlib1g-dev
-		libssl-dev
-		libclang-dev
-		# libmysqlclient-dev
-		# mysql-client
-		# mysql-server
-		# redis-server
-
-		g++-i686-linux-gnu
-		g++-arm-linux-gnueabi
-		g++-x86-64-linux-gnux32
-		g++-mingw-w64
-	)
-
-	sudo apt install -y ${packages[@]}
-}
-
-add_packages_cygwin() {
-	packages=(
-		vim lua
-	)
-
-	apt install ${packages[@]}
-}
-
-install() {
-	cd $HOME
-	clean-symbolic-link .
-
-	# コピー元が $HOME 直下でなければ、シンボリックリンクを張る
-	if [ ! "$(cd `dirname $root_dir` && pwd -P)" = "$(cd $HOME && pwd -P)" ]; then
-		ln -snf $root_dir $dotfiles_dir
-	fi
-
-	# XDG config
-	(
-		mkdir -p $XDG_CONFIG_HOME
-		cd $XDG_CONFIG_HOME
-		clean-symbolic-link .
-		for dname in $(cd $dotfiles_dir/config && command ls); do
-			ln -snf $dotfiles_dir/config/${dname} .
-		done
-	)
-
-	# .local
-	(
-		mkdir -p $HOME/.local
-		cd $HOME/.local
-		clean-symbolic-link .
-
-		ln -snf $dotfiles_dir/scripts .
-		[ -d $dotfiles_dir/.local/config ] && ln -snf $dotfiles_dir/.local/config .
-	)
-
-	# non-xdg dotfiles
-	for conf in $(cd $XDG_CONFIG_HOME/non-xdg && command ls); do
-		ln -snf $XDG_CONFIG_HOME/non-xdg/$conf .${conf}
-	done
-
-	# .zshenv
-	ln -snf $XDG_CONFIG_HOME/zsh/.zshenv .
-	mkdir -p .local/share/zsh
-
-	# .vimrc
-	ln -snf $XDG_CONFIG_HOME/nvim/init.vim .vimrc
-
-	# ssh config
-	(mkdir -p .ssh && chmod 700 .ssh && cd .ssh && ln -snf $XDG_CONFIG_HOME/ssh/config . && clean-symbolic-link .)
-}
-
-install_darwin() {
-	rm -rf $HOME/Library/Application\ Support/Code/User
-	mkdir -p $HOME/Library/Application\ Support/Code
-	(cd $HOME/Library/Application\ Support/Code && ln -snf ~/.config/vscode User)
-}
-
-post_install_darwin() {
-	# show dotfiles
-	defaults write com.apple.finder AppleShowAllFiles TRUE
-	defaults write com.apple.desktopservices DSDontWriteNetworkStores TRUE
-	killall Finder
-
-	#neovim
-	pip3 install --upgrade pip
-	pip3 install --upgrade neovim
-	# vim -c "UpdateRemotePlugins" -c "quit\!"
-	pip3 install --upgrade pygments
-}
-
-install_arch() {
-	sudo mkdir -p /usr/local/opt
-	sudo chown `whoami` /usr/local/opt
-}
-
-post_install_arch() {
-	# python3
-	sudo -H pip3 install --upgrade pip
-	[ ! -x /usr/local/bin/python3 ] && sudo ln -snf /usr/bin/python3 /usr/local/bin/python3
-
-	#neovim
-	sudo -H pip3 install --upgrade neovim
-	#vim -c "UpdateRemotePlugins" -c "quit\!"
-
-	sudo -H pip3 install --upgrade pygments
-}
-
-install_ubuntu() {
-	sudo mkdir -p /usr/local/opt
-	sudo chown `whoami` /usr/local/opt
-}
-
-post_install_ubuntu() {
-	# if [ ! `basename $SHELL` = "zsh" ]; then
-		# chsh -s `which zsh`
-	# fi
-
-	# python3
-	LC_ALL="en_US.UTF-8" LC_CTYPE="en_US.UTF-8" sudo -H pip3 install --upgrade pip
-	[ ! -x /usr/local/bin/python3 ] && sudo ln -snf /usr/bin/python3 /usr/local/bin/python3
-
-	#neovim
-	sudo -H pip3 install --upgrade neovim
-	#vim -c "UpdateRemotePlugins" -c "quit\!"
-
-	sudo -H pip3 install --upgrade pygments
-
-	(
-		cd /usr/local/opt
-
-		[ ! -d pyenv ] && (
-			# pyenv
-			sudo apt install libffi-dev
-			git clone https://github.com/yyuu/pyenv.git
-			git clone https://github.com/pyenv/pyenv-virtualenv.git
-			(
-				cd /usr/local/bin
-				sudo ln -snf ../opt/pyenv/bin/pyenv .
-				sudo ln -snf ../opt/pyenv-virtualenv/bin/pyenv-virtualenv .
-			)
-		)
-		(cd pyenv && git pull -f origin master)
-		(cd pyenv-virtualenv && git pull -f origin master)
-	)
-	(
-		cd /usr/local/bin
-
-		# fzf
-		[ ! -x fzf ] && sudo ln -snf $dotfiles_dir/misc/platform/linux/fzf-0.16.2-linux_amd64 fzf
-	)
-}
-
-install_cygwin() {
-	return 0
-}
-
-post_install_cygwin() {
-	mkdir -p /usr/local/opt
-	(
-		cd /usr/local/opt
-
-		(
-			# apt-cyg
-			mkdir -p apt-cyg
-			cd apt-cyg
-			curl -LO https://raw.githubusercontent.com/transcode-open/apt-cyg/master/apt-cyg
-			chmod +x apt-cyg
-			(cd /usr/local/bin && ln -snf ../opt/apt-cyg/apt-cyg apt)
-		)
-	)
-	(
-		cd /usr/local/bin
-
-		# fzf
-		[ ! -x fzf ] && ln -snf $dotfiles_dir/misc/platform/cygwin/fzf-0.8.9-x64 fzf
-		# ripgrep
-		[ ! -x rg ] && ln -snf $dotfiles_dir/misc/platform/ripgrep-0.7.1-x86_64-pc-windows-gnu.exe rg
-		# peco
-		[ ! -x peco ] && ln -snf $dotfiles_dir/misc/platform/windows/peco_0.5.2_windows_amd64.exe peco
-	)
-}
-
-install_windows() {
-	local wpath=wslpath
-	if [ "$OSTYPE" = "cygwin" ]; then
-		wpath=cygpath
-	fi
-
-	# non-xdg dotfiles
-	for name in $(cd $XDG_CONFIG_HOME/non-xdg && command ls); do
-		cmd.exe /d /c del /q "%USERPROFILE%\\.${name}" || true
-		cmd.exe /d /c mklink "%USERPROFILE%\\.${name}" `$wpath -aw $dotfiles_dir/config/non-xdg/${name}`
-	done
-
-	cmd.exe /d /c rmdir /q "%APPDATA%\\Code\\User" || true
-	cmd.exe /d /c mkdir "%APPDATA%\\Code"
-	cmd.exe /d /c mklink /D "%APPDATA%\\Code\\User" `$wpath -aw $dotfiles_dir/config/vscode`
-
-# 	cat <<EOF > $HOME/.local/platform-generated.gitconfig
-# [core]
-# 	filemode = false
-# EOF
-
-	cmd.exe /d /c rmdir /q "%LOCALAPPDATA%\\WSL.opt" || true
-	cmd.exe /d /c mkdir "%LOCALAPPDATA%\\WSL.opt"
-	local winoptdir=`cmd.exe /c 'echo %LOCALAPPDATA%\\WSL.opt'`
-	(
-		cd /usr/local/opt
-		ln -snf `$wpath -au ${winoptdir:0:-1}` windows
-	)
-}
-
-post_install_windows() {
-	(
-		cd /usr/local/opt/windows
-		if [ ! -d win32yank ]; then
-			(
-				cd /tmp
-				curl -LO https://github.com/equalsraf/win32yank/releases/download/v0.0.4/win32yank-x64.zip
-			)
-			(
-				mkdir win32yank
-				cd win32yank
-				cp /tmp/win32yank-x64.zip .
-				unzip win32yank-x64.zip
-				rm win32yank-x64.zip
-				chmod +x win32yank.exe
-			)
-			(
-				cd /usr/local/bin
-				sudo ln -snf ../opt/windows/win32yank/win32yank.exe win32yank
-			)
+darwin() {
+	if ! type brew >/dev/null 2>&1; then
+		if xcode-select --install >/dev/null 2>&1; then
+			return 1
+		else
+			/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 		fi
-	)
+	fi
+	brew update
+	brew install ansible
 }
 
-root_dir=$(cd `dirname $0` && pwd -P)
-dotfiles_dir=`basename $root_dir`
-# シンボリックリンク名のプレフィックスに "." を付ける
-if [ ! "${dotfiles_dir:0:1}" = "." ]; then
-	dotfiles_dir=".$dotfiles_dir"
+ubuntu() {
+	sudo apt update -y
+	sudo apt install -y software-properties-common
+	sudo apt-add-repository -y ppa:ansible/ansible
+	sudo apt update -y
+
+	if ! type brew >/dev/null 2>&1; then
+		sudo apt install -y build-essential curl file git
+		sh -c "$(curl -fsSL https://raw.githubusercontent.com/Linuxbrew/install/master/install.sh)"
+	fi
+	sudo apt install -y ansible
+}
+
+arch() {
+	yes | sudo pacman -Sy
+
+	if ! type aurman >/dev/null 2>&1; then
+		yes | sudo pacman -S git
+		gpg --recv-keys 4C3CE98F9579981C21CA1EC3465022E743D71E39
+		cd `mktemp -d`
+		git clone https://aur.archlinux.org/aurman.git
+		cd aurman
+		yes | makepkg -si
+	fi
+
+	sudo pacman -S --noconfirm ansible
+}
+
+sudo -v
+
+if ! type ansible-playbook >/dev/null 2>&1; then
+	case "$OSTYPE" in
+	darwin*)
+		darwin
+		;;
+	linux*)
+		$(cat /etc/os-release | grep -e '^ID=' | awk -F = '{ print $2 }')
+		;;
+	freebsd*)
+		;;
+	esac
+	hash -r
 fi
-dotfiles_dir=$HOME/$dotfiles_dir
-source $root_dir/misc/install/include/install-sequence.sh
+
+base_dir=$(cd `dirname $0` && pwd -P)
+test -d /home/linuxbrew/.linuxbrew && eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+ansible-playbook --module-path=$base_dir/external/ansible/plugins/modules $base_dir/misc/install/ansible/playbook.yml
+
+$base_dir/misc/etc/pygments/setup.sh

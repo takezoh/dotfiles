@@ -1,0 +1,77 @@
+ubuntu_repos:
+  - ppa:git-core/ppa
+  # - ppa:neovim-ppa/unstable
+
+ubuntu_deb_packages:
+  # - https://github.com/BurntSushi/ripgrep/releases/download/0.9.0/ripgrep_0.9.0_amd64.deb
+
+ubuntu_packages:
+  - lv
+  - tree
+  - wget
+  - curl
+
+  - zsh
+  - git
+  - tig
+
+  # - make
+  - cmake
+
+  - nkf
+  - source-highlight
+
+  - global
+  - zip
+
+  - build-essential
+  - zlib1g-dev
+  - libssl-dev
+  - libclang-dev
+  # - libmysqlclient-dev
+  # - mysql-client
+  # - mysql-server
+  # - redis-server
+
+  - g++-i686-linux-gnu
+  - g++-arm-linux-gnueabi
+  - g++-x86-64-linux-gnux32
+  - g++-mingw-w64
+
+brew_formulas:
+  - fzf
+  - ripgrep
+  - peco
+  - awscli
+  - neovim
+  - python
+  - python3
+
+  - apktool
+
+  # - lua
+  # - luaenv
+  # - lua-build
+  # - python
+  - pyenv
+  - pyenv-virtualenv
+  # - golang
+  - goenv
+  # - ruby
+  - rbenv
+  - ruby-build
+  - rbenv-gemset
+  # - web
+  - yarn
+  - nodenv
+  - node-build
+  # - java
+  - jenv
+
+  - jadx
+  - dex2jar
+
+link_local_bin_files:
+  - python
+  - python2
+  - python3

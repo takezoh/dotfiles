@@ -1,0 +1,24 @@
+- name: Run the equivalent of "pacman -Syu" as a separate step
+  pacman:
+    update_cache: yes
+    upgrade: yes
+  become: yes
+
+- name: Upgrade AUR packages, Run the equivalent of "aurman -Syu" as a separate step
+  aur:
+    use: aurman
+    upgrade: yes
+
+- name: Install packages
+  pacman:
+    name: "{{ pac_packages }}"
+  become: yes
+  ignore_errors: true
+
+- name: Install AUR packages
+  aur:
+    use: aurman
+    name: "{{ aur_packages }}"
+    aur_only: no
+    skip_installed: yes
+  ignore_errors: true

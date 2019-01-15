@@ -1,4 +1,5 @@
-_USER_PYENV_SYSPY=`where python | head -n 1`
+export SYSTEM_PYTHON=`where python | head -n 1`
+export SYSTEM_PYTHON3=`where python3 | head -n 1`
 
 if type pyenv >/dev/null 2>&1; then
 

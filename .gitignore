@@ -1,5 +1,7 @@
 .dropbox
 
+*.retry
+
 *.pyc
 
 config/zsh/.zcompdump

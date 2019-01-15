@@ -3,6 +3,7 @@
 source $HOME/.config/zsh/environment.sh
 
 export ZDOTDIR=$XDG_CONFIG_HOME/zsh/
+export ZDOTEXTERNALDIR=$(cd $ZDOTDIR && pwd -P)/../../external
 
 umask 022
 

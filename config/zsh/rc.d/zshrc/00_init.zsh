@@ -16,14 +16,19 @@ if type stty >/dev/null 2>&1; then
 	stty stop "undef"
 fi
 
+
+if [ -d /home/linuxbrew/.linuxbrew ]; then
+	if [ ! -f $HOME/.cache/linuxbrew/shellenv ]; then
+		mkdir -p $HOME/.cache/linuxbrew
+		/home/linuxbrew/.linuxbrew/bin/brew shellenv > $HOME/.cache/linuxbrew/shellenv
+	fi
+	source $HOME/.cache/linuxbrew/shellenv
+fi
+
 path=(
 	# user
 	$HOME/.local/bin(N-/)
 	$HOME/.local/scripts(N-/)
-	$HOME/.local/env/bin(N-/)
-	$HOME/.local/env/scripts(N-/)
-	$HOME/.local/env/*/bin(N-/)
-	# $HOME/.local/env/platform/bin(N-/)
 	$path
 )
 

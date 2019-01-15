@@ -1,0 +1,9 @@
+- hosts: localhost
+  connection: local
+  gather_facts: yes 
+  become: no
+  roles:
+    - initialize
+    - packages
+    - dotfiles
+    - setup

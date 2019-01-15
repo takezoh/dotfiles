@@ -25,4 +25,4 @@ print (template.format(
 		styles="\n".join([style_entry_point(x) for x in os.listdir("styles") if x != '__init__.py'])))
 EOF
 
-sudo -H python3 setup.py install
+python3 setup.py install

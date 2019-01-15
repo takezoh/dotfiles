@@ -1,0 +1,41 @@
+- name: make directories
+  file:
+    path: "{{ item.path }}"
+    mode: "{{ item.mode }}"
+    state: directory
+  with_items:
+    - "{{ make_directories }}"
+
+- name: make "/usr/local/opt" directory
+  file:
+    path: /usr/local/opt
+    owner: "{{ ansible_env.USER }}"
+    state: directory
+  become: yes
+
+- name: get common make files
+  shell: for x in `ls {{ makefile_dir }}/common`; do x=${x%%.mk}; ! type $x >/dev/null 2>&1 && echo $x || true; done
+  ignore_errors: yes
+  register: common_makefiles
+
+- name: execute common make files
+  make:
+    file: "{{ makefile_dir }}/common/{{ item }}.mk"
+    chdir: "/usr/local/opt"
+    params:
+      BINDIR: "/usr/local/bin"
+      ROOT_DIRECTORY: "{{ root_directory }}"
+  with_items:
+    - "{{ common_makefiles.stdout_lines }}"
+
+
+- include_tasks: MacOSX.yml
+  when: ansible_distribution == "MacOSX"
+
+- name: exists windows directory?
+  stat:
+    path: /mnt/c/Windows
+  register: stat_windows_dir
+
+- include_tasks: Wsl.yml
+  when: stat_windows_dir.stat.exists

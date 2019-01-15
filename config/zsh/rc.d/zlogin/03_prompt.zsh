@@ -70,7 +70,7 @@ __prompt_date="%D{%Y/%m/%d %H:%M}"
 __prompt_vcs="%1(v|%F{green}%1v%2v%f|)${vcs_info_git_pushed}${reset}"
 
 count_prompt_characters() {
-	print -n -P -- "$*" | sed -e $'s/\e\[[0-9;]*m//g' | PYTHONIOENCODING=utf-8 ${_USER_PYENV_SYSPY} ${ZDOTDIR}/rc.d/modules/count_prompt_characters.py
+	print -n -P -- "$*" | sed -e $'s/\e\[[0-9;]*m//g' | PYTHONIOENCODING=utf-8 ${SYSTEM_PYTHON} ${ZDOTDIR}/rc.d/modules/count_prompt_characters.py
 }
 
 function update_prompt() {

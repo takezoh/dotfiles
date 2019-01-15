@@ -1,0 +1,21 @@
+make_directories:
+  - { path: ~/.local/share/zsh, mode: 755 }
+
+vscode_settings:
+  - settings.json
+  - keybindings.json
+  - snippets
+
+osx_vscode_settings_path: "~/Library/Application Support/Code/User"
+win_vscode_settings_path: '%APPDATA%\\Code\\User'
+
+makefile_dir: "{{ ansible_env.PWD }}/roles/setup/makefiles"
+win_libpath: '%LOCALAPPDATA%\\WSL.opt'
+wsl_libpath: '/usr/local/opt/windows'
+
+windows_link_files:
+  # - { src: ~/.ssh, dest: '%USERPROFILE%\\.ssh' }
+  # - { src: ~/.config, dest: '%USERPROFILE%\\.config' }
+  # - { src: ~/.local, dest: '%USERPROFILE%\\.local' }
+  - { src: ~/.vsvimrc, dest: '%USERPROFILE%\\.vsvimrc' }
+  # - { src: ~/.gitconfig, dest: '%USERPROFILE%\\.gitconfig' }

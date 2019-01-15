@@ -12,4 +12,4 @@
 # zle -N zle-line-init
 
 # zsh-syntax-highlighting
-source $HOME/.dotfiles/external/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+source $ZDOTEXTERNALDIR/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh

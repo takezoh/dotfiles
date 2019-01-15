@@ -1,4 +1,4 @@
-source $HOME/.dotfiles/external/lazyenv/lazyenv.bash
+source $ZDOTEXTERNALDIR/lazyenv/lazyenv.bash
 lazyenv.load.shims() {
 	[ -d $1 ] && command ls $1
 }

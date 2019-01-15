@@ -1,0 +1,51 @@
+- name: Add repositories
+  apt_repository:
+    repo: "{{ item }}"
+  with_items:
+    - "{{ ubuntu_repos }}"
+  become: yes
+
+- name: Install .deb packages
+  apt:
+    deb: "{{ item }}"
+  with_items:
+    - "{{ ubuntu_deb_packages }}"
+  become: yes
+
+- name: Run the equivalent of "apt update" as a separate step
+  apt:
+    update_cache: yes
+  become: yes
+
+- name: Run the equivalent of "apt upgrade" as a separate step
+  apt:
+    upgrade: yes
+  become: yes
+
+- name: Install packages
+  apt:
+    name: "{{ ubuntu_packages }}"
+  become: yes
+  ignore_errors: true
+
+- name: Update linuxbrew
+  homebrew:
+    update_homebrew: yes
+
+- name: Upgrade linuxbrew
+  homebrew:
+    upgrade_all: yes
+
+- name: Install linuxbrew formulas
+  homebrew:
+    path: "{{ ansible_env.HOMEBREW_PREFIX }}/bin"
+    name: "{{ brew_formulas }}"
+  ignore_errors: true
+
+- name: Link to "/usr/local/bin"
+  file:
+    src: "{{ ansible_env.HOMEBREW_PREFIX }}/bin/{{ item }}"
+    dest: "/usr/local/bin/{{ item }}"
+    state: link
+  with_items: "{{ link_local_bin_files }}"
+  become: yes

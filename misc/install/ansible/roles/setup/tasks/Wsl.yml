@@ -1,0 +1,64 @@
+- name: retrieve {{ win_libpath }}
+  shell: cmd.exe /d /c echo "{{ win_libpath }}"
+  register: win_libpath
+
+- name: retrieve {{ win_vscode_settings_path }}
+  shell: cmd.exe /d /c echo "{{ win_vscode_settings_path }}"
+  register: win_vscode_settings_path
+
+- set_fact:
+    win_libpath: "{{ win_libpath.stdout }}"
+    win_vscode_settings_path: "{{ win_vscode_settings_path.stdout }}"
+
+- name: make "{{ win_libpath }}" directory and link to "{{ wsl_libpath }}"
+  shell: >
+    cmd.exe /d /c mkdir '{{ win_libpath }}' || true;
+    ln -snf `wslpath -au '{{ win_libpath }}'` '{{ wsl_libpath }}';
+
+- name: make vscode settings directory
+  shell: cmd.exe /d /c mkdir '{{ win_vscode_settings_path }}' || true
+
+- name: link to "{{ win_vscode_settings_path }}"
+  shell: >
+    cmd.exe /d /c rmdir /q '{{ win_vscode_settings_path }}\\{{ item }}' || true;
+    cmd.exe /d /c del /q '{{ win_vscode_settings_path }}\\{{ item }}' || true;
+    if [ -d ~/.config/vscode/{{ item }} ]; then
+      cmd.exe /d /c mklink /d '{{ win_vscode_settings_path }}\\{{ item }}' "`wslpath -aw ~/.config/vscode/{{ item }}`";
+    elif [ -f ~/.config/vscode/{{ item }} ]; then
+      cmd.exe /d /c mklink '{{ win_vscode_settings_path }}\\{{ item }}' "`wslpath -aw ~/.config/vscode/{{ item }}`";
+    fi
+  with_items:
+    - "{{ vscode_settings }}"
+
+- name: link to any path's
+  shell: >
+    cmd.exe /d /c rmdir /q '{{ item.dest }}' || true;
+    cmd.exe /d /c del /q '{{ item.dest }}' || true;
+    if [ -d {{ item.src }} ]; then
+      cmd.exe /d /c mklink /d '{{ item.dest }}' "$(wslpath -aw `readlink -f {{ item.src }}`)";
+    elif [ -f {{ item.src }} ]; then
+      cmd.exe /d /c mklink '{{ item.dest }}' "$(wslpath -aw `readlink -f {{ item.src }}`)";
+    fi
+  with_items:
+    - "{{ windows_link_files }}"
+
+- name: get wsl make files
+  shell: for x in `ls {{ makefile_dir }}/wsl`; do x=${x%%.mk}; ! type $x >/dev/null 2>&1 && echo $x || true; done
+  ignore_errors: yes
+  register: wsl_makefiles
+
+- name: execute wsl make files
+  make:
+    file: "{{ makefile_dir }}/wsl/{{ item }}.mk"
+    chdir: "/usr/local/opt/windows"
+    params:
+      BINDIR: "/usr/local/bin"
+      ROOT_DIRECTORY: "{{ root_directory }}"
+  with_items:
+    - "{{ wsl_makefiles.stdout_lines }}"
+
+
+# # 	cat <<EOF > $HOME/.local/platform-generated.gitconfig
+# # [core]
+# # 	filemode = false
+# # EOF

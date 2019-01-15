@@ -1,0 +1,49 @@
+brew_formulas:
+  - lv
+  - tree
+  - wget
+  - curl
+
+  - zsh
+  - python
+  - git
+  - tig
+
+  # - make
+  - cmake
+
+  - nkf
+  - source-highlight
+
+  - awscli
+  - peco
+  - fzf
+  - nvim
+  - python3
+  - ripgrep
+  - global
+  - mono
+
+  - apktool
+
+  # - lua
+  # - luaenv
+  # - lua-build
+  # - python
+  - pyenv
+  - pyenv-virtualenv
+  # - golang
+  - goenv
+  # - ruby
+  - rbenv
+  - ruby-build
+  - rbenv-gemset
+  # - web
+  - yarn
+  - nodenv
+  - node-build
+  # - java
+  - jenv
+
+  - jadx
+  - dex2jar

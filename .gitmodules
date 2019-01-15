@@ -7,3 +7,6 @@
 [submodule "external/vim2pygments"]
 	path = external/vim2pygments
 	url = git@github.com:honza/vim2pygments.git
+[submodule "external/ansible/plugins/modules/aur"]
+	path = external/ansible/plugins/modules/aur
+	url = https://github.com/kewlfft/ansible-aur.git
