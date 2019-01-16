@@ -1,6 +1,0 @@
-#!/bin/sh
-cd /tmp
-build --make m41
-cd m41
-make distcheck
-sudo make install
