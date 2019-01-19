@@ -1,7 +1,7 @@
 var fs = WScript.CreateObject("Scripting.FileSystemObject")
 var WshShell = WScript.CreateObject("WScript.Shell")
 var RootDir = fs.getParentFolderName(WScript.ScriptFullName) + "\\..\\..\\"
-var TargetDir = RootDir + "\\misc\\etc\\wsl\\"
+var TargetDir = RootDir + "\\misc\\wsl\\"
 
 function MakeLink(Name) {
   var TempPath = fs.GetSpecialFolder(2) + "\\rc." + Name + ".lnk"

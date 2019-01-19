@@ -5,7 +5,7 @@ from .editorsupport import EditorSupport
 
 
 def _build_task(name):
-    @task
+    @task(name=name)
     def inner(c, target=None, opts=None):
         builder = BuildCommand(c)
         builder.build(target, name)
@@ -17,10 +17,10 @@ rebuild = _build_task('rebuild')
 clean = _build_task('clean')
 
 
-@task(optional=('platform', 'opts'))
-def cook(c, platform='WindowsNoEditor', opts=None):
+@task
+def cook(c, flavor=None, opts=None):
     builder = BuildCommand(c)
-    builder.cook(platform)
+    builder.cook(flavor, opts)
 
 
 @task
@@ -30,9 +30,15 @@ def package(c, flavor=None, opts=None):
 
 
 @task
-def deploy(c, map=None, flavor=None, opts=None):
+def deploy(c, map=None, flavor=None, manifest=False, full=False, opts=None):
     builder = BuildCommand(c)
-    builder.deploy(map, flavor, opts)
+    builder.deploy(map, flavor, manifest, full, opts)
+
+
+@task
+def addcmdline(c, cmdline='', session=False, session_name=None):
+    builder = BuildCommand(c)
+    builder.addcmdline(cmdline, session, session_name)
 
 
 @task

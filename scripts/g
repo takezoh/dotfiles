@@ -50,7 +50,7 @@ open() {
 
 	case "$cmd" in
 	vs)
-		(wcmd `wpath -aw ~/.dotfiles/misc/etc/vshelper/openfile.vbs` `wpath -aw $filename` $linenumber) &
+		(wcmd `wpath -aw ~/.dotfiles/misc/vshelper/openfile.vbs` `wpath -aw $filename` $linenumber) &
 		;;
 	code)
 		code --reuse-window --goto "`wpath -aw $filename`:$linenumber"

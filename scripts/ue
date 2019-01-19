@@ -3,7 +3,7 @@ set -e
 
 unsetopt bg_nice
 
-HELPER_DIR="$(cd `dirname $0` && pwd -P)/../misc/etc/uehelper"
+HELPER_DIR="$(cd `dirname $0` && pwd -P)/../misc/uehelper"
 
 invoke() {
 	if ! which fab >/dev/null 2>&1; then
@@ -27,7 +27,7 @@ case "$1" in
 			sed -i -e 's/;\?\s*r\.ShaderDevelopmentMode=.*$/r.ShaderDevelopmentMode=1/' $1
 			sed -i -e 's/;\?\s*r\.DumpShaderDebugInfo=.*$/r.DumpShaderDebugInfo=1/' $1
 			sed -i -e 's/;\?\s*r\.DumpShaderDebugShortNames=.*$/r.DumpShaderDebugShortNames=1/' $1
-			sed -i -e 's/;\?\s*r\.DumpShaderDebugWorkerCommandLine=.*$/r.DumpShaderDebugWorkerCommandLine=1/' $1
+			sed -i -e 's/;\?\s*r\.DumpShaderDebugWorkerCommandLine=.*$/r.DumpShaderDebugWorkerCommandLine=0/' $1
 
 			sed -i -e 's/#define\s\+ALLOW_PROFILEGPU_IN_TEST\s\+.*$/#define ALLOW_PROFILEGPU_IN_TEST 1/' $1
 			# sed -i -e 's/#define\s\+ALLOW_PROFILEGPU_IN_TEST\s\+.*$/#define ALLOW_PROFILEGPU_IN_TEST 0/' $1
@@ -51,11 +51,8 @@ case "$1" in
 		done
 		invoke "$@"
 		;;
-	cook|package|deploy|editor)
+	cook|package|deploy|cmdline|addcmdline|editor)
 		invoke "$@"
-		;;
-	editor)
-		invoke "$@" &
 		;;
 	update)
 		invoke "$@" &

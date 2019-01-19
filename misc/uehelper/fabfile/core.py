@@ -45,7 +45,7 @@ class CoreBuilder():
             path = path.replace('Program Files (x86)', 'Program\\ Files\\ \\(x86\\)')
             path = path.replace('Program Files', 'Program\\ Files')
             return path
-        return escape(ctx.run('wslpath {} {}'.format(opt, escape(path)), hide=True).stdout.strip())
+        return escape(ctx.run('wslpath {} \'{}\''.format(opt, escape(path)), hide=True).stdout.strip())
 
     def upath(self, wpath):
         if wpath and wpath[-1] == '\\':

@@ -62,4 +62,4 @@ base_dir=$(cd `dirname $0` && pwd -P)
 test -d /home/linuxbrew/.linuxbrew && eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 ansible-playbook --module-path=$base_dir/external/ansible/plugins/modules $base_dir/misc/install/ansible/playbook.yml
 
-$base_dir/misc/etc/pygments/setup.sh
+$base_dir/misc/pygments/setup.sh

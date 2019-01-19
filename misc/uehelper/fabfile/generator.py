@@ -52,7 +52,7 @@ class ProjectGenerator(CoreBuilder):
         source_directory = ''
         for m in manifest.modules:
             #  ii = subp_output(['find', m.include_base, '-type', 'd']).strip()
-            ii = self.ctx.run(' '.join(['find', m.include_base, '-type', 'd'])).stdout.strip()
+            ii = self.ctx.run(' '.join(['find', m.include_base, '-type', 'd']), hide=True).stdout.strip()
             include_dirs[len(include_dirs):] = ii.split('\n')
             include_dirs.append(m.output_directory)
             if m.name == self.uproject.name:
