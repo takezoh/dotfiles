@@ -18,11 +18,14 @@ fi
 
 
 if [ -d /home/linuxbrew/.linuxbrew ]; then
-	if [ ! -f $HOME/.cache/linuxbrew/shellenv ]; then
-		mkdir -p $HOME/.cache/linuxbrew
-		/home/linuxbrew/.linuxbrew/bin/brew shellenv > $HOME/.cache/linuxbrew/shellenv
-	fi
-	source $HOME/.cache/linuxbrew/shellenv
+	# if [ ! -f $HOME/.cache/linuxbrew/shellenv ]; then
+	# 	mkdir -p $HOME/.cache/linuxbrew
+	# 	/home/linuxbrew/.linuxbrew/bin/brew shellenv > $HOME/.cache/linuxbrew/shellenv
+	# fi
+	# source $HOME/.cache/linuxbrew/shellenv
+	export HOMEBREW_PREFIX=/home/linuxbrew/.linuxbrew
+	export HOMEBREW_CELLAR=/home/linuxbrew/.linuxbrew/Cellar
+	export HOMEBREW_REPOSITORY=/home/linuxbrew/.linuxbrew/Homebrew
 fi
 
 path=(

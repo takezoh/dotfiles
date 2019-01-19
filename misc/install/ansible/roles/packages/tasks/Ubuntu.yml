@@ -41,11 +41,3 @@
     path: "{{ ansible_env.HOMEBREW_PREFIX }}/bin"
     name: "{{ brew_formulas }}"
   ignore_errors: true
-
-- name: Link to "/usr/local/bin"
-  file:
-    src: "{{ ansible_env.HOMEBREW_PREFIX }}/bin/{{ item }}"
-    dest: "/usr/local/bin/{{ item }}"
-    state: link
-  with_items: "{{ link_local_bin_files }}"
-  become: yes

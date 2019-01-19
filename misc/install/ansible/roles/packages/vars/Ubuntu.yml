@@ -70,8 +70,3 @@ brew_formulas:
 
   - jadx
   - dex2jar
-
-link_local_bin_files:
-  - python
-  - python2
-  - python3
