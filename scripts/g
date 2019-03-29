@@ -34,7 +34,7 @@ headline = headline - max(0, min(window_lines, contextlines) - (tailline - headl
 out = context[headline:linenumber]
 out.append(u'\u001b[38;5;253;48;5;163;01m' + vars.rstrip())
 out[linenumber + 1:] = context[linenumber + 1:tailline]
-print ('\n'.join(out))
+print ('\n'.join(out).replace('\t', '    '))
 EOF
 }
 
