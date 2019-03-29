@@ -18,9 +18,9 @@ clean = _build_task('clean')
 
 
 @task
-def cook(c, flavor=None, opts=None):
+def cook(c, map=None, flavor=None, opts=None):
     builder = BuildCommand(c)
-    builder.cook(flavor, opts)
+    builder.cook(map, flavor, opts)
 
 
 @task

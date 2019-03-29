@@ -96,7 +96,7 @@ class BuildCommand(CoreBuilder):
         else:
             self._run_build(target, command, configuration, platform, *args)
 
-    def cook(self, flavor, opts):
+    def cook(self, mapstocook, flavor, opts):
         #  Running: C:\dev\bkp\main\Engine\Binaries\Win64\UE4Editor-Cmd.exe C:\dev\bkp\main\BKP\Gargantua.uproject -run=Cook 
         #  -Map=BattleTest_01 
         #  -TargetPlatform=Android_ASTC -fileopenlog -unversioned -compressed 
@@ -116,10 +116,18 @@ class BuildCommand(CoreBuilder):
             os.path.join(self.uproject.engine_root, 'Binaries/Win64/{}'.format(ue4exe)),
             self.wpath(self.uproject.uproject_path),
             '-run=Cook', 
-            '-NoLogTimes', '-TargetPlatform={}'.format(targetplatform), '-fileopenlog', '-unversioned', '-skipeditorcontent', 
+            '-NoLogTimes', 
+            '-TargetPlatform={}'.format(targetplatform), '-fileopenlog', 
+            '-unversioned',
+            '-iterate', '-iterateshash',
+            #  '-skipeditorcontent', 
             '-abslog={}'.format(self.wpath(os.path.join(self.uproject.project_root, 'Saved/Logs/HelperCook.txt'))), '-stdout',
             '-unattended',  '-UTF8Output']
 
+        if mapstocook:
+            cmdargs += [
+                '-map={}'.format(mapstocook),
+                ]
         self.ctx.run(' '.join(cmdargs), echo=True)
 
     def _package(self, generate_manifestfile, flavor, *args):
@@ -195,7 +203,7 @@ class BuildCommand(CoreBuilder):
 
         addargs = []
 
-        archive_name = '{} ({}) {}'.format(targetplatform, 'map={}, params={} {}'.format(mapstocook, opts, ' '.join(addargs)), int(time.time()))
+        archive_name = '{}_{} ({}) {}'.format(targetplatform, self.ctx['configuration'], 'map={}, params={} {}'.format(mapstocook, opts, ' '.join(addargs)), int(time.time()))
         archive_path = os.path.join(self.uproject.project_root, 'Saved/Archive', archive_name)
 
         #  if full is False:

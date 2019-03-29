@@ -33,7 +33,9 @@ class ProjectGenerator(CoreBuilder):
             '-Project={}'.format(uproject_path),
             uproject_path,
             '-generatemanifest',
-            '-Game', '-Engine', '-WaitMutex', '-FromMsBuild', '-2017']
+            '-Game', '-Engine', '-2017',
+            #  '-WaitMutex', '-FromMsBuild', 
+            ]
             #  '-NoUBTMakefiles', '-remoteini={}'.format(self.wpath(self.uproject.root_path)),
             #  '-skipdeploy', '-noxge', '-generatemanifest', '-NoHotReload']
 
@@ -129,7 +131,7 @@ class ProjectGenerator(CoreBuilder):
                     "Win64",
                     configure,
                     self.wpath(self.uproject.uproject_path),
-                    "-waitmutex"
+                    #  "-waitmutex"
                 ],
                 "problemMatcher": "$msCompile",
                 #  "dependsOn": [
