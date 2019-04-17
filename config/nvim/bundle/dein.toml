@@ -82,6 +82,9 @@ depends = ['denite.nvim']
 # [[plugins]]
 # repo = 'justmao945/vim-clang'
 
+[[plugins]]
+repo = "tbodt/deoplete-tabnine"
+build = "./install.sh"
 
 [[plugins]]
 repo = "Shougo/deoplete.nvim"
@@ -117,7 +120,11 @@ hook_add = """
 # #let g:deoplete#sources#clang#libclang_path='/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/libclang.dylib'
 # #let g:deoplete#sources#clang#clang_header='/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang'
 # #"""
+# # hook_add = '''
+# # let g:deoplete#sources#clang#libclang_path='/usr/lib/llvm-6.0/lib/libclang-6.0.so'
+# # let g:deoplete#sources#clang#clang_header='/usr/lib/clang'
+# # '''
 # hook_add = '''
-# let g:deoplete#sources#clang#libclang_path='/usr/lib/llvm-6.0/lib/libclang-6.0.so'
+# let g:deoplete#sources#clang#libclang_path='/usr/lib/libclang.so.7'
 # let g:deoplete#sources#clang#clang_header='/usr/lib/clang'
 # '''

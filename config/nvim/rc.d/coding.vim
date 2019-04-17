@@ -26,7 +26,9 @@ autocmd BufReadPre *.html,*.js,*.css,*.sass,*.vue,*.jsx,*.php setlocal expandtab
 " Vue
 autocmd FileType vue syntax sync fromstart
 " autocmd BufRead,BufNewFile *.vue setlocal filetype=vue.html.javascript.css  " nerdcommenter が動かないので無効化
-
+"usf, ush
+autocmd BufRead,BufNewFile *.usf setfiletype hlsl
+autocmd BufRead,BufNewFile *.ush setfiletype hlsl
 
 "---------------------------------------------
 " ファイル保存時コマンド

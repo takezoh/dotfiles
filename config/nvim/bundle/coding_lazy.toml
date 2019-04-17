@@ -112,9 +112,9 @@ hook_source = '''
   endif
 '''
 
-# [[plugins]]  # c++
-# repo = 'zchee/deoplete-clang'
-# on_ft = ['cpp']
+[[plugins]]  # c++
+repo = 'zchee/deoplete-clang'
+on_ft = ['cpp']
 
 [[plugins]]  # elixir
 repo = 'slashmili/alchemist.vim'
@@ -146,3 +146,11 @@ on_ft = ['rust']
 [[plugins]]  # zsh
 repo = 'zchee/deoplete-zsh'
 on_ft = ['zsh']
+
+[[plugins]]
+repo = 'tikhomirov/vim-glsl'
+on_ft = ['glsl']
+
+[[plugins]]
+repo = 'beyondmarc/hlsl.vim'
+on_ft = ['hlsl']

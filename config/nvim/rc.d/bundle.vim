@@ -8,11 +8,11 @@ endif
 
 let s:bundle_dir = $XDG_CACHE_HOME . '/dein'
 if &runtimepath !~# '/dein.vim'
-	let s:dein_path = s:bundle_dir . '/repos/github.com/Shougo/dein.vim'
-	if !isdirectory(s:dein_path)
-		call system('mkdir -p ' . s:bundle_dir . ' && git clone https://github.com/Shougo/dein.vim ' . s:dein_path)
+	let s:dein_path = 'repos/github.com/Shougo/dein.vim'
+	if !isdirectory(s:bundle_dir . '/' . s:dein_path)
+		call system('mkdir -p ' . s:bundle_dir . ' && cd ' . s:bundle_dir . ' && git clone https://github.com/Shougo/dein.vim ' . s:dein_path)
 	endif
-	execute 'set runtimepath+=' . s:dein_path
+	execute 'set runtimepath+=' . s:bundle_dir . '/' . s:dein_path
 endif
 
 if dein#load_state(s:bundle_dir)
