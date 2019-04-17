@@ -35,7 +35,7 @@ case "$1" in
 			# sed -i -e 's/#define\s\+FORCE_USE_STATS\s\+.*$/#define FORCE_USE_STATS 1/' $1
 			sed -i -e 's/#define\s\+ENABLE_STATNAMEDEVENTS\s\+.*$/#define ENABLE_STATNAMEDEVENTS UE_BUILD_TEST/' $1
 			# sed -i -e 's/#define\s\+ENABLE_STATNAMEDEVENTS\s\+.*$/#define ENABLE_STATNAMEDEVENTS 0/' $1
-			sed -i -e 's/#define\s\+ALLOW_HITCH_DETECTION\s\+.*$/#define ALLOW_HITCH_DETECTION 1/' $1
+			sed -i -e 's/#define\s\+ALLOW_HITCH_DETECTION\s\+.*$/#define ALLOW_HITCH_DETECTION 0/' $1
 			return 0
 		}
 		for s in "Config/ConsoleVariables.ini" "Source/Runtime/Core/Public/Misc/Build.h"; do

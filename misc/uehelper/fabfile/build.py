@@ -163,7 +163,7 @@ class BuildCommand(CoreBuilder):
         if platform in ('Android', ):
             cmdargs += [
                 '-serverconfig={}'.format(configuration),
-                '-addcmdline="-SessionId={} -SessionOwner=\'{}\' -SessionName=\'{}\' -messaging"'.format(uuid.uuid4().hex, username, self.uproject.name),
+                '-addcmdline="-statnamedevents -SessionId={} -SessionOwner=\'{}\' -SessionName=\'{}\' -messaging"'.format(uuid.uuid4().hex, username, self.uproject.name),
                 ]
 
         if configuration in ('Shipping', ):
