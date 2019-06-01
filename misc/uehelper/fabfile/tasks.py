@@ -8,7 +8,7 @@ def _build_task(name):
     @task(name=name)
     def inner(c, target=None, opts=None):
         builder = BuildCommand(c)
-        builder.build(target, name)
+        builder.build(target, name, opts or '')
     return inner
 
 

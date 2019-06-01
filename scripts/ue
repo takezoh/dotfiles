@@ -10,7 +10,7 @@ invoke() {
 		pip3 install fabric
 	fi
 	local current_dir=$(pwd -P)
-	(cd $HELPER_DIR && TARGET_DIR="$current_dir" $HELPER_DIR/fabfile/bin/ue "$@")
+	(cd $HELPER_DIR && TARGET_DIR="$current_dir" python3 $HELPER_DIR/fabfile/bin/ue "$@")
 }
 
 case "$1" in
@@ -23,37 +23,13 @@ case "$1" in
 		invoke "$@"
 		;;
 	build|rebuild|clean)
-		mod-configure() {
-			sed -i -e 's/;\?\s*r\.ShaderDevelopmentMode=.*$/r.ShaderDevelopmentMode=1/' $1
-			sed -i -e 's/;\?\s*r\.DumpShaderDebugInfo=.*$/r.DumpShaderDebugInfo=1/' $1
-			sed -i -e 's/;\?\s*r\.DumpShaderDebugShortNames=.*$/r.DumpShaderDebugShortNames=0/' $1
-			sed -i -e 's/;\?\s*r\.DumpShaderDebugWorkerCommandLine=.*$/r.DumpShaderDebugWorkerCommandLine=1/' $1
-
-			sed -i -e 's/#define\s\+ALLOW_PROFILEGPU_IN_TEST\s\+.*$/#define ALLOW_PROFILEGPU_IN_TEST 1/' $1
-			# sed -i -e 's/#define\s\+ALLOW_PROFILEGPU_IN_TEST\s\+.*$/#define ALLOW_PROFILEGPU_IN_TEST 0/' $1
-			sed -i -e 's/#define\s\+NO_LOGGING\s\+.*$/#define NO_LOGGING 0/' $1
-			# sed -i -e 's/#define\s\+FORCE_USE_STATS\s\+.*$/#define FORCE_USE_STATS 1/' $1
-			sed -i -e 's/#define\s\+ENABLE_STATNAMEDEVENTS\s\+.*$/#define ENABLE_STATNAMEDEVENTS UE_BUILD_TEST/' $1
-			# sed -i -e 's/#define\s\+ENABLE_STATNAMEDEVENTS\s\+.*$/#define ENABLE_STATNAMEDEVENTS 0/' $1
-			sed -i -e 's/#define\s\+ALLOW_HITCH_DETECTION\s\+.*$/#define ALLOW_HITCH_DETECTION 0/' $1
-			return 0
-		}
-		for s in "Config/ConsoleVariables.ini" "Source/Runtime/Core/Public/Misc/Build.h"; do
-			SOURCE=`invoke editor --which=engine-root`/$s
-			if [ -f "$SOURCE" ]; then
-				sudo cp $SOURCE /tmp/`basename $SOURCE`
-				mod-configure /tmp/`basename $SOURCE`
-				if ! diff $SOURCE /tmp/`basename $SOURCE` >/dev/null; then
-					mod-configure $SOURCE
-				fi
-			else
-				echo "Not Found: $SOURCE" >&2
-			fi
-		done
 		invoke "$@"
 		;;
 	cook|package|deploy|cmdline|addcmdline|editor)
 		invoke "$@"
+		;;
+	log-parse)
+		invoke log_parse "$@"
 		;;
 	update)
 		invoke "$@" &

@@ -63,7 +63,7 @@ class BuildCommand(CoreBuilder):
         if cmd:
             self.ctx.run('time cmd-cp932.exe /c ' + ' '.join(cmd), echo=True)
 
-    def build(self, target, command):
+    def build(self, target, command, opts):
         target = target or self.uproject.name
         configuration = self.ctx['configuration']
         platform = self.ctx['platform']
@@ -83,9 +83,30 @@ class BuildCommand(CoreBuilder):
         if not target.startswith(self.uproject.name):
             target = target[0:-len('Editor')]
 
+        defines = [
+                'ALLOW_PROFILEGPU_IN_TEST=1',
+                'ENABLE_STATNAMEDEVENTS=UE_BUILD_TEST',
+		#  'ENABLE_STATNAMEDEVENTS_UOBJECT=1',
+                #  'ALLOW_HITCH_DETECTION=1',
+                'USE_LOGGING_IN_SHIPPING=!UE_BUILD_SHIPPING',
+                ]
+        defines = '-UniqueBuildEnvironment ' + ' '.join(['"-Define:{}"'.format(x) for x in defines])
+
+        import configparser
+        console_variables_path = os.path.join(self.uproject.project_root, 'Saved/Config/ConsoleVariables.ini')
+        config = configparser.ConfigParser()
+        config.read(console_variables_path)
+        if not 'Startup' in config:
+            config.add_section('Startup')
+        config.set('Startup', 'r.ShaderDevelopmentMode', '1')
+        config.set('Startup', 'r.DumpShaderDebugInfo', '1')
+        config.set('Startup', 'r.DumpShaderDebugShortNames', '0')
+        config.set('Startup', 'r.DumpShaderDebugWorkerCommandLine', '1')
+        config.write(open(console_variables_path, 'w'))
+
         #  self._run_build('DotNETCommon/DotNETUtilities', command, 'Development', platform)
         #  self._run_build('UnrealBuildTool', command, 'Development', 'Win64')
-        self._run_build('ShaderCompileWorker', command, 'Development', 'Win64')
+        self._run_build('ShaderCompileWorker', command, 'Development', 'Win64', defines)
 
         if platform == 'Linux':
             #  push_cmd('nkf', '-Lu', os.path.join(builder.uproject.engine_root, 'Build/BatchFiles/Linux/GenerateGDBInit.sh'),
@@ -94,7 +115,9 @@ class BuildCommand(CoreBuilder):
                 #  '|', 'bash')
             pass
         else:
-            self._run_build(target, command, configuration, platform, *args)
+            self._run_build(target, command, configuration, platform, *args, 
+                    defines,
+                    opts)
 
     def cook(self, mapstocook, flavor, opts):
         #  Running: C:\dev\bkp\main\Engine\Binaries\Win64\UE4Editor-Cmd.exe C:\dev\bkp\main\BKP\Gargantua.uproject -run=Cook 
@@ -161,9 +184,10 @@ class BuildCommand(CoreBuilder):
             '-prereqs', '-targetplatform={}'.format(platform), '-utf8output']
 
         if platform in ('Android', ):
+            # LoadTimeFile
             cmdargs += [
                 '-serverconfig={}'.format(configuration),
-                '-addcmdline="-statnamedevents -SessionId={} -SessionOwner=\'{}\' -SessionName=\'{}\' -messaging"'.format(uuid.uuid4().hex, username, self.uproject.name),
+                '-addcmdline="-statnamedevents -StatCmds=\'unit,fps,dumphitches\' -SessionId={} -SessionOwner=\'{}\' -SessionName=\'{}\' -messaging"'.format(uuid.uuid4().hex, username, self.uproject.name),
                 ]
 
         if configuration in ('Shipping', ):
