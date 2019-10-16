@@ -1,6 +1,4 @@
 {
-    "terminal.integrated.shell.windows": "C:\\WINDOWS\\System32\\wsl.exe",
-
     "files.exclude": {
         "**/.git": true,
         "**/.gitignore": true,
@@ -8,6 +6,16 @@
         "**/.vscode": true,
         "**/.meta": true,
     },
+
+    "terminal.integrated.copyOnSelection": true,
+    "terminal.integrated.cursorBlinking": true,
+    "terminal.integrated.confirmOnExit": true,
+    "terminal.integrated.rightClickBehavior": "selectWord",
+    "terminal.explorerKind": "external",
+    "terminal.integrated.shell.windows": "C:\\WINDOWS\\System32\\wsl.exe",
+    //"terminal.integrated.shell.windows": "arch.exe",
+    //"terminal.external.windowsExec": "arch.exe",
+    "terminal.external.windowsExec": "C:\\Users\\takeg\\AppData\\Local\\Microsoft\\WindowsApps\\arch.exe",
 
     "vim.leader": ",",
     "vim.useSystemClipboard": true,
@@ -44,5 +52,20 @@
     // "codegnuglobal.executable": "C:\\cygwin64\\bin\\global.exe",
     // "codegnuglobal.executable": "global_proxy.bat",
     "codegnuglobal.autoupdate": false,
-    "git.ignoreMissingGitWarning": true
+    "git.ignoreMissingGitWarning": true,
+
+    "window.openFilesInNewWindow": "on",
+
+    "workbench.editor.showTabs": true,
+
+    // Controls whether suggestions should automatically show up while typing.
+    "editor.quickSuggestions": {
+        "other": true,
+        "comments": true,
+        "strings": true, 
+    },
+    // Controls the delay in milliseconds after which quick suggestions will show up.
+    "editor.quickSuggestionsDelay": 1,
+    "explorer.confirmDelete": false,
+    "javascript.updateImportsOnFileMove.enabled": "always",
 }

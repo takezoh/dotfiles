@@ -6,6 +6,7 @@ ubuntu_deb_packages:
   # - https://github.com/BurntSushi/ripgrep/releases/download/0.9.0/ripgrep_0.9.0_amd64.deb
 
 ubuntu_packages:
+  - linuxbrew-wrapper
   - lv
   - tree
   - wget
@@ -32,6 +33,8 @@ ubuntu_packages:
   # - mysql-client
   # - mysql-server
   # - redis-server
+
+  - libffi-dev
 
   - g++-i686-linux-gnu
   - g++-arm-linux-gnueabi

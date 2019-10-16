@@ -20,12 +20,12 @@
 
 - name: link to "{{ win_vscode_settings_path }}"
   shell: >
-    cmd.exe /d /c rmdir /q '{{ win_vscode_settings_path }}\\{{ item }}' || true;
-    cmd.exe /d /c del /q '{{ win_vscode_settings_path }}\\{{ item }}' || true;
+    cmd.exe /d /c rmdir /q '{{ win_vscode_settings_path }}\{{ item }}' || true;
+    cmd.exe /d /c del /q '{{ win_vscode_settings_path }}\{{ item }}' || true;
     if [ -d ~/.config/vscode/{{ item }} ]; then
-      cmd.exe /d /c mklink /d '{{ win_vscode_settings_path }}\\{{ item }}' "`wslpath -aw ~/.config/vscode/{{ item }}`";
+      cmd.exe /d /c mklink /d '{{ win_vscode_settings_path }}\{{ item }}' "$(wslpath -aw `readlink -f ~/.config/vscode/{{ item }}`)";
     elif [ -f ~/.config/vscode/{{ item }} ]; then
-      cmd.exe /d /c mklink '{{ win_vscode_settings_path }}\\{{ item }}' "`wslpath -aw ~/.config/vscode/{{ item }}`";
+      cmd.exe /d /c mklink '{{ win_vscode_settings_path }}\{{ item }}' "$(wslpath -aw `readlink -f ~/.config/vscode/{{ item }}`)";
     fi
   with_items:
     - "{{ vscode_settings }}"

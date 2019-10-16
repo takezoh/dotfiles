@@ -6,8 +6,8 @@ touch $sharedir/styles/__init__.py
 cd $sharedir
 
 # Vim Color Scheme Editor "Vivify" [http://bytefluent.com/devify]
-for s in `cd $rootdir/../../../config/nvim/colors && command ls`; do
-	python3 $rootdir/../../../external/vim2pygments/vimpygments.py $rootdir/../../../config/nvim/colors/$s > styles/${s%%.*}.py
+for s in `cd $rootdir/../../config/nvim/colors && command ls`; do
+	python3 $rootdir/../../external/vim2pygments/vimpygments.py $rootdir/../../config/nvim/colors/$s > styles/${s%%.*}.py
 done
 
 # generate setup.py

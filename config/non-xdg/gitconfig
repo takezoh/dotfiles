@@ -18,12 +18,6 @@
 [diff "astextplain"]
 	textconv=astextplain
 
-[filter "lfs"]
-	clean=git-lfs clean -- %f
-	smudge=git-lfs smudge -- %f
-	process=git-lfs filter-process
-	required=true
-
 [rebase]
 	autosquash=true
 
@@ -37,3 +31,8 @@
 [include]
 	path = ~/.local/platform-generated.gitconfig
 	path = ~/.local/config/gitconfig
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true

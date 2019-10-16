@@ -4,11 +4,10 @@ set -ex
 
 darwin() {
 	if ! type brew >/dev/null 2>&1; then
-		if xcode-select --install >/dev/null 2>&1; then
+		if ! xcode-select --install >/dev/null 2>&1; then
 			return 1
-		else
-			/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 		fi
+		/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 	fi
 	brew update
 	brew install ansible
@@ -62,4 +61,4 @@ base_dir=$(cd `dirname $0` && pwd -P)
 test -d /home/linuxbrew/.linuxbrew && eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 ansible-playbook --module-path=$base_dir/external/ansible/plugins/modules $base_dir/misc/install/ansible/playbook.yml
 
-$base_dir/misc/pygments/setup.sh
+bash $base_dir/misc/pygments/setup.sh
