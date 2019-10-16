@@ -1,0 +1,64 @@
+#!/usr/bin/env python3
+import json
+import requests
+import sys
+import os
+
+
+class Line():
+    CHANNEL_ID = os.environ['N_LINE_CHANNEL_ID']
+    CHANNEL_SECRET = os.environ['N_LINE_CHANNEL_SECRET']
+    TOKEN_URL = 'https://api.line.me/v2/oauth/accessToken'
+    PUSH_URL = 'https://api.line.me/v2/bot/message/push'
+    TO = os.environ['N_LINE_TO']
+
+    def get_access_token(self):
+        headers = {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            }
+        params = {
+            'grant_type': 'client_credentials',
+            'client_id': self.CHANNEL_ID,
+            'client_secret': self.CHANNEL_SECRET,
+            }
+        r = requests.post(self.TOKEN_URL, headers=headers, params=params)
+        r.raise_for_status()
+        return r.json()['access_token']
+
+
+    def send(self, text):
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + self.get_access_token(),
+            }
+        payload = {
+            'to': self.TO,
+            "messages": [
+                {
+                    "text": text,
+                    "type": "text"
+                }, 
+            ]
+        }
+
+        requests.post(self.PUSH_URL, headers=headers, data=json.dumps(payload))
+
+
+class Slack():
+    URL = os.environ['N_SLACK_POST_URL']
+
+    def send(self, text):
+        payload = {
+            "text": text,
+        }
+
+        requests.post(self.URL, data=json.dumps(payload))
+
+
+def main(text):
+    Slack().send(text)
+    Line().send(text)
+
+
+if __name__ == '__main__':
+    main(sys.argv[1])
