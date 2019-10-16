@@ -45,8 +45,8 @@ def addcmdline(c, cmdline='', session=False, session_name=None):
 def projectfiles(c, *args, **kwargs):
     BuildCommand(c)._run_build('UnrealBuildTool', 'Build', 'Development', platform='AnyCPU')
     builder = ProjectGenerator(c, *args, **kwargs)
-    builder.manifest_file(*args, **kwargs)
     builder.project_files(*args, **kwargs)
+    builder.manifest_file(*args, **kwargs)
 
 
 @task

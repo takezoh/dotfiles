@@ -72,7 +72,12 @@ class UProject():
         self.project_root = os.path.dirname(uproject_path)
 
         self.root_path = os.path.dirname(self.project_root)
-        self.engine_root = os.path.join(self.root_path, 'Engine')
+
+        engine_path = glob.glob(self.root_path + '/Engine/Build/Build.version')
+        if not engine_path:
+            engine_path = glob.glob(self.root_path + '/*/Engine/Build/Build.version')
+
+        self.engine_root = os.path.dirname(os.path.dirname(engine_path[0]))
         if not os.path.exists(self.engine_root):
             self.root_path = self.project_root
             self.engine_root = os.path.join(CoreBuilder.UNREAL_ENGINE_INSTALL_ROOT, 'UE_' + self.engine_association, 'Engine')

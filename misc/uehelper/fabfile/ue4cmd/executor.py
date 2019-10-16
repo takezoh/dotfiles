@@ -13,8 +13,9 @@ ENV = {
 class Context(invoke.Context):
     def run(self, cmd, *args, **kwargs):
         cmd = cmd.lstrip().replace('/mnt/c/Windows/System32/cmd.exe', 'cmd.exe')
-        tokens = cmd.split(' ', 2)
-        if 'cmd-cp932.exe' in tokens[:2]:
+        #  tokens = cmd.split(' ', 2)
+        #  if 'cmd-cp932.exe' in tokens[:2]:
+        if 'cmd-cp932.exe' in cmd:
             kwargs['encoding'] = 'cp932'
         kwargs['env'] = ENV
         return super().run(cmd, *args, **kwargs)

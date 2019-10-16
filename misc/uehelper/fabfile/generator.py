@@ -99,6 +99,8 @@ class ProjectGenerator(CoreBuilder):
     def _patch_vscode_project(self, manifest):
         # VSCode UE4.code-workspace
         vscode_project = os.path.join(self.uproject.project_root, 'UE4.code-workspace')
+        if not os.path.exists(vscode_project):
+            return
         context = json.load(open(vscode_project, 'r'))
         context["settings"]["codegnuglobal.executable"] = "globalrc.bat"
         context["settings"]["codegnuglobal.autoupdate"] = True

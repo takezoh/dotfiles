@@ -83,29 +83,37 @@ class BuildCommand(CoreBuilder):
         if not target.startswith(self.uproject.name):
             target = target[0:-len('Editor')]
 
+        import configparser
+        console_variables_path = os.path.join(self.uproject.project_root, 'Saved/Config/ConsoleVariables.ini')
+        section_name = 'Startup'
+        config = configparser.ConfigParser()
+        config.read(console_variables_path)
+        if not config.has_section(section_name):
+            config.add_section(section_name)
+        config.set(section_name, 'r.ShaderDevelopmentMode', '1')
+        config.set(section_name, 'r.DumpShaderDebugInfo', '1')
+        config.set(section_name, 'r.DumpShaderDebugShortNames', '0')
+        config.set(section_name, 'r.DumpShaderDebugWorkerCommandLine', '1')
+        try:
+            os.makedirs(os.path.dirname(console_variables_path))
+        except OSError:
+            pass
+        with open(console_variables_path, 'w') as f:
+            config.write(f)
+
         defines = [
                 'ALLOW_PROFILEGPU_IN_TEST=1',
                 'ENABLE_STATNAMEDEVENTS=UE_BUILD_TEST',
-		#  'ENABLE_STATNAMEDEVENTS_UOBJECT=1',
+                #  'ENABLE_STATNAMEDEVENTS_UOBJECT=1',
                 #  'ALLOW_HITCH_DETECTION=1',
                 'USE_LOGGING_IN_SHIPPING=!UE_BUILD_SHIPPING',
                 ]
         defines = '-UniqueBuildEnvironment ' + ' '.join(['"-Define:{}"'.format(x) for x in defines])
+        defines = ''
 
-        import configparser
-        console_variables_path = os.path.join(self.uproject.project_root, 'Saved/Config/ConsoleVariables.ini')
-        config = configparser.ConfigParser()
-        config.read(console_variables_path)
-        if not 'Startup' in config:
-            config.add_section('Startup')
-        config.set('Startup', 'r.ShaderDevelopmentMode', '1')
-        config.set('Startup', 'r.DumpShaderDebugInfo', '1')
-        config.set('Startup', 'r.DumpShaderDebugShortNames', '0')
-        config.set('Startup', 'r.DumpShaderDebugWorkerCommandLine', '1')
-        config.write(open(console_variables_path, 'w'))
-
-        #  self._run_build('DotNETCommon/DotNETUtilities', command, 'Development', platform)
-        #  self._run_build('UnrealBuildTool', command, 'Development', 'Win64')
+        self._run_build('DotNETCommon/DotNETUtilities', command, 'Development', platform)
+        self._run_build('UnrealBuildTool', command, 'Development', 'Win64')
+        self._run_build('AutomationTool', command, 'Development', 'Win64')
         self._run_build('ShaderCompileWorker', command, 'Development', 'Win64', defines)
 
         if platform == 'Linux':
@@ -120,6 +128,8 @@ class BuildCommand(CoreBuilder):
                     opts)
 
     def cook(self, mapstocook, flavor, opts):
+        # recompileshaders changed | global | material | all
+
         #  Running: C:\dev\bkp\main\Engine\Binaries\Win64\UE4Editor-Cmd.exe C:\dev\bkp\main\BKP\Gargantua.uproject -run=Cook 
         #  -Map=BattleTest_01 
         #  -TargetPlatform=Android_ASTC -fileopenlog -unversioned -compressed 
@@ -171,6 +181,16 @@ class BuildCommand(CoreBuilder):
                 '-skipdeploy', '-noxge', '-generatemanifest', '-NoHotReload',
                 ]), echo=True)
  
+        defines = [
+                'ALLOW_PROFILEGPU_IN_TEST=1',
+                'ENABLE_STATNAMEDEVENTS=UE_BUILD_TEST',
+                #  'ENABLE_STATNAMEDEVENTS_UOBJECT=1',
+                #  'ALLOW_HITCH_DETECTION=1',
+                'USE_LOGGING_IN_SHIPPING=!UE_BUILD_SHIPPING',
+                ]
+        defines = '-UniqueBuildEnvironment ' + ' '.join(['"-Define:{}"'.format(x) for x in defines])
+        defines = ''
+
         cmdargs = [
             self.wpath(os.path.join(self.uproject.engine_root, 'Build/BatchFiles/RunUAT.bat')),
             '-ScriptsForProject={}'.format(self.wpath(self.uproject.uproject_path)),
@@ -181,7 +201,8 @@ class BuildCommand(CoreBuilder):
             #  '-SkipCookingEditorContent', 
             *args,
             '-clientconfig={}'.format(configuration), 
-            '-prereqs', '-targetplatform={}'.format(platform), '-utf8output']
+            '-prereqs', '-targetplatform={}'.format(platform), '-utf8output',
+            defines]
 
         if platform in ('Android', ):
             # LoadTimeFile
@@ -200,6 +221,9 @@ class BuildCommand(CoreBuilder):
         if flavor:
             cmdargs.append('-cookflavor={}'.format(flavor)) 
 
+        self.env['WSLENV'] = 'ADDITIONAL_DEFINITIONS/w'
+        self.env['ADDITIONAL_DEFINITIONS'] = 'DISABLE_SMART_BEAT'
+        #  self.ctx.run('set')
         self.ctx.run('time cmd.exe /c ' + ' '.join(cmdargs), echo=True)
 
     def package(self, flavor):
@@ -243,7 +267,7 @@ class BuildCommand(CoreBuilder):
             '-nocompile',
             '-stage', 
             '-pak', 
-            '-archive', '-archivedirectory=\'{}\''.format(self.wpath(archive_path)),
+            #  '-archive', '-archivedirectory=\'{}\''.format(self.wpath(archive_path)),
             '-compressed', 
             '-map={}'.format(mapstocook),
             '-cmdline="{}"'.format(mapstocook.split('+')[0]),

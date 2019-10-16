@@ -14,9 +14,11 @@ class EditorSupport(CoreBuilder):
             selected = result.stdout.strip()
             map = '/Game/{}'.format(selected[2:-5])
 
-        editor = os.path.join(self.uproject.engine_root, 'Binaries/Win64/UE4Editor.exe')
-        if os.path.exists(editor):
-            cmdargs = [self.wpath(editor)]
+        #  editor = os.path.join(self.uproject.engine_root, 'Binaries/Win64/UE4Editor.exe')
+        #  if os.path.exists(editor):
+            #  cmdargs = [self.wpath(editor)]
+        if os.path.exists(self.uproject.engine_root):
+            cmdargs = [os.path.join(self.wpath(self.uproject.engine_root), 'Binaries/Win64/UE4Editor.exe')]
 
         cmdargs += [self.wpath(self.uproject.uproject_path), map, opts] + ['-skipcompile', '-fullcrashdump']
         self.ctx.run('cmd.exe /c start ' + ' '.join(cmdargs), echo=True)
