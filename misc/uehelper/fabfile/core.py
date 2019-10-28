@@ -73,11 +73,16 @@ class UProject():
 
         self.root_path = os.path.dirname(self.project_root)
 
-        engine_path = glob.glob(self.root_path + '/Engine/Build/Build.version')
-        if not engine_path:
-            engine_path = glob.glob(self.root_path + '/*/Engine/Build/Build.version')
+        editor_path_file = os.path.join(self.project_root, '.ue4-version')
+        if os.path.exists(editor_path_file):
+            with open(editor_path_file, 'r') as f:
+                self.engine_root = f.read().strip()
+        else:
+            engine_path = glob.glob(self.root_path + '/Engine/Build/Build.version')
+            if not engine_path:
+                engine_path = glob.glob(self.root_path + '/*/Engine/Build/Build.version')
+            self.engine_root = os.path.dirname(os.path.dirname(engine_path[0]))
 
-        self.engine_root = os.path.dirname(os.path.dirname(engine_path[0]))
         if not os.path.exists(self.engine_root):
             self.root_path = self.project_root
             self.engine_root = os.path.join(CoreBuilder.UNREAL_ENGINE_INSTALL_ROOT, 'UE_' + self.engine_association, 'Engine')
