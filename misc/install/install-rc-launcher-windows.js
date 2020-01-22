@@ -10,7 +10,7 @@ function MakeLink(Name) {
   lnk.Arguments = "\"" + Name + "\""
   // lnk.IconLocation = WslDir + Name + ".ico"
   lnk.Save()
-  WshShell.Run("cmd /c move \"" + TempPath + "\" \"%USERPROFILE%\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\\"", 0)
+  WshShell.Run("cmd /c move \"" + TempPath + "\" \"%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\\"", 0)
 }
 
 MakeLink("Ubuntu-18.04")

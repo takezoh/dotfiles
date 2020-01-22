@@ -27,9 +27,7 @@ nnoremap ZZ <Nop>
 nnoremap ZQ <Nop>
 
 " クリップボード共有
-if has('clipboard')
-	set clipboard=unnamedplus
-endif
+set clipboard=unnamedplus
 
 set helpfile=$VIMRUNTIME/doc/help.txt
 

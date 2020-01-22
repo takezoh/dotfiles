@@ -38,7 +38,7 @@ if expand("%:e") != "md"
 	" autocmd BufWritePre *.cs :OmniSharpFindSyntaxErrors
 
 	" 行末の空白を除去
-	" autocmd BufWritePre * :%s/\s\+$//ge
+	autocmd BufWritePre * :%s/\s\+$//ge
 
 	" C#: bomb を付与
 	autocmd BufWritePre *.cs :set fenc=utf-8 bomb
