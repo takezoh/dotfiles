@@ -1,8 +1,0 @@
-let g:netrw_dirhistmax  =10
-let g:netrw_dirhist_cnt =6
-let g:netrw_dirhist_1='/mnt/c/dev/bkp/main/BKP/Saved/ShaderDebugInfo/GLSL_ES3_1_ANDROID/M_Marble'
-let g:netrw_dirhist_2='/mnt/c/dev/bkp/main/BKP/Saved/ShaderDebugInfo/GLSL_ES3_1_ANDROID'
-let g:netrw_dirhist_3='/mnt/d/dev/vrpvp/client/Helpers'
-let g:netrw_dirhist_4='/mnt/c/dev/bkp/CheckSrc/BKP/Plugins/JsonDBPlugin/Source/JsonDB/Private'
-let g:netrw_dirhist_5='/mnt/c/dev/bkp/CheckSrc/BKP/Saved/ShaderDebugInfo/SF_VULKAN_ES31_ANDROID_NOUB/M_FakeShadow'
-let g:netrw_dirhist_6='/mnt/c/dev/bkp/CheckSrc/BKP/Saved/ShaderDebugInfo/SF_VULKAN_ES31_ANDROID_NOUB'
