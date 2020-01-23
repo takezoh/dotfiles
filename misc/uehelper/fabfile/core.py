@@ -11,9 +11,6 @@ class CoreBuilder():
 
     def __init__(self, ctx, *args, **kwargs):
         self.ctx = ctx
-        self.env = {
-            'PATH': '{}/bin:/usr/bin:/bin'.format(os.path.dirname(__file__)),
-            }
 
         current_dir = os.environ.get('TARGET_DIR')
 
@@ -40,12 +37,22 @@ class CoreBuilder():
         if not path:
             return ''
         def escape(path):
+            return path
             path = path.replace('Unreal Projects', 'Unreal\\ Projects')
             path = path.replace('Epic Games', 'Epic\\ Games')
             path = path.replace('Program Files (x86)', 'Program\\ Files\\ \\(x86\\)')
             path = path.replace('Program Files', 'Program\\ Files')
             return path
-        return escape(ctx.run('wslpath {} \'{}\''.format(opt, escape(path)), hide=True).stdout.strip())
+        #  return escape(ctx.run('wslpath {} \'{}\''.format(opt, escape(path)), hide=True).stdout.strip())
+        #  print (path)
+        #  print(escape(path))
+        r = ctx.run('wslpath {} \'{}\''.format(opt, escape(path)), hide=True).stdout.strip()
+        #  print (r)
+        r = escape(r)
+        #  print(r)
+        #  return '\'{}\''.format(r)
+        return '"{}"'.format(r)
+        return r.replace(' ', '\ ').replace('(', '\\(').replace(')', '\\)')
 
     def upath(self, wpath):
         if wpath and wpath[-1] == '\\':
@@ -66,6 +73,8 @@ class UProject():
 
         self.file_version = context["FileVersion"]
         self.engine_association = context["EngineAssociation"]
+        self.modules = context.get('Modules')
+        self.has_modules = bool(self.modules)
 
         self.uproject_path = uproject_path
         self.name = os.path.basename(uproject_path)[:-len('.uproject')]
@@ -73,14 +82,15 @@ class UProject():
 
         self.root_path = os.path.dirname(self.project_root)
 
-        editor_path_file = os.path.join(self.project_root, '.ue4-version')
-        if os.path.exists(editor_path_file):
-            with open(editor_path_file, 'r') as f:
+        editor_path_file = glob.glob(self.root_path + '/.ue4-version') \
+                        or glob.glob(self.root_path + '/*/.ue4-version')
+        if editor_path_file:
+            self.root_path = os.path.dirname(editor_path_file[0])
+            with open(editor_path_file[0], 'r') as f:
                 self.engine_root = f.read().strip()
         else:
-            engine_path = glob.glob(self.root_path + '/Engine/Build/Build.version')
-            if not engine_path:
-                engine_path = glob.glob(self.root_path + '/*/Engine/Build/Build.version')
+            engine_path = glob.glob(self.root_path + '/Engine/Build/Build.version') \
+                       or glob.glob(self.root_path + '/*/Engine/Build/Build.version')
             self.engine_root = os.path.dirname(os.path.dirname(engine_path[0]))
 
         if not os.path.exists(self.engine_root):

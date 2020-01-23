@@ -58,7 +58,8 @@ class BuildCommand(CoreBuilder):
                 target,
                 platform,
                 configuration,
-                *args]
+                *args,
+                '-fullcrashdump']
 
         if cmd:
             self.ctx.run('time cmd-cp932.exe /c ' + ' '.join(cmd), echo=True)
@@ -82,6 +83,9 @@ class BuildCommand(CoreBuilder):
 
         if not target.startswith(self.uproject.name):
             target = target[0:-len('Editor')]
+
+        if not self.uproject.has_modules:
+            target = 'UE4Editor'
 
         import configparser
         console_variables_path = os.path.join(self.uproject.project_root, 'Saved/Config/ConsoleVariables.ini')
@@ -155,7 +159,8 @@ class BuildCommand(CoreBuilder):
             '-iterate', '-iterateshash',
             #  '-skipeditorcontent', 
             '-abslog={}'.format(self.wpath(os.path.join(self.uproject.project_root, 'Saved/Logs/HelperCook.txt'))), '-stdout',
-            '-unattended',  '-UTF8Output']
+            '-unattended',  '-UTF8Output',
+            '-fullcrashdump']
 
         if mapstocook:
             cmdargs += [
@@ -168,7 +173,7 @@ class BuildCommand(CoreBuilder):
         platform = self.ctx['platform']
         username = self.ctx.run('cmd.exe /c echo %USERNAME%', hide=True).stdout.strip()
 
-        if generate_manifestfile:
+        if self.uproject.has_modules and generate_manifestfile:
             self.ctx.run('cmd-cp932.exe /c ' + ' '.join([
                 self.wpath(os.path.join(self.uproject.engine_root, 'Build/BatchFiles/Build.bat')),
                 self.uproject.name,
@@ -179,6 +184,7 @@ class BuildCommand(CoreBuilder):
                 '-NoUBTMakefiles',
                 '-remoteini={}'.format(self.wpath(self.uproject.project_root)),
                 '-skipdeploy', '-noxge', '-generatemanifest', '-NoHotReload',
+                '-fullcrashdump',
                 ]), echo=True)
  
         defines = [
@@ -202,6 +208,7 @@ class BuildCommand(CoreBuilder):
             *args,
             '-clientconfig={}'.format(configuration), 
             '-prereqs', '-targetplatform={}'.format(platform), '-utf8output',
+            '-fullcrashdump',
             defines]
 
         if platform in ('Android', ):

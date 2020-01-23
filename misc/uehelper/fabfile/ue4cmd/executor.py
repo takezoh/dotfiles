@@ -5,9 +5,13 @@ from invoke.parser import ParserContext
 
 import os
 
-ENV = {
-    'PATH': '{}/bin:/usr/bin:/bin'.format(os.path.join(os.path.dirname(__file__), '..')),
-}
+_PATH = [
+    '{}/bin'.format(os.path.dirname(__file__)),
+    '/home/linuxbrew/.linuxbrew/bin',
+    '/usr/local/bin',
+    '/usr/bin',
+    '/bin',
+    ]
 
 
 class Context(invoke.Context):
@@ -17,7 +21,9 @@ class Context(invoke.Context):
         #  if 'cmd-cp932.exe' in tokens[:2]:
         if 'cmd-cp932.exe' in cmd:
             kwargs['encoding'] = 'cp932'
-        kwargs['env'] = ENV
+        kwargs['env'] = {
+            'PATH': ':'.join(_PATH),
+            }
         return super().run(cmd, *args, **kwargs)
 
 
