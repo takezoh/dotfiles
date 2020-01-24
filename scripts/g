@@ -1,7 +1,6 @@
 #!/usr/bin/env zsh
 
 main() {
-	# exec rg --line-number --ignore-case "$@" . 2>/dev/null | peco --prompt="$*>" --exec 'awk -F : '"'"'{print "+" $2 " " $1}'"'"' | xargs less -N '
 	exec rg --line-number --ignore-case "$@" . 2>/dev/null | fzf -e --multi --no-sort --exit-0 --reverse --prompt="$* > " \
 		--preview 'exec g --preview {}' \
 		--preview-window up \
@@ -13,10 +12,7 @@ main() {
 }
 
 preview() {
-	local lines=`tput lines`
-	# if (( ${_platforms[(I)darwin]} )); then
-		lines=$(( $lines / 2 - 2 ))
-	# fi
+	local lines=$(( `tput lines` / 2 - 2 ))
 	exec cat <<EOF | python3
 import subprocess
 window_lines = ${lines}
@@ -43,14 +39,12 @@ open() {
 	shift
 
 	local args=(`echo $@ | awk -F : '{ print $1 " " $2 }'`)
-	# local filename=${args[0]}
-	# local linenumber=${args[1]}
 	local filename=${args[1]}
 	local linenumber=${args[2]}
 
 	case "$cmd" in
 	vs)
-		(wcmd `wpath -aw ~/.dotfiles/misc/vshelper/openfile.vbs` `wpath -aw $filename` $linenumber) &
+		(wcmd `wpath -aw ~/.local/misc/vshelper/openfile.vbs` `wpath -aw $filename` $linenumber) &
 		;;
 	code)
 		code --reuse-window --goto "`wpath -aw $filename`:$linenumber"
@@ -61,40 +55,16 @@ open() {
 	esac
 }
 
-t=
-
 case "$1" in
 	--preview)
 		shift
 		preview "$@"
-		exit $?
 		;;
 	--open)
 		shift
 		open "$@"
-		exit $?
-		;;
-	--)
-		shift
-		;;
-	-cc)
-		t="-tcpp"
-		shift
-		;;
-	-t*)
-		t="$1"
-		shift
-		;;
-	-g)
-		t="-g"
-		shift
-		;;
-	-*)
-		t="-t${1#-}"
-		shift
 		;;
 	*)
+		main "$@"
 		;;
 esac
-
-main $t "$@"
