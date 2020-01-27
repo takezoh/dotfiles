@@ -1,8 +1,8 @@
 #!/usr/bin/env zsh
 
 if (( ${_platforms[(I)windows]} )); then
-	C="| win32yank -i"
-	P="win32yank -o"
+	C="| win32yank.exe -i"
+	P="win32yank.exe -o"
 
 	if [ "$OSTYPE" = "cygwin" ]; then
 		# C=" > /dev/clipboard"
