@@ -28,6 +28,7 @@ RAW_BINDINGS = {
 SOURCE_HIGHLIGHTER = 'src-highlight.sh'
 HIGHLIGHT_STYLE = u'\u001b[38;5;253;48;5;163;01m{}\u001b[00m'
 FILEPATH_STYLE = u'\u001b[37;40;1;4m> {}\u001b[0m'
+SHOW_FILEPATH = True
 
 RG_ARGS = [
     '--ignore-case',
@@ -42,29 +43,33 @@ FZF_ARGS = [
     ]
 
 
-class Program():
+class Handler():
     def preview(self):
-        window_lines = shutil.get_terminal_size().lines - 1
+        out = []
+        offset = 0
+        window_lines = shutil.get_terminal_size().lines
         if platform.system().lower() == 'darwin':
             window_lines = window_lines // 2 - 2
         linenumber = self.linenumber - 1
-        print(FILEPATH_STYLE.format(self.filepath))
+
+        if SHOW_FILEPATH:
+            offset += 1
+            window_lines -= 1
+            out.append(FILEPATH_STYLE.format(self.filepath))
 
         p = subprocess.run([SOURCE_HIGHLIGHTER, self.filepath], stdout=subprocess.PIPE, shell=False)
         p.check_returncode()
 
         context = p.stdout.decode('utf-8').replace('\r\n', '\n').split('\n')
         contextlines = len(context)
-        head_offset = (window_lines - 0) // 2
-        tail_offset = window_lines - head_offset
-        headline = max(min(linenumber - head_offset, contextlines - window_lines - 1), 0)
-        tailline = min(max(linenumber + tail_offset, window_lines                   ), contextlines)
+        headline = max(min(linenumber - window_lines // 2, contextlines - window_lines - 1), 0)
+        tailline = min(window_lines + headline, contextlines)
 
-        out = context[headline:tailline]
-        out[linenumber - headline] = HIGHLIGHT_STYLE.format(self.text.rstrip())
+        out[offset:] = context[headline:tailline]
+        out[linenumber - headline + offset] = HIGHLIGHT_STYLE.format(self.text.rstrip())
         print ('\n'.join(out).replace('\t', '  '))
 
-    def execute_binding(self, bind):
+    def bind(self, bind):
         _, command = BINDINGS[bind]
         if callable(command):
             command(filepath=self.filepath, linenumber=self.linenumber, text=self.text)
@@ -73,36 +78,29 @@ class Program():
             p = subprocess.run(command, shell=True)
             p.check_returncode()
 
-    def __init__(self, args):
-        def expands_rg_line(line):
-            filepath, linenumber, text = line.split(':', 2)
-            return filepath, int(linenumber), text
+    def __init__(self, rg_line):
+        self.filepath, self.linenumber, self.text = rg_line.split(':', 2)
+        self.linenumber = int(self.linenumber)
 
-        command = len(args) > 0 and args[0] or None
-        if command == '--preview':
-            self.filepath, self.linenumber, self.text = expands_rg_line(args[1])
-            self.run = lambda: self.preview()
-        elif command == '--exec':
-            self.filepath, self.linenumber, self.text = expands_rg_line(args[2])
-            self.run = lambda: self.execute_binding(args[1])
-        else:
-            self.run = lambda: self.main(args[:])
+    def execute(self, name, *args):
+        getattr(self, name)(*args)
+
+
+class Program():
+    PROGRAM = os.path.abspath(__file__)
+    HANDLE_OPTION_NAME = '--g-handle'
 
     def main(self, args):
-        PROGRAM = os.path.abspath(__file__)
-        PREVIEW = f'{PROGRAM} --preview {{}}'
-
         def make_bindings():
             duplicate_keys = set(BINDINGS.keys()) & set(RAW_BINDINGS.keys())
             if duplicate_keys:
                 raise ValueError(f'duplicate binding keys: {duplicate_keys}')
 
-            for bind, value in RAW_BINDINGS.items():
-                yield '--bind'
-                yield f'{bind}:{value}'
-            for bind, (func, _) in BINDINGS.items():
-                yield '--bind'
-                yield f'{bind}:{func}({PROGRAM} --exec {bind} {{}})'
+            raw_bins = [f'{bind}:{value}' for bind, value in RAW_BINDINGS.items()]
+            bins = [f'{bind}:{func}({self.PROGRAM} {self.HANDLE_OPTION_NAME} {{}} bind {bind})' for bind, (func, _) in BINDINGS.items()]
+            if raw_bins or bins:
+                return ['--bind', ','.join(raw_bins + bins)]
+            return []
 
         rg_args = ['rg',
             '--line-number',
@@ -112,9 +110,9 @@ class Program():
 
         fzf_args = ['fzf',
             '--prompt={} > '.format(' '.join(args)),
-            '--preview', PREVIEW,
+            '--preview', f'{self.PROGRAM} {self.HANDLE_OPTION_NAME} {{}} preview',
             '--preview-window', 'up',
-            ] + FZF_ARGS + list(make_bindings())
+            ] + FZF_ARGS + make_bindings()
 
         try:
             p_rg = subprocess.Popen(rg_args, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, shell=False)
@@ -130,6 +128,12 @@ class Program():
         finally:
             p_rg.terminate()
 
+    def run(self, args):
+        if len(args) > 0 and args[0] == self.HANDLE_OPTION_NAME:
+            Handler(args[1]).execute(args[2], *args[3:])
+        else:
+            self.main(args)
+
 
 if __name__ == '__main__':
-    Program(sys.argv[1:]).run()
+    Program().run(sys.argv[1:])
