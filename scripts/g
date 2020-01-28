@@ -13,10 +13,10 @@ def copy_to_clipboard(filepath, linenumber, line):
 
 
 BINDINGS = {
-    'enter': ('execute', 'less "+{linenumber}" {filepath}'),
-    'ctrl-o': ('execute', 'nvim "+{linenumber}" {filepath}'),
-    'ctrl-v': ('execute-silent', 'code --reuse-window --goto "`wpath -aw {filepath}`:{linenumber}"'),
-    'ctrl-t': ('execute-silent', 'wcmd `wpath -aw ~/.local/misc/vshelper/openfile.vbs` `wpath -aw {filepath}` {linenumber}'),
+    'enter': ('execute', '''less "+{linenumber}" {filepath}'''),
+    'ctrl-o': ('execute', '''nvim "+{linenumber}" {filepath}'''),
+    'ctrl-v': ('execute-silent', '''code --reuse-window --goto "`wpath -aw {filepath}`:{linenumber}"'''),
+    'ctrl-t': ('execute-silent', '''wcmd `wpath -aw ~/.local/misc/vshelper/openfile.vbs` `wpath -aw {filepath}` {linenumber}'''),
     'ctrl-y': ('execute-silent', copy_to_clipboard),
     }
 
@@ -57,7 +57,7 @@ def run(args):
         '--line-number',
         '--ignore-case'
         ] + args + [
-        '.'
+        '.',
         ]
 
     fzf_args = ['fzf',
@@ -76,8 +76,11 @@ def run(args):
         p_fzf = subprocess.run(fzf_args, stdin=p_rg.stdout, shell=False)
         p_fzf.check_returncode()
     except subprocess.CalledProcessError as e:
-        if e.returncode == 130:  # SIGINT
-            sys.exit(0)
+        if e.returncode in (
+                1,  # exit-0
+                130,  # SIGINT
+                ):
+            sys.exit(e.returncode)
         raise e
 
 
@@ -93,21 +96,21 @@ def preview(filepath, linenumber, line, window_lines, osname):
 
     context = p.stdout.decode('utf-8').replace('\r\n', '\n').split('\n')
     contextlines = len(context)
-    headline = max(0, linenumber - (window_lines - 1) // 2)
-    tailline = min(contextlines, window_lines - (linenumber - headline) + linenumber)
-    headline = headline - max(0, min(window_lines, contextlines) - (tailline - headline))
+    head_offset = (window_lines - 0) // 2
+    tail_offset = window_lines - head_offset
+    headline = max(min(linenumber - head_offset, contextlines - window_lines - 1), 0)
+    tailline = min(max(linenumber + tail_offset, window_lines                   ), contextlines)
 
-    out = context[headline:linenumber]
-    out.append(u'\u001b[38;5;253;48;5;163;01m' + line.rstrip())
-    out[linenumber + 1:] = context[linenumber + 1:tailline]
-    print ('\n'.join(out).replace('\t', '    '))
+    out = context[headline:tailline]
+    out[linenumber - headline] = u'\u001b[38;5;253;48;5;163;01m' + line.rstrip() + u'\u001b[00m'
+    print ('\n'.join(out).replace('\t', '  '))
 
 
 @expands_rg_line
 def execute(filepath, linenumber, line, bind):
     _, command = BINDINGS[bind]
     if callable(command):
-        command(filepath, linenumber, line)
+        command(filepath=filepath, linenumber=linenumber, line=line)
     else:
         command = command.format(filepath=filepath, linenumber=linenumber, line=line)
         p = subprocess.run(command, shell=True)
