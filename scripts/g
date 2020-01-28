@@ -2,13 +2,14 @@
 # coding: utf-8
 import os
 import sys
-import argparse
+import shutil
+import platform
 import subprocess
 
 
-def copy_to_clipboard(filepath, linenumber, line):
+def copy_to_clipboard(filepath, linenumber, text):
     p = subprocess.Popen(['clipboard', '-i'], stdin=subprocess.PIPE, shell=False)
-    p.communicate(line.strip().encode('utf-8'))
+    p.communicate(text.strip().encode('utf-8'))
     p.terminate()
 
 
@@ -24,108 +25,111 @@ RAW_BINDINGS = {
     #  'ctrl-y': 'execute-silent(echo {} | clipboard -i)',
     }
 
-PROGRAM = os.path.basename(__file__)
-PREVIEW = f'{PROGRAM} --preview `tput lines` `uname` {{}}'
 SOURCE_HIGHLIGHTER = 'src-highlight.sh'
+HIGHLIGHT_STYLE = u'\u001b[38;5;253;48;5;163;01m{}\u001b[00m'
+FILEPATH_STYLE = u'\u001b[37;40;1;4m> {}\u001b[0m'
+
+RG_ARGS = [
+    '--ignore-case',
+    ]
+
+FZF_ARGS = [
+    '-e',
+    '--multi',
+    '--no-sort',
+    '--exit-0',
+    '--reverse',
+    ]
 
 
-def make_bindings():
-    duplicate_keys = set(BINDINGS.keys()) & set(RAW_BINDINGS.keys())
-    if duplicate_keys:
-        raise ValueError('duplicate binding keys: {}'.format(duplicate_keys))
+class Program():
+    def preview(self):
+        window_lines = shutil.get_terminal_size().lines - 1
+        if platform.system().lower() == 'darwin':
+            window_lines = window_lines // 2 - 2
+        linenumber = self.linenumber - 1
+        print(FILEPATH_STYLE.format(self.filepath))
 
-    for bind, value in RAW_BINDINGS.items():
-        yield '--bind'
-        yield f'{bind}:{value}'
-    for bind, (func, _) in BINDINGS.items():
-        yield '--bind'
-        yield f'{bind}:{func}({PROGRAM} --exec {bind} {{}})'
-
-
-def expands_rg_line(func):
-    def _inner(line, **kwargs):
-        filepath, linenumber, line = line.split(':', 2)
-        return func(filepath=filepath,
-                linenumber=linenumber,
-                line=line,
-                **kwargs)
-    return _inner
-
-
-def run(args):
-    rg_args = ['rg',
-        '--line-number',
-        '--ignore-case'
-        ] + args + [
-        '.',
-        ]
-
-    fzf_args = ['fzf',
-        '-e',
-        '--multi',
-        '--no-sort',
-        '--exit-0',
-        '--reverse',
-        '--prompt={} > '.format(' '.join(args)),
-        '--preview', PREVIEW,
-        '--preview-window', 'up',
-        ] + list(make_bindings())
-
-    try:
-        p_rg = subprocess.Popen(rg_args, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, shell=False)
-        p_fzf = subprocess.run(fzf_args, stdin=p_rg.stdout, shell=False)
-        p_fzf.check_returncode()
-    except subprocess.CalledProcessError as e:
-        if e.returncode in (
-                1,  # exit-0
-                130,  # SIGINT
-                ):
-            sys.exit(e.returncode)
-        raise e
-
-
-@expands_rg_line
-def preview(filepath, linenumber, line, window_lines, osname):
-    window_lines = int(window_lines)
-    if osname.lower() == 'darwin':
-        window_lines = window_lines // 2 - 2
-    linenumber = int(linenumber) - 1
-
-    p = subprocess.run([SOURCE_HIGHLIGHTER, filepath], stdout=subprocess.PIPE, shell=False)
-    p.check_returncode()
-
-    context = p.stdout.decode('utf-8').replace('\r\n', '\n').split('\n')
-    contextlines = len(context)
-    head_offset = (window_lines - 0) // 2
-    tail_offset = window_lines - head_offset
-    headline = max(min(linenumber - head_offset, contextlines - window_lines - 1), 0)
-    tailline = min(max(linenumber + tail_offset, window_lines                   ), contextlines)
-
-    out = context[headline:tailline]
-    out[linenumber - headline] = u'\u001b[38;5;253;48;5;163;01m' + line.rstrip() + u'\u001b[00m'
-    print ('\n'.join(out).replace('\t', '  '))
-
-
-@expands_rg_line
-def execute(filepath, linenumber, line, bind):
-    _, command = BINDINGS[bind]
-    if callable(command):
-        command(filepath=filepath, linenumber=linenumber, line=line)
-    else:
-        command = command.format(filepath=filepath, linenumber=linenumber, line=line)
-        p = subprocess.run(command, shell=True)
+        p = subprocess.run([SOURCE_HIGHLIGHTER, self.filepath], stdout=subprocess.PIPE, shell=False)
         p.check_returncode()
 
+        context = p.stdout.decode('utf-8').replace('\r\n', '\n').split('\n')
+        contextlines = len(context)
+        head_offset = (window_lines - 0) // 2
+        tail_offset = window_lines - head_offset
+        headline = max(min(linenumber - head_offset, contextlines - window_lines - 1), 0)
+        tailline = min(max(linenumber + tail_offset, window_lines                   ), contextlines)
 
-def main():
-    command = len(sys.argv) > 1 and sys.argv[1] or None
-    if command == '--preview':
-        preview(window_lines=sys.argv[2], osname=sys.argv[3], line=sys.argv[4])
-    elif command == '--exec':
-        execute(bind=sys.argv[2], line=sys.argv[3])
-    else:
-        run(args=sys.argv[1:])
+        out = context[headline:tailline]
+        out[linenumber - headline] = HIGHLIGHT_STYLE.format(self.text.rstrip())
+        print ('\n'.join(out).replace('\t', '  '))
+
+    def execute_binding(self, bind):
+        _, command = BINDINGS[bind]
+        if callable(command):
+            command(filepath=self.filepath, linenumber=self.linenumber, text=self.text)
+        else:
+            command = command.format(filepath=self.filepath, linenumber=self.linenumber, text=self.text)
+            p = subprocess.run(command, shell=True)
+            p.check_returncode()
+
+    def __init__(self, args):
+        def expands_rg_line(line):
+            filepath, linenumber, text = line.split(':', 2)
+            return filepath, int(linenumber), text
+
+        command = len(args) > 0 and args[0] or None
+        if command == '--preview':
+            self.filepath, self.linenumber, self.text = expands_rg_line(args[1])
+            self.run = lambda: self.preview()
+        elif command == '--exec':
+            self.filepath, self.linenumber, self.text = expands_rg_line(args[2])
+            self.run = lambda: self.execute_binding(args[1])
+        else:
+            self.run = lambda: self.main(args[:])
+
+    def main(self, args):
+        PROGRAM = os.path.abspath(__file__)
+        PREVIEW = f'{PROGRAM} --preview {{}}'
+
+        def make_bindings():
+            duplicate_keys = set(BINDINGS.keys()) & set(RAW_BINDINGS.keys())
+            if duplicate_keys:
+                raise ValueError(f'duplicate binding keys: {duplicate_keys}')
+
+            for bind, value in RAW_BINDINGS.items():
+                yield '--bind'
+                yield f'{bind}:{value}'
+            for bind, (func, _) in BINDINGS.items():
+                yield '--bind'
+                yield f'{bind}:{func}({PROGRAM} --exec {bind} {{}})'
+
+        rg_args = ['rg',
+            '--line-number',
+            ] + RG_ARGS + args + [
+            '.',
+            ]
+
+        fzf_args = ['fzf',
+            '--prompt={} > '.format(' '.join(args)),
+            '--preview', PREVIEW,
+            '--preview-window', 'up',
+            ] + FZF_ARGS + list(make_bindings())
+
+        try:
+            p_rg = subprocess.Popen(rg_args, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, shell=False)
+            p_fzf = subprocess.run(fzf_args, stdin=p_rg.stdout, shell=False)
+            p_fzf.check_returncode()
+        except subprocess.CalledProcessError as e:
+            if e.returncode in (
+                    1,  # exit-0
+                    130,  # SIGINT
+                    ):
+                sys.exit(e.returncode)
+            raise e
+        finally:
+            p_rg.terminate()
 
 
 if __name__ == '__main__':
-    main()
+    Program(sys.argv[1:]).run()
