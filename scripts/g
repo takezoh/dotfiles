@@ -29,6 +29,8 @@ SOURCE_HIGHLIGHTER = 'src-highlight.sh'
 HIGHLIGHT_STYLE = u'\u001b[38;5;253;48;5;163;01m{}\u001b[00m'
 FILEPATH_STYLE = u'\u001b[37;40;1;4m> {}\u001b[0m'
 SHOW_FILEPATH = True
+USE_RANGE_HIGHLIGHT = True
+BAT_HIGHLIGHT_THEME = 'zenburn'
 
 RG_ARGS = [
     '--ignore-case',
@@ -57,16 +59,22 @@ class Handler():
             window_lines -= 1
             out.append(FILEPATH_STYLE.format(self.filepath))
 
-        p = subprocess.run([SOURCE_HIGHLIGHTER, self.filepath], stdout=subprocess.PIPE, shell=False)
+        head = 0
+        highlight_args = [SOURCE_HIGHLIGHTER, self.filepath]
+
+        if USE_RANGE_HIGHLIGHT:
+            head = max(linenumber - (window_lines - 1), 0)
+            tail = linenumber + (window_lines - 1)
+            highlight_args = ['bat', '--style=plain', f'--theme={BAT_HIGHLIGHT_THEME}', '--color=always', '--unbuffered', '--line-range', f'{head+1}:{tail+1}', self.filepath]
+
+        p = subprocess.run(highlight_args, stdout=subprocess.PIPE, shell=False)
         p.check_returncode()
 
-        context = p.stdout.decode('utf-8').replace('\r\n', '\n').split('\n')
-        contextlines = len(context)
-        headline = max(min(linenumber - window_lines // 2, contextlines - window_lines - 1), 0)
-        tailline = min(window_lines + headline, contextlines)
-
-        out[offset:] = context[headline:tailline]
-        out[linenumber - headline + offset] = HIGHLIGHT_STYLE.format(self.text.rstrip())
+        context = p.stdout.decode('utf-8').rstrip().replace('\r\n', '\n').split('\n')
+        context_lines = len(context)
+        context_offset = max(min(linenumber - window_lines // 2 - head, context_lines - window_lines), 0)
+        context[linenumber - head] = HIGHLIGHT_STYLE.format(self.text.rstrip())
+        out[offset:] = context[context_offset:context_offset+window_lines]
         print ('\n'.join(out).replace('\t', '  '))
 
     def bind(self, bind):
