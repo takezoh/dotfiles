@@ -5,14 +5,16 @@ pac_packages:
 
   - less
   - tree
-  - wget 
+  - wget
   - curl
 
-  - python 
+  - python
   - python-pip
-  - zsh 
-  - git 
+  - zsh
+  - git
   - tig
+
+  - bat
 
   # - make
   - cmake
@@ -26,13 +28,13 @@ pac_packages:
   - fzf
   # - peco
   # - awscli
-  - neovim 
+  - neovim
   # - global
-  - zip 
+  - zip
   - unzip
 
 aur_packages:
-  - pyenv 
+  - pyenv
   - pyenv-virtualenv
   - peco
   - nkf

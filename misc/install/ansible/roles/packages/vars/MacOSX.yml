@@ -9,6 +9,8 @@ brew_formulas:
   - git
   - tig
 
+  - bat
+
   # - make
   - cmake
 

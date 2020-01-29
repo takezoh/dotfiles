@@ -1,0 +1,5 @@
+--map-syntax .ignore:.gitignore
+--map-syntax ush:cpp
+--map-syntax usf:cpp
+--map-syntax hlsl:cpp
+--map-syntax glsl:cpp

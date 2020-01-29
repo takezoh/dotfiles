@@ -1,0 +1,2 @@
+--type-add=web:*.{html,css,scss,sass,js,jsx,ts,tsx,vue}
+--type-add=shader:*.{hlsl,glsl,ush,usf}

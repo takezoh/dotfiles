@@ -43,8 +43,9 @@ ubuntu_packages:
 
 brew_formulas:
   - fzf
-  - ripgrep
   - peco
+  - ripgrep
+  - bat
   - awscli
   - neovim
   - python

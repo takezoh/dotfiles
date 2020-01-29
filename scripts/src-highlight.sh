@@ -15,6 +15,11 @@ for source in "$@"; do
 				echo "Cannot be highlighing because this file is a binary."
 				exit 1
 			fi
+			if type bat >/dev/null 2>&1; then
+				exec bat --style=plain --theme="zenburn" --color=always --unbuffered "$source"
+				# exec bat --style=plain --theme="OneHalfDark" --color=always "$source"
+				# exec bat --style=plain --theme="Monokai Extended" --color=always "$source"
+			fi
 			# source-highlight --failsafe --infer-lang -f esc256 $style -i "$source"
 			# pygmentize -f terminal256 -O style=native -g "$source"
 			pygmentize -f terminal256 -O style=zenburn -g "$source"
