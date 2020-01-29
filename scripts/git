@@ -19,10 +19,12 @@ ugit() {
 
 
 if (( ${_platforms[(I)windows]} )); then
-	err="$(wslpath -w `pwd` 2>&1 >/dev/null)"
-	ret=$?
+	winpath="$(wslpath -w `pwd` 2>/dev/null)"
+	if [ $? -eq 0 ]; then
+		exec $WINGIT "$@"
+	fi
 
-	if [ $ret -eq 0 ]; then
+	if ! wslpath -w `pwd` | grep '^\\\\wsl\$' 2>&1 >/dev/null; then
 		exec $WINGIT "$@"
 	fi
 
