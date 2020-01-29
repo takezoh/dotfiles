@@ -19,14 +19,16 @@ ugit() {
 
 
 if (( ${_platforms[(I)windows]} )); then
-	winpath="$(wslpath -w `pwd` 2>/dev/null)"
-	if [ $? -eq 0 ]; then
-		exec $WINGIT "$@"
+	winpath="$(wslpath -am `pwd` 2>/dev/null)"
+	if [ $? -ne 0 ]; then
+		exec ugit "$@"
 	fi
 
-	if ! wslpath -w `pwd` | grep '^\\\\wsl\$' 2>&1 >/dev/null; then
-		exec $WINGIT "$@"
+	if echo $winpath | grep '^//wsl\$/' 2>&1 >/dev/null; then
+		exec ugit "$@"
 	fi
+
+	exec $WINGIT "$@"
 
 	# if [ "$err" = "wslpath: .: Result not representable" ]; then
 	# 	exec ugit "$@"
