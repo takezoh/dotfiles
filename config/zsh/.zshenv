@@ -7,12 +7,23 @@ export ZDOTEXTERNALDIR=$(cd $ZDOTDIR && pwd -P)/../../external
 
 umask 022
 
+if [ -d /home/linuxbrew/.linuxbrew ]; then
+	# if [ ! -f $HOME/.cache/linuxbrew/shellenv ]; then
+	# 	mkdir -p $HOME/.cache/linuxbrew
+	# 	/home/linuxbrew/.linuxbrew/bin/brew shellenv > $HOME/.cache/linuxbrew/shellenv
+	# fi
+	# source $HOME/.cache/linuxbrew/shellenv
+	export HOMEBREW_PREFIX=/home/linuxbrew/.linuxbrew
+	export HOMEBREW_CELLAR=/home/linuxbrew/.linuxbrew/Cellar
+	export HOMEBREW_REPOSITORY=/home/linuxbrew/.linuxbrew/Homebrew
+fi
+
 # $PATH
 typeset -xU PATH path
 path=(
 	# system
-	/usr/local/bin(N-/)
 	/home/linuxbrew/.linuxbrew/bin(N-/)
+	/usr/local/bin(N-/)
 	/usr/bin(N-/)
 	/bin(N-/)
 	$path
@@ -21,9 +32,9 @@ path=(
 # $SUDO
 typeset -xTU SUDO_PATH sudo_path
 sudo_path=(
-	/usr/pkg/sbin(N-/)
-	/usr/local/sbin(N-/)
 	/home/linuxbrew/.linuxbrew/sbin(N-/)
+	# /usr/pkg/sbin(N-/)
+	/usr/local/sbin(N-/)
 	/usr/sbin(N-/)
 	/sbin(N-/)
 	$sudo_path
