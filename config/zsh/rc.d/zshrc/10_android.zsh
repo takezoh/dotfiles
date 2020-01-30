@@ -1,14 +1,18 @@
-# path=(
-# 	$HOME/android-sdks/tools(N-/)
-# 	$HOME/android-sdks/platform-tools(N-/)
-# 	# $HOME/android-sdks/build-tools/19.1.0(N-/)
-# 	$HOME/android-sdks/build-tools/*(N-/)
-# 	$HOME/android-ndk-*(N-/)
-# 	$path
-# )
-# 
-# export NDK_ROOT=~/android-ndk-r10d/
-# export ANDROID_HOME=~/android-sdks/
+if (( ${_platforms[(I)darwin]} )); then
+	export ANDROID_HOME=~/android-sdks/
+	export ANDROID_NDK_ROOT=~/android-ndk-r10d/
+fi
+
+path=(
+	$ANDROID_HOME/tools(N-/)
+	$ANDROID_HOME/platform-tools(N-/)
+	# $ANDROID_HOME/build-tools/19.1.0(N-/)
+	$ANDROID_HOME/build-tools/*(N-/)
+	# $HOME/android-ndk-*(N-/)
+	$ANDROID_NDK_ROOT(N-/)
+	$path
+)
+
 
 if type ccache > /dev/null 2>&1; then
 	export USE_CCACHE=1
