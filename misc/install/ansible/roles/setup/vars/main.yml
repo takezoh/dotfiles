@@ -7,13 +7,12 @@ vscode_settings:
   - snippets
 
 osx_vscode_settings_path: "~/Library/Application Support/Code/User"
-win_vscode_settings_path: '%APPDATA%\Code\User'
+windows_vscode_settings_path: '%APPDATA%\Code\User'
 
 makefile_dir: "{{ ansible_env.PWD }}/roles/setup/makefiles"
-win_libpath: '%LOCALAPPDATA%\WSL.opt'
-wsl_libpath: '/usr/local/opt/windows'
+wsl_libpath: "{{ ansible_env.LOCALAPPDATA }}/WSL.local"
 
-windows_link_files:
+wsl_link_files:
   #- { src: ~/.ssh, dest: '%USERPROFILE%\.ssh' }
   #- { src: ~/.config, dest: '%USERPROFILE%\.config' }
   #- { src: ~/.local, dest: '%USERPROFILE%\.local' }

@@ -26,6 +26,7 @@ path=(
 	/usr/local/bin(N-/)
 	/usr/bin(N-/)
 	/bin(N-/)
+	$LOCALAPPDATA/WSL.local/bin(N-/)
 	$path
 )
 

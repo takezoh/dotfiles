@@ -1,6 +1,6 @@
-- name: retrieve {{ win_libpath }}
-  shell: cmd.exe /d /c echo "{{ win_libpath }}"
-  register: win_libpath
+# - name: retrieve {{ win_libpath }}
+#   shell: cmd.exe /d /c echo "{{ win_libpath }}"
+#   register: win_libpath
 
 - name: retrieve {{ win_vscode_settings_path }}
   shell: cmd.exe /d /c echo "{{ win_vscode_settings_path }}"
@@ -10,10 +10,12 @@
     win_libpath: "{{ win_libpath.stdout }}"
     win_vscode_settings_path: "{{ win_vscode_settings_path.stdout }}"
 
-- name: make "{{ win_libpath }}" directory and link to "{{ wsl_libpath }}"
+- name: make "{{ wsl_libpath }}" directory
   shell: >
-    cmd.exe /d /c mkdir '{{ win_libpath }}' || true;
-    ln -snf `wslpath -au '{{ win_libpath }}'` '{{ wsl_libpath }}';
+    mkdir -p '{{ wsl_libpath }}/{bin,opt}'
+    # cmd.exe /d /c mkdir '{{ win_libpath }}\bin' || true;
+    # cmd.exe /d /c mkdir '{{ win_libpath }}\opt' || true;
+    # ln -snf `wslpath -au '{{ win_libpath }}'` '{{ wsl_libpath }}';
 
 - name: make vscode settings directory
   shell: cmd.exe /d /c mkdir '{{ win_vscode_settings_path }}' || true
@@ -50,9 +52,10 @@
 - name: execute wsl make files
   make:
     file: "{{ makefile_dir }}/wsl/{{ item }}.mk"
-    chdir: "/usr/local/opt/windows"
+    chdir: "{{ wsl_libpath }}/opt"
     params:
-      BINDIR: "/usr/local/bin"
+      # BINDIR: "/usr/local/bin"
+      BINDIR: "{{ wsl_libpath }}/bin"
       ROOT_DIRECTORY: "{{ root_directory }}"
   with_items:
     - "{{ wsl_makefiles.stdout_lines }}"
