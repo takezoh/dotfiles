@@ -83,11 +83,7 @@ if (( ${_platforms[(I)windows]} )); then
 		alias sudo=
 	fi
 
-	_launch_bat() {
-		batchfile=$1
-		shift
-		cmd.exe /c "`wpath -aw $batchfile`" "$@"
-	}
-
-	alias -s bat="_launch_bat"
+	alias -s bat="launch-source"
+	alias -s wav="launch-source"
+	alias -s wav\"="launch-source"
 fi
