@@ -1,5 +1,10 @@
 #!/usr/bin/env zsh
 
 if `type cmd.exe >/dev/null 2>&1`; then
+	if [ -d "$1" ]; then
+		cd "$1"
+		shift
+		exec cmd.exe /d /c start . "$@"
+	fi
 	cmd.exe /d /c start "$@"
 fi

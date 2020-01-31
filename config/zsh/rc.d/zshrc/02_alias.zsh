@@ -59,6 +59,7 @@ alias -g G="| grep"
 alias -g H="| head"
 alias -g T="| tail"
 alias -g S="| sed"
+alias -g F="| fzf"
 
 alias -g C="| clipboard -i"
 alias -g P="clipboard -o"
@@ -76,14 +77,10 @@ alias -s tbz="tar jxf"
 alias -s bz2="tar jxf"
 
 
-if (( ${_platforms[(I)windows]} )); then
-	alias open="wstart"
-
-	if [ "$OSTYPE" = "cygwin" ]; then
-		alias sudo=
-	fi
-
-	alias -s bat="launch-source"
-	alias -s wav="launch-source"
-	alias -s wav\"="launch-source"
+if [ "$OSTYPE" = "cygwin" ]; then
+	alias sudo=
 fi
+
+alias -s bat="launch-source"
+alias -s wav="launch-source"
+alias -s wav\"="launch-source"

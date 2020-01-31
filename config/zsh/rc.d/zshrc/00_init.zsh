@@ -16,13 +16,22 @@ if type stty >/dev/null 2>&1; then
 	stty stop "undef"
 fi
 
-
-path=(
-	# user
-	$HOME/.local/bin(N-/)
-	$HOME/.local/scripts(N-/)
-	$path
-)
+if (( ${_platforms[(I)wsl]} )); then
+	path=(
+		# user
+		$HOME/.local/scripts/wsl(N-/)
+		$HOME/.local/scripts(N-/)
+		$HOME/.local/bin(N-/)
+		$path
+	)
+else
+	path=(
+		# user
+		$HOME/.local/scripts(N-/)
+		$HOME/.local/bin(N-/)
+		$path
+	)
+fi
 
 # auto change directory
 #
