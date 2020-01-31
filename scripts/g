@@ -17,7 +17,7 @@ BINDINGS = {
     'enter': ('execute', '''less "+{linenumber}" {filepath}'''),
     'ctrl-o': ('execute', '''nvim "+{linenumber}" {filepath}'''),
     'ctrl-v': ('execute-silent', '''code --reuse-window --goto "`wpath -aw {filepath}`:{linenumber}"'''),
-    'ctrl-t': ('execute-silent', '''wcmd `wpath -aw ~/.local/misc/vshelper/openfile.vbs` `wpath -aw {filepath}` {linenumber}'''),
+    'ctrl-t': ('execute-silent', '''open ~/.local/misc/vshelper/openfile.vbs "{filepath}" {linenumber}'''),
     'ctrl-y': ('execute-silent', copy_to_clipboard),
     }
 

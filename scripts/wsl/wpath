@@ -1,7 +1,9 @@
 #!/bin/bash
 
-if [ "$OSTYPE" = "cygwin" ]; then
-	cygpath "$@"
-else
-	wslpath "$@"
+if type wslpath >/dev/null 2>&1; then
+	exec wslpath "$@"
 fi
+if type cygpath >/dev/null 2>&1; then
+	exec cygpath "$@"
+fi
+exec echo "$@"

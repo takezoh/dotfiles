@@ -1,10 +1,40 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env python3
+# coding: utf-8
+import os
+import sys
+import shutil
+import subprocess
 
-if `type cmd.exe >/dev/null 2>&1`; then
-	if [ -d "$1" ]; then
-		cd "$1"
-		shift
-		exec cmd.exe /d /c start . "$@"
-	fi
-	cmd.exe /d /c start "$@"
-fi
+
+def start_cmd(program, args):
+    # space path hack
+    return ['cmd.exe', '/d', '/c', 'for', '%X', 'in', '(', program, ')', 'do', 'start', '"open"', '%~sX'] + args
+
+
+def wpath(path):
+    if os.path.exists(path):
+        path = os.path.realpath(path)
+        p = subprocess.run(['wpath', '-aw', path], stdout=subprocess.PIPE, shell=False)
+        p.check_returncode()
+        return p.stdout.decode('utf-8').rstrip()
+    return None
+
+
+def main(program, args):
+    win_program = wpath(program)
+    if win_program is None:
+        raise ValueError(f'not found {program}')
+
+    for i, arg in enumerate(args):
+        arg = wpath(arg)
+        if arg:
+            args[i] = arg
+
+    ret = subprocess.check_call(start_cmd(win_program, args), shell=False)
+    sys.exit(ret)
+
+
+if __name__ == '__main__':
+    if not shutil.which('cmd.exe'):
+        raise ValueError('not found cmd.exe')
+    main(sys.argv[1], sys.argv[2:])

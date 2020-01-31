@@ -1,5 +1,0 @@
-#!/bin/bash
-
-_path=$1
-shift
-cmd.exe /c "$(wpath -aw "$_path")" "$@"
