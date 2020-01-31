@@ -7,8 +7,14 @@ import subprocess
 
 
 def start_cmd(program, args):
-    # space path hack
-    return ['cmd.exe', '/d', '/c', 'for', '%X', 'in', '(', program, ')', 'do', 'start', '"open"', '%~sX'] + args
+    ''' space path hack '''
+
+    # たぶんシステムドライブじゃないとショートネーム化できない
+    if program.startswith('C:\\'):
+        return ['cmd.exe', '/d', '/c', 'for', '%X', 'in', '(', program, ')', 'do', 'start', '"wstart"', '%~sX'] + args
+
+    # args にスペースが入ってたらこれでもダメ
+    return ['cmd.exe', '/d', '/c', 'start', '"wstart"', program] + args
 
 
 def wpath(path):
@@ -30,7 +36,7 @@ def main(program, args):
         if arg:
             args[i] = arg
 
-    ret = subprocess.check_call(start_cmd(win_program, args), shell=False)
+    ret = subprocess.check_call(start_cmd(win_program, args), stdout=subprocess.DEVNULL, shell=False)
     sys.exit(ret)
 
 
