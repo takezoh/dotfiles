@@ -10,7 +10,7 @@ from importlib import import_module, machinery
 
 CONFIG_HOME = os.environ.get('XDG_CONFIG_HOME', f'''{os.path.join(os.environ['HOME'], '.config')}''')
 
-class Config():
+class DefaultConfig():
     BINDINGS = {}
     RAW_BINDINGS = {}
     RG_ARGS = ['--ignore-case']
@@ -23,7 +23,10 @@ class Config():
     SOURCE_HIGHLIGHTER = 'src-highlight.sh'
     USE_RANGE_HIGHLIGHT = True
 
+
+class Config():
     def __init__(self):
+        self.default_config = DefaultConfig()
         try:
             loader = machinery.SourceFileLoader('ripsearch.config', os.path.join(CONFIG_HOME, 'ripsearch', 'config'))
             self.user_config = loader.load_module()
@@ -34,7 +37,7 @@ class Config():
     def __getattr__(self, name):
         if self.user_config and name in self.user_config.__dict__:
             return self.user_config.__dict__[name]
-        return self.__class__.__dict__[name]
+        return self.default_config.__class__.__dict__[name]
 
 
 config = Config()
