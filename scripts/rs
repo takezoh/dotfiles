@@ -5,44 +5,39 @@ import sys
 import shutil
 import platform
 import subprocess
+from importlib import import_module, machinery
 
 
-def copy_to_clipboard(filepath, linenumber, text):
-    p = subprocess.Popen(['clipboard', '-i'], stdin=subprocess.PIPE, shell=False)
-    p.communicate(text.strip().encode('utf-8'))
-    p.terminate()
+CONFIG_HOME = os.environ.get('XDG_CONFIG_HOME', f'''{os.path.join(os.environ['HOME'], '.config')}''')
+
+class Config():
+    BINDINGS = {}
+    RAW_BINDINGS = {}
+    RG_ARGS = ['--ignore-case']
+    FZF_ARGS = ['-e', '--multi', '--no-sort', '--exit-0', '--reverse', '--inline-info']
+    BAT_HIGHLIGHT_THEME = 'zenburn'
+    SHOW_FILEPATH = True
+
+    HIGHLIGHT_STYLE = u'\u001b[38;5;253;48;5;163;01m{}\u001b[00m'
+    FILEPATH_STYLE = u'\u001b[37;40;1;4m> {}\u001b[0m'
+    SOURCE_HIGHLIGHTER = 'src-highlight.sh'
+    USE_RANGE_HIGHLIGHT = True
+
+    def __init__(self):
+        try:
+            loader = machinery.SourceFileLoader('ripsearch.config', os.path.join(CONFIG_HOME, 'ripsearch', 'config'))
+            self.user_config = loader.load_module()
+            self.__class__.USE_RANGE_HIGHLIGHT = 'SOURCE_HIGHLIGHTER' not in self.user_config.__dict__
+        except FileNotFoundError:
+            self.user_config = None
+
+    def __getattr__(self, name):
+        if self.user_config and name in self.user_config.__dict__:
+            return self.user_config.__dict__[name]
+        return self.__class__.__dict__[name]
 
 
-BINDINGS = {
-    'enter': ('execute', '''less "+{linenumber}" {filepath}'''),
-    'ctrl-o': ('execute', '''nvim "+{linenumber}" {filepath}'''),
-    'ctrl-v': ('execute-silent', '''code --reuse-window --goto "`wpath -aw {filepath}`:{linenumber}"'''),
-    'ctrl-t': ('execute-silent', '''open ~/.local/misc/vshelper/openfile.vbs "{filepath}" {linenumber}'''),
-    'ctrl-y': ('execute-silent', copy_to_clipboard),
-    }
-
-RAW_BINDINGS = {
-    #  'ctrl-y': 'execute-silent(echo {} | clipboard -i)',
-    }
-
-SOURCE_HIGHLIGHTER = 'src-highlight.sh'
-HIGHLIGHT_STYLE = u'\u001b[38;5;253;48;5;163;01m{}\u001b[00m'
-FILEPATH_STYLE = u'\u001b[37;40;1;4m> {}\u001b[0m'
-SHOW_FILEPATH = True
-USE_RANGE_HIGHLIGHT = True
-BAT_HIGHLIGHT_THEME = 'zenburn'
-
-RG_ARGS = [
-    '--ignore-case',
-    ]
-
-FZF_ARGS = [
-    '-e',
-    '--multi',
-    '--no-sort',
-    '--exit-0',
-    '--reverse',
-    ]
+config = Config()
 
 
 class Handler():
@@ -54,18 +49,18 @@ class Handler():
             window_lines = window_lines // 2 - 2
         linenumber = self.linenumber - 1
 
-        if SHOW_FILEPATH:
+        if config.SHOW_FILEPATH:
             offset += 1
             window_lines -= 1
-            out.append(FILEPATH_STYLE.format(self.filepath))
+            out.append(config.FILEPATH_STYLE.format(self.filepath))
 
         head = 0
-        highlight_args = [SOURCE_HIGHLIGHTER, self.filepath]
+        highlight_args = [config.SOURCE_HIGHLIGHTER, self.filepath]
 
-        if USE_RANGE_HIGHLIGHT:
+        if config.USE_RANGE_HIGHLIGHT:
             head = max(linenumber - (window_lines - 1), 0)
             tail = linenumber + (window_lines - 1)
-            highlight_args = ['bat', '--style=plain', f'--theme={BAT_HIGHLIGHT_THEME}', '--color=always', '--unbuffered', '--line-range', f'{head+1}:{tail+1}', self.filepath]
+            highlight_args = ['bat', '--style=plain', f'--theme={config.BAT_HIGHLIGHT_THEME}', '--color=always', '--unbuffered', '--line-range', f'{head+1}:{tail+1}', self.filepath]
 
         p = subprocess.run(highlight_args, stdout=subprocess.PIPE, shell=False)
         p.check_returncode()
@@ -73,12 +68,12 @@ class Handler():
         context = p.stdout.decode('utf-8').rstrip().replace('\r\n', '\n').split('\n')
         context_lines = len(context)
         context_offset = max(min(linenumber - window_lines // 2 - head, context_lines - window_lines), 0)
-        context[linenumber - head] = HIGHLIGHT_STYLE.format(self.text.rstrip())
+        context[linenumber - head] = config.HIGHLIGHT_STYLE.format(self.text.rstrip())
         out[offset:] = context[context_offset:context_offset+window_lines]
         print ('\n'.join(out).replace('\t', '  '))
 
     def bind(self, bind):
-        _, command = BINDINGS[bind]
+        _, command = config.BINDINGS[bind]
         if callable(command):
             command(filepath=self.filepath, linenumber=self.linenumber, text=self.text)
         else:
@@ -100,19 +95,19 @@ class Program():
 
     def main(self, args):
         def make_bindings():
-            duplicate_keys = set(BINDINGS.keys()) & set(RAW_BINDINGS.keys())
+            duplicate_keys = set(config.BINDINGS.keys()) & set(config.RAW_BINDINGS.keys())
             if duplicate_keys:
                 raise ValueError(f'duplicate binding keys: {duplicate_keys}')
 
-            raw_bins = [f'{bind}:{value}' for bind, value in RAW_BINDINGS.items()]
-            bins = [f'{bind}:{func}({self.PROGRAM} {self.HANDLE_OPTION_NAME} {{}} bind {bind})' for bind, (func, _) in BINDINGS.items()]
+            raw_bins = [f'{bind}:{value}' for bind, value in config.RAW_BINDINGS.items()]
+            bins = [f'{bind}:{func}({self.PROGRAM} {self.HANDLE_OPTION_NAME} {{}} bind {bind})' for bind, (func, _) in config.BINDINGS.items()]
             if raw_bins or bins:
                 return ['--bind', ','.join(raw_bins + bins)]
             return []
 
         rg_args = ['rg',
             '--line-number',
-            ] + RG_ARGS + args + [
+            ] + config.RG_ARGS + args + [
             '.',
             ]
 
@@ -120,7 +115,7 @@ class Program():
             '--prompt={} > '.format(' '.join(args)),
             '--preview', f'{self.PROGRAM} {self.HANDLE_OPTION_NAME} {{}} preview',
             '--preview-window', 'up',
-            ] + FZF_ARGS + make_bindings()
+            ] + config.FZF_ARGS + make_bindings()
 
         try:
             p_rg = subprocess.Popen(rg_args, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, shell=False)
