@@ -6,7 +6,7 @@ var WslDir = RootDir + "\\config\\mintty\\"
 function MakeTerminalLink(Name) {
   var TempPath = fs.GetSpecialFolder(2) + "\\Mintty - " + Name + ".lnk"
   var lnk = WshShell.CreateShortcut(TempPath)
-  lnk.TargetPath = WslDir + "open-wsltty.js"
+  lnk.TargetPath = WslDir + "open-wsltty.vbs"
   lnk.Arguments = "\"" + Name + "\""
   lnk.IconLocation = WslDir + Name + ".ico"
   lnk.Save()
