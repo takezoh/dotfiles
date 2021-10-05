@@ -6,10 +6,13 @@ repo = 'Shougo/context_filetype.vim'
 # depends = ['context_filetype.vim']
 
 [[plugins]]
-repo = 'scrooloose/nerdcommenter'
-hook_add = '''
-let NERDSpaceDelims=1
-'''
+repo = 'tpope/vim-commentary'
+
+# [[plugins]]
+# repo = 'scrooloose/nerdcommenter'
+# hook_add = '''
+# let NERDSpaceDelims=1
+# '''
 
 #[[plugins]]
 #repo = 'airblade/vim-gitgutter'

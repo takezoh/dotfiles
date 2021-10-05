@@ -17,7 +17,7 @@ source $XDG_CONFIG_HOME/nvim/rc.d/coding.vim
 
 " VSCode で開く
 command Code call system('code --reuse-window --goto ' . expand("%.p") . ':' . line("."))
-command Vs call system('(wcmd `wpath -aw ~/.dotfiles/misc/vshelper/openfile.vbs` `wpath -aw ' . expand("%.p") . '` ' . line(".") . ') &')
+command Vs call system('wstart ~/.local/misc/vshelper/openfile.vbs "' . expand("%.p") . '" ' . line("."))
 
 set shell=zsh
 tnoremap <slent> <esc> <C-\><C-n>

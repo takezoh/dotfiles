@@ -3,6 +3,7 @@
 "---------------------------------------------------------------------------------
 set showmatch	" 対応括弧のハイライト
 set number		" 行番号
+" set relativenumber
 set list
 set listchars=tab:»\ ,trail:-,extends:»,precedes:«,nbsp:%,eol:↲  " 不可視文字の表示
 set display=uhex " 印字不可能文字を16進数表示
