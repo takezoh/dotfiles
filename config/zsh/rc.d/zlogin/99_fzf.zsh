@@ -63,6 +63,9 @@ if type fzf >/dev/null 2>&1; then
 	function fzf-file-selection() {
 		# local selected_file=$(rg --files . | awk '{ print substr($0, 3); }' | fzf --prompt "* search file >>" \
 		local selected_file=$(find . -path "./.git" -prune -o -type f | awk '{ print substr($0, 3); }' | fzf --prompt "* search file >>" \
+				--height="60%" \
+				--border \
+				--inline-info \
 				--bind 'ctrl-l:execute-silent(open {})' \
 				)
 		BUFFER="${BUFFER}${selected_file}"

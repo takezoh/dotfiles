@@ -23,6 +23,7 @@ typeset -xU PATH path
 path=(
 	# system
 	/home/linuxbrew/.linuxbrew/bin(N-/)
+	/opt/homebrew/bin(N-/)
 	/usr/local/bin(N-/)
 	/usr/bin(N-/)
 	/bin(N-/)

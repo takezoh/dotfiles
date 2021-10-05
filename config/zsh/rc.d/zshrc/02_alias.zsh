@@ -77,10 +77,17 @@ alias -s tbz="tar jxf"
 alias -s bz2="tar jxf"
 
 
-if [ "$OSTYPE" = "cygwin" ]; then
-	alias sudo=
+if (( ${_platforms[(I)windows]} )); then
+	if [ "$OSTYPE" = "cygwin" ]; then
+		alias sudo=
+	fi
+
+	alias cmd="wcmd"
+	alias cmd.exe="wcmd"
+
+	alias -s bat="open"
+	# alias -s exe="wcmd"
 fi
 
-alias -s bat="launch-source"
-alias -s wav="launch-source"
-alias -s wav\"="launch-source"
+alias -s wav="open"
+alias -s wav\"="open"

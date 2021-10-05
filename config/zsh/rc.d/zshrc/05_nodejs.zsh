@@ -19,17 +19,17 @@ ___node_modules_hook() {
 	ln -s $moddir node_modules
 }
 
-yarn() {
-	___node_modules_hook
-	command yarn $@
-}
+# yarn() {
+# 	___node_modules_hook
+# 	command yarn $@
+# }
 
-npm() {
-	___node_modules_hook
-	command npm $@
-}
+# npm() {
+# 	___node_modules_hook
+# 	command npm $@
+# }
 
-npx() {
-	___node_modules_hook
-	command npx $@
-}
+# npx() {
+# 	___node_modules_hook
+# 	command npx $@
+# }

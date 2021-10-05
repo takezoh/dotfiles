@@ -13,7 +13,6 @@ path=(
 	$path
 )
 
-
 if type ccache > /dev/null 2>&1; then
 	export USE_CCACHE=1
 	export CCACHE_DIR=$XDG_CACHE_HOME/ccache
