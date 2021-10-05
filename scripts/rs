@@ -48,8 +48,9 @@ class Handler():
         out = []
         offset = 0
         window_lines = shutil.get_terminal_size().lines
-        if platform.system().lower() == 'darwin':
-            window_lines = window_lines // 2 - 2
+        #if platform.system().lower() == 'darwin':
+        # window_lines = window_lines // 2 - 2
+        window_lines = window_lines - 2
         linenumber = self.linenumber - 1
 
         if config.SHOW_FILEPATH:

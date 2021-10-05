@@ -1,11 +1,89 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env python3
+# coding: utf-8
+import os
+import sys
+import shutil
+import subprocess
+import time
+import threading
+from lib import cmd_backend
 
-if type cmd.exe >/dev/null 2>&1; then
-	(
-		unsetopt bg_nice
-		cmd.exe /d /c "$@" | nkf -wu &
-		pid=$(( $! - 1 ))
-		trap "kill -INT $pid; exit 1" HUP INT QUIT TERM
-		while `kill -0 $pid >/dev/null 2>&1`; do done
-	)
-fi
+
+class Program():
+    def __init__(self):
+        self.program_finished = threading.Event()
+
+    def start(self, command):
+        self.process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False)
+
+        self.io_threads = {
+            handler: threading.Thread(target=handler)
+            for handler in (self.handle_stdout, self.handle_stderr)
+        }
+        for thread in self.io_threads.values():
+            thread.start()
+
+    def handle_stdin(self, **kwargs):
+        pass
+
+    def handle_stdout(self, **kwargs):
+        self._handle_output(input_=self.process.stdout, output=sys.stdout)
+
+    def handle_stderr(self, **kwargs):
+        self._handle_output(input_=self.process.stderr, output=sys.stderr)
+
+    def _read_process_stream(self, input_):
+        while True:
+            data = os.read(input_.fileno(), 1000)
+            if not data:
+                break
+            yield data.decode('utf-8', 'replace')
+
+    def _handle_output(self, input_, output):
+        for data in self._read_process_stream(input_):
+            output.write(data)
+            output.flush()
+
+    def wait(self):
+        while True:
+            if self.process.poll() is not None:
+                # sys.exit(self.process.returncode)
+                break
+            time.sleep(1)
+
+    def kill(self):
+        # finish input stream to send '\x03'
+        if self.process.wait(1) is None:
+            self.process.terminate()
+            # self.process.kill()
+            self.process.close()
+        pass
+
+    def run(self, program, args):
+        self.start(['cmd.exe', '/d', '/c', program] + args)
+        try:
+            self.wait()
+        except KeyboardInterrupt as e:
+            self.kill()
+        finally:
+            self.program_finished.set()
+
+            thread_exceptions = []
+            for target, thread in self.io_threads.items():
+                timeout = None
+                # if target in (self.handle_stdout, self.handle_stderr):
+                #     opposite = self.handle_stderr
+                #     if target == self.handle_stderr:
+                #         opposite = self.handle_stdout
+                #     if opposite in self.io_threads and not self.io_threads[opposite].is_alive():
+                #         timeout = 1
+                thread.join(timeout)
+                # thread exceptions
+
+
+if __name__ == '__main__':
+    if not shutil.which('cmd.exe'):
+        raise ValueError('not found cmd.exe')
+
+    program, args = cmd_backend.argparse(sys.argv[1], sys.argv[2:])
+    Program().run(program, args)

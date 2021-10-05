@@ -17,7 +17,7 @@ case "$1" in
 	configure)
 		shift
 		invoke projectfiles "$@"
-		invoke supportfiles "$@" &
+		# invoke supportfiles "$@" &
 		;;
 	uat)
 		invoke "$@"
@@ -25,7 +25,7 @@ case "$1" in
 	build|rebuild|clean)
 		invoke "$@"
 		;;
-	cook|package|deploy|cmdline|addcmdline|editor)
+	cook|lighting|package|deploy|cmdline|addcmdline|editor|command)
 		invoke "$@"
 		;;
 	log-parse)
