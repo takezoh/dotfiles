@@ -12,8 +12,9 @@ PACKAGE_URL := "https://github.com/equalsraf/win32yank/releases/download/$(VERSI
 all: $(SYMLINK)
 
 $(SYMLINK): $(EXECUTABLE)
-	sudo ln -snf $(EXECUTABLE) $(SYMLINK).exe
-	sudo ln -snf $(TARGET).exe $(SYMLINK)
+	cp $(EXECUTABLE) $(SYMLINK)
+#	sudo ln -snf $(EXECUTABLE) $(SYMLINK).exe
+#	sudo ln -snf $(TARGET).exe $(SYMLINK)
 
 $(EXECUTABLE):
 	mkdir -p $(LIBDIR)

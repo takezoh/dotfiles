@@ -4,7 +4,7 @@ make_directories:
   - { path: ~/.ssh, mode: 700 }
   - { path: ~/.config, mode: 755 }
   - { path: ~/.local, mode: 755 }
-  - { path: "{{ root_directory }}/.local", mode: 755 }
+    #  - { path: "{{ root_directory }}/.local", mode: 755 }
 
 link_files:
   - { dest: ~/.zshenv, src: config/zsh/.zshenv }

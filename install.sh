@@ -4,10 +4,12 @@ set -ex
 
 darwin() {
 	if ! type brew >/dev/null 2>&1; then
-		if ! xcode-select --install >/dev/null 2>&1; then
-			return 1
-		fi
-		/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+		xcode-select --install >/dev/null || true
+		# if ! xcode-select --install >/dev/null 2>&1; then
+		#  	return 1
+		# fi
+		# /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+		/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
 	fi
 	brew update
 	brew install ansible
@@ -16,7 +18,7 @@ darwin() {
 ubuntu() {
 	sudo apt update -y
 	sudo apt install -y software-properties-common
-	sudo apt-add-repository -y ppa:ansible/ansible
+	# sudo apt-add-repository -y ppa:ansible/ansible
 	sudo apt update -y
 
 	if ! type brew >/dev/null 2>&1; then

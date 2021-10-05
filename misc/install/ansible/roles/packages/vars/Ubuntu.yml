@@ -27,6 +27,7 @@ ubuntu_packages:
 
   - build-essential
   - zlib1g-dev
+  - libffi-dev
   - libssl-dev
   - libclang-dev
   # - libmysqlclient-dev
@@ -46,6 +47,7 @@ brew_formulas:
   - peco
   - ripgrep
   - bat
+  - pandoc
   - awscli
   - neovim
   - python

@@ -10,6 +10,7 @@ brew_formulas:
   - tig
 
   - bat
+  # - pandoc
 
   # - make
   - cmake
@@ -20,11 +21,11 @@ brew_formulas:
   - awscli
   - peco
   - fzf
-  - nvim
+  # - nvim
   - python3
   - ripgrep
-  - global
-  - mono
+  # - global
+  # - mono
 
   - apktool
 
@@ -47,5 +48,5 @@ brew_formulas:
   # - java
   - jenv
 
-  - jadx
-  - dex2jar
+  # - jadx
+  # - dex2jar
