@@ -30,7 +30,7 @@ class UE(Fab):
                 help="",
             ),
             Argument(
-                names=("T", "type"),
+                names=("TYPE", "type"),
                 help="",
             ),
         ]

@@ -18,15 +18,27 @@ clean = _build_task('clean')
 
 
 @task
+def command(c, opts=None):
+    builder = BuildCommand(c)
+    builder.command(opts)
+
+
+@task
 def cook(c, map=None, flavor=None, opts=None):
     builder = BuildCommand(c)
     builder.cook(map, flavor, opts)
 
 
 @task
+def lighting(c, map=None, quality='Preview', opts=None):
+    builder = BuildCommand(c)
+    builder.lighting(map, quality, opts)
+
+
+@task
 def package(c, flavor=None, opts=None):
     builder = BuildCommand(c)
-    builder.package(flavor)
+    builder.package(flavor, opts)
 
 
 @task
@@ -36,7 +48,7 @@ def deploy(c, map=None, flavor=None, manifest=False, full=False, opts=None):
 
 
 @task
-def addcmdline(c, cmdline='', session=False, session_name=None):
+def addcmdline(c, cmdline='', session=False, session_name=None, opts=None):
     builder = BuildCommand(c)
     builder.addcmdline(cmdline, session, session_name)
 
@@ -46,7 +58,7 @@ def projectfiles(c, *args, **kwargs):
     BuildCommand(c)._run_build('UnrealBuildTool', 'Build', 'Development', platform='AnyCPU')
     builder = ProjectGenerator(c, *args, **kwargs)
     builder.project_files(*args, **kwargs)
-    builder.manifest_file(*args, **kwargs)
+    # builder.manifest_file(*args, **kwargs)
 
 
 @task

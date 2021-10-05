@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import glob
+import codecs
 import shutil
 
 
@@ -15,13 +16,14 @@ class CoreBuilder():
         current_dir = os.environ.get('TARGET_DIR')
 
         while current_dir != "/":
-            result = glob.glob(current_dir + '/*.uproject')
-            if not result:
-                result = glob.glob(current_dir + '/*/*.uproject')
-            if result:
-                print ('Found {}'.format(result[0]), file=sys.stderr)
-                self.uproject = UProject(result[0])
-                return
+            results = glob.glob(current_dir + '/*.uproject')
+            if not results:
+                results = glob.glob(current_dir + '/*/*.uproject')
+            for result in results:
+                if not result.endswith('EngineTest.uproject'):
+                    print ('Found {}'.format(result), file=sys.stderr)
+                    self.uproject = UProject(result)
+                    return
 
             current_dir = os.path.dirname(current_dir)
 
@@ -33,35 +35,25 @@ class CoreBuilder():
             hide=False)
 
     @classmethod
-    def _wslpath(cls, ctx, path, opt):
+    def _wslpath(cls, ctx, path, opt, escape=True):
         if not path:
             return ''
-        def escape(path):
-            return path
-            path = path.replace('Unreal Projects', 'Unreal\\ Projects')
-            path = path.replace('Epic Games', 'Epic\\ Games')
-            path = path.replace('Program Files (x86)', 'Program\\ Files\\ \\(x86\\)')
-            path = path.replace('Program Files', 'Program\\ Files')
-            return path
-        #  return escape(ctx.run('wslpath {} \'{}\''.format(opt, escape(path)), hide=True).stdout.strip())
-        #  print (path)
-        #  print(escape(path))
-        r = ctx.run('wslpath {} \'{}\''.format(opt, escape(path)), hide=True).stdout.strip()
-        #  print (r)
-        r = escape(r)
-        #  print(r)
-        #  return '\'{}\''.format(r)
-        return '"{}"'.format(r)
-        return r.replace(' ', '\ ').replace('(', '\\(').replace(')', '\\)')
 
-    def upath(self, wpath):
+        r = ctx.run('wslpath {} \'{}\''.format(opt, path), hide=True).stdout.strip()
+
+        if escape:
+            return '"{}"'.format(r)
+            return r.replace(' ', '\ ').replace('(', '\\(').replace(')', '\\)')
+        return r
+
+    def upath(self, wpath, escape=True):
         if wpath and wpath[-1] == '\\':
             wpath = wpath[0:-1]
         wpath = wpath.replace('\\', '\\\\')
-        return self._wslpath(self.ctx, wpath, '-au')
+        return self._wslpath(self.ctx, wpath, '-au', escape)
 
-    def wpath(self, upath):
-        return self._wslpath(self.ctx, upath, '-am')
+    def wpath(self, upath, escape=True):
+        return self._wslpath(self.ctx, upath, '-am', escape)
 
 
 class HelperError(ValueError): pass
@@ -69,7 +61,7 @@ class HelperError(ValueError): pass
 
 class UProject():
     def __init__(self, uproject_path):
-        context = json.load(open(uproject_path, 'r'))
+        context = json.load(codecs.open(uproject_path, 'r', 'utf-8-sig'))
 
         self.file_version = context["FileVersion"]
         self.engine_association = context["EngineAssociation"]
@@ -91,6 +83,7 @@ class UProject():
         else:
             engine_path = glob.glob(self.root_path + '/Engine/Build/Build.version') \
                        or glob.glob(self.root_path + '/*/Engine/Build/Build.version')
+            print(engine_path)
             self.engine_root = os.path.dirname(os.path.dirname(engine_path[0]))
 
         if not os.path.exists(self.engine_root):

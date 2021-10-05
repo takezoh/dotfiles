@@ -13,8 +13,9 @@ class BuildCommand(CoreBuilder):
         self.completed = []
         self.dependencies = {
             #  'UnrealBuildTool' : ('DotNETCommon/DotNETUtilities', ),
-            'ShaderCompileWorker': ('UnrealBuildTool', ),
             'UnrealLightmass': ('UnrealBuildTool', ),
+            # 'UnrealHeaderTool': ('UnrealHeaderTool', ),
+            'ShaderCompileWorker': ('UnrealBuildTool', ),
             }
 
     def _dependencies_build(func):
@@ -32,7 +33,7 @@ class BuildCommand(CoreBuilder):
 
     @_dependencies_build
     def _run_build(self, target, command, configuration, platform, *args, force=False, **kwargs):
-       
+
         engine_root = self.uproject.engine_root
 
         cmd = None
@@ -40,7 +41,7 @@ class BuildCommand(CoreBuilder):
         csproj = os.path.join(engine_root, 'Source/Programs/{}/{}.csproj'.format(target, os.path.basename(target)))
         if os.path.exists(csproj):
             command = command.lower()
-            if command is 'rebuild':
+            if command == 'rebuild':
                 command = 'build'
 
             cmd = [
@@ -59,6 +60,7 @@ class BuildCommand(CoreBuilder):
                 platform,
                 configuration,
                 *args,
+                # '-verbose',
                 '-fullcrashdump']
 
         if cmd:
@@ -88,22 +90,39 @@ class BuildCommand(CoreBuilder):
             target = 'UE4Editor'
 
         import configparser
-        console_variables_path = os.path.join(self.uproject.project_root, 'Saved/Config/ConsoleVariables.ini')
-        section_name = 'Startup'
-        config = configparser.ConfigParser()
-        config.read(console_variables_path)
-        if not config.has_section(section_name):
-            config.add_section(section_name)
-        config.set(section_name, 'r.ShaderDevelopmentMode', '1')
-        config.set(section_name, 'r.DumpShaderDebugInfo', '1')
-        config.set(section_name, 'r.DumpShaderDebugShortNames', '0')
-        config.set(section_name, 'r.DumpShaderDebugWorkerCommandLine', '1')
-        try:
-            os.makedirs(os.path.dirname(console_variables_path))
-        except OSError:
-            pass
-        with open(console_variables_path, 'w') as f:
-            config.write(f)
+        # console_variables_path = os.path.join(self.uproject.project_root, 'Saved/Config/ConsoleVariables.ini')
+        # section_name = 'Startup'
+        # config = configparser.ConfigParser()
+        # config.read(console_variables_path)
+        # if not config.has_section(section_name):
+        #     config.add_section(section_name)
+        # config.set(section_name, 'r.ShaderDevelopmentMode', '1')
+        # config.set(section_name, 'r.DumpShaderDebugInfo', '1')
+        # config.set(section_name, 'r.DumpShaderDebugShortNames', '0')
+        # config.set(section_name, 'r.DumpShaderDebugWorkerCommandLine', '1')
+        # try:
+        #     os.makedirs(os.path.dirname(console_variables_path))
+        # except OSError:
+        #     pass
+        # with open(console_variables_path, 'w') as f:
+        #     config.write(f)
+
+        console_variables_path = os.path.join(self.uproject.project_root, 'Saved/Config/Windows/Engine.ini')
+        section_name = 'ConsoleVariables'
+
+        if os.path.exists(console_variables_path):
+            with open(console_variables_path, 'r') as f:
+                sections = configparser.ConfigParser.SECTCRE.findall(f.read())
+            if not section_name in sections:
+                value = f'''
+[{section_name}]
+r.ShaderDevelopmentMode=1
+r.DumpShaderDebugInfo=1
+r.DumpShaderDebugShortNames=0
+r.DumpShaderDebugWorkerCommandLine=1
+'''
+                with open(console_variables_path, 'a') as f:
+                    f.write(value)
 
         defines = [
                 'ALLOW_PROFILEGPU_IN_TEST=1',
@@ -116,8 +135,10 @@ class BuildCommand(CoreBuilder):
         defines = ''
 
         self._run_build('DotNETCommon/DotNETUtilities', command, 'Development', platform)
+        # self._run_build('UnrealHeaderTool', command, 'Development', 'Win64')
         self._run_build('UnrealBuildTool', command, 'Development', 'Win64')
         self._run_build('AutomationTool', command, 'Development', 'Win64')
+        self._run_build('UnrealLightmass', command, 'Development', 'Win64', defines)
         self._run_build('ShaderCompileWorker', command, 'Development', 'Win64', defines)
 
         if platform == 'Linux':
@@ -127,17 +148,17 @@ class BuildCommand(CoreBuilder):
                 #  '|', 'bash')
             pass
         else:
-            self._run_build(target, command, configuration, platform, *args, 
+            self._run_build(target, command, configuration, platform, *args,
                     defines,
                     opts)
 
     def cook(self, mapstocook, flavor, opts):
         # recompileshaders changed | global | material | all
 
-        #  Running: C:\dev\bkp\main\Engine\Binaries\Win64\UE4Editor-Cmd.exe C:\dev\bkp\main\BKP\Gargantua.uproject -run=Cook 
-        #  -Map=BattleTest_01 
-        #  -TargetPlatform=Android_ASTC -fileopenlog -unversioned -compressed 
-        #  -abslog=C:\dev\bkp\main\Engine\Programs\AutomationTool\Saved\Cook-2019.01.08-14.11.30.txt 
+        #  Running: C:\dev\bkp\main\Engine\Binaries\Win64\UE4Editor-Cmd.exe C:\dev\bkp\main\BKP\Gargantua.uproject -run=Cook
+        #  -Map=BattleTest_01
+        #  -TargetPlatform=Android_ASTC -fileopenlog -unversioned -compressed
+        #  -abslog=C:\dev\bkp\main\Engine\Programs\AutomationTool\Saved\Cook-2019.01.08-14.11.30.txt
         #  -stdout -CrashForUAT -unattended -NoLogTimes  -UTF8Output
         targetplatform = None
         platform = self.ctx['platform']
@@ -152,12 +173,12 @@ class BuildCommand(CoreBuilder):
         cmdargs = [
             os.path.join(self.uproject.engine_root, 'Binaries/Win64/{}'.format(ue4exe)),
             self.wpath(self.uproject.uproject_path),
-            '-run=Cook', 
-            '-NoLogTimes', 
-            '-TargetPlatform={}'.format(targetplatform), '-fileopenlog', 
+            '-run=Cook',
+            '-NoLogTimes',
+            '-TargetPlatform={}'.format(targetplatform), '-fileopenlog',
             '-unversioned',
             '-iterate', '-iterateshash',
-            #  '-skipeditorcontent', 
+            #  '-skipeditorcontent',
             '-abslog={}'.format(self.wpath(os.path.join(self.uproject.project_root, 'Saved/Logs/HelperCook.txt'))), '-stdout',
             '-unattended',  '-UTF8Output',
             '-fullcrashdump']
@@ -166,27 +187,70 @@ class BuildCommand(CoreBuilder):
             cmdargs += [
                 '-map={}'.format(mapstocook),
                 ]
+        self.ctx.run(' '.join(cmdargs) + ' ' + (opts or ''), echo=True)
+
+    def command(self, opts):
+        targetplatform = None
+        platform = self.ctx['platform']
+        if platform == 'Windows':
+            targetplatform = 'WindowsNoEditor'
+        else:
+            targetplatform = platform
+
+        ue4exe = 'UE4Editor-Cmd.exe'
+        cmdargs = [
+            os.path.join(self.uproject.engine_root, 'Binaries/Win64/{}'.format(ue4exe)),
+            self.wpath(self.uproject.uproject_path),
+            '-TargetPlatform={}'.format(targetplatform), '-fileopenlog',
+            '-unattended',  '-UTF8Output',
+            '-fullcrashdump']
+
         self.ctx.run(' '.join(cmdargs), echo=True)
+
+    def lighting(self, mapstocook, quality, opts):
+        # see. ContentCommandlets.cpp
+        ue4exe = 'UE4Editor-Cmd.exe'
+        cmdargs = [
+            os.path.join(self.uproject.engine_root, 'Binaries/Win64/{}'.format(ue4exe)),
+            self.wpath(self.uproject.uproject_path),
+            '-run=resavepackages',
+            '-buildlighting',
+            '-allowcommandletrendering',
+            f'-quality={quality}',
+            '-buildtexturestreaming',
+            '-AutoCheckOut',
+            # -AutoCheckIn or -AutoSubmit
+            '-NoLogTimes',
+            '-abslog={}'.format(self.wpath(os.path.join(self.uproject.project_root, 'Saved/Logs/HelperLighting.txt'))), '-stdout',
+            '-UTF8Output',
+            '-fullcrashdump']
+
+        if mapstocook:
+            cmdargs += [
+                '-map={}'.format(mapstocook),
+                ]
+        self.ctx.run(' '.join(cmdargs), echo=True)
+
 
     def _package(self, generate_manifestfile, flavor, *args):
         configuration = self.ctx['configuration']
         platform = self.ctx['platform']
         username = self.ctx.run('cmd.exe /c echo %USERNAME%', hide=True).stdout.strip()
 
-        if self.uproject.has_modules and generate_manifestfile:
-            self.ctx.run('cmd-cp932.exe /c ' + ' '.join([
-                self.wpath(os.path.join(self.uproject.engine_root, 'Build/BatchFiles/Build.bat')),
-                self.uproject.name,
-                platform,
-                configuration,
-                '-Project={}'.format(self.wpath(self.uproject.uproject_path)),
-                self.wpath(self.uproject.uproject_path),
-                '-NoUBTMakefiles',
-                '-remoteini={}'.format(self.wpath(self.uproject.project_root)),
-                '-skipdeploy', '-noxge', '-generatemanifest', '-NoHotReload',
-                '-fullcrashdump',
-                ]), echo=True)
- 
+        # if self.uproject.has_modules and generate_manifestfile:
+        #     self.ctx.run('cmd-cp932.exe /c ' + ' '.join([
+        #         self.wpath(os.path.join(self.uproject.engine_root, 'Build/BatchFiles/Build.bat')),
+        #         self.uproject.name,
+        #         platform,
+        #         configuration,
+        #         '-Project={}'.format(self.wpath(self.uproject.uproject_path)),
+        #         self.wpath(self.uproject.uproject_path),
+        #         '-NoUBTMakefiles',
+        #         '-remoteini={}'.format(self.wpath(self.uproject.project_root)),
+        #         '-skipdeploy', '-noxge', '-generatemanifest', '-NoHotReload',
+        #         '-fullcrashdump',
+        #         ]), echo=True)
+
         defines = [
                 'ALLOW_PROFILEGPU_IN_TEST=1',
                 'ENABLE_STATNAMEDEVENTS=UE_BUILD_TEST',
@@ -203,19 +267,22 @@ class BuildCommand(CoreBuilder):
             'BuildCookRun',
             '-nocompileeditor',
             '-nop4',
+            # '-target={}',
             '-project={}'.format(self.wpath(self.uproject.uproject_path)),
-            #  '-SkipCookingEditorContent', 
+            #  '-SkipCookingEditorContent',
             *args,
-            '-clientconfig={}'.format(configuration), 
+            '-clientconfig={}'.format(configuration),
             '-prereqs', '-targetplatform={}'.format(platform), '-utf8output',
             '-fullcrashdump',
             defines]
 
-        if platform in ('Android', ):
+        # if platform in ('Android', ):
+        if True:
             # LoadTimeFile
             cmdargs += [
                 '-serverconfig={}'.format(configuration),
-                '-addcmdline="-statnamedevents -StatCmds=\'unit,fps,dumphitches\' -SessionId={} -SessionOwner=\'{}\' -SessionName=\'{}\' -messaging"'.format(uuid.uuid4().hex, username, self.uproject.name),
+                # '-addcmdline="-statnamedevents -StatCmds=\'unit,fps,dumphitches\' -SessionId={} -SessionOwner=\'{}\' -SessionName=\'{}\' -messaging"'.format(uuid.uuid4().hex, username, self.uproject.name),
+                '-addcmdline="-statnamedevents -StatCmds=\'unit,fps\' -SessionId={} -SessionOwner=\'{}\' -SessionName=\'{}\' -messaging"'.format(uuid.uuid4().hex, username, self.uproject.name),
                 ]
 
         if configuration in ('Shipping', ):
@@ -226,24 +293,38 @@ class BuildCommand(CoreBuilder):
                 cmdargs.append('-iterativecooking')
 
         if flavor:
-            cmdargs.append('-cookflavor={}'.format(flavor)) 
+            cmdargs.append('-cookflavor={}'.format(flavor))
 
-        self.env['WSLENV'] = 'ADDITIONAL_DEFINITIONS/w'
-        self.env['ADDITIONAL_DEFINITIONS'] = 'DISABLE_SMART_BEAT'
+        env = {
+            'WSLENV': 'ADDITIONAL_DEFINITIONS/w',
+            'ADDITIONAL_DEFINITIONS': 'DISABLE_SMART_BEAT',
+            }
         #  self.ctx.run('set')
-        self.ctx.run('time cmd.exe /c ' + ' '.join(cmdargs), echo=True)
+        self.ctx.run('time cmd.exe /c ' + ' '.join(cmdargs), echo=True, env=env)
 
-    def package(self, flavor):
+    def package(self, flavor, opts):
+# -ScriptsForProject=C:/dev/bkp/psvr/BKP/Gargantua.uproject BuildCookRun -nocompileeditor -nop4 -project=C:/dev/bkp/psvr/BKP/Gargantua.uproject -cook -stage -archive -archivedirectory=C:/Users/gondo/Downloads -package -ue4exe=C:\dev\bkp\psvr\Engine\Binaries\Win64\UE4Editor-Cmd.exe -compressed -SkipCookingEditorContent -pak -prereqs -nodebuginfo -targetplatform=PS4 -build -CrashReporter -target=Gargantua -clientconfig=Development -utf8output -compile
 # Parsing command line: -ScriptsForProject=C:/dev/bkp/main/BKP/Gargantua.uproject BuildCookRun -project=C:/dev/bkp/main/BKP/Gargantua.uproject -noP4 -clientconfig=Development -serverconfig=Development -nocompileeditor -ue4exe=UE4Editor-Cmd.exe -utf8output -platform=Android_ASTC -targetplatform=Android -cookflavor=ASTC -build -cook -map= -unversionedcookedcontent -pak -compressed -stage -deploy -cmdline=" -Messaging" -device=Android_ASTC@1PASH3M1FK8113 -addcmdline="-SessionId=7DDA49E04148D77367DBB299BCE4B638 -SessionOwner='gondo' -SessionName='New Profile 0' -messaging" -run -compile
 # Running: C:\dev\bkp\main\Engine\Binaries\DotNET\UnrealBuildTool.exe Gargantua Android Development -Project=C:\dev\bkp\main\BKP\Gargantua.uproject  C:\dev\bkp\main\BKP\Gargantua.uproject -NoUBTMakefiles  -remoteini="C:\dev\bkp\main\BKP" -skipdeploy -noxge -generatemanifest -NoHotReload
 # Running: C:\dev\bkp\main\Engine\Binaries\DotNET\UnrealBuildTool.exe Gargantua Android Development -Project=C:\dev\bkp\main\BKP\Gargantua.uproject  C:\dev\bkp\main\BKP\Gargantua.uproject -NoUBTMakefiles  -remoteini="C:\dev\bkp\main\BKP" -skipdeploy -noxge -NoHotReload -ignorejunk
 # Running: C:\dev\bkp\main\Engine\Binaries\Win64\UnrealPak.exe C:\dev\bkp\main\BKP\Saved\StagedBuilds\Android_ASTC\Gargantua\Content\Paks\Gargantua-Android_ASTC.pak -create=C:\dev\bkp\main\Engine\Programs\AutomationTool\Saved\Logs\PakList_Gargantua-Android_ASTC.txt -encryptionini -enginedir="C:\dev\bkp\main\Engine" -projectdir="C:\dev\bkp\main\BKP" -platform=Android -abslog="C:\dev\bkp\main\Engine\Programs\AutomationTool\Saved\Logs\PakLog_Gargantua-Android_ASTC.log" -order=C:\dev\bkp\main\BKP\Build\Android_ASTC\FileOpenOrder\CookerOpenOrder.log -UTF8Output -multiprocess
         archive_name = '{}_{}_{}'.format(self.ctx['platform'], self.ctx['configuration'], int(time.time()))
+        archive_directory = os.path.join(self.uproject.project_root, 'Saved/Packages', archive_name)
+        try:
+            os.makedirs(archive_directory)
+        except OSError:
+            pass
 
-        self._package(True, flavor, 
-            '-build', '-compile', '-cook', '-stage', '-pak', '-archive', '-package', '-compressed', 
-            '-archivedirectory={}'.format(self.wpath(os.path.join(self.uproject.project_root, 'Saved/Packages', archive_name))),
-            '-mapsonly')
+        self._package(True, flavor,
+            '-build', '-compile', '-cook', '-stage',
+            '-pak',
+            '-package',
+            # '-distribution',
+            # '-nodebuginfo'
+            '-compressed',
+            '-archive',
+            '-archivedirectory={}'.format(self.wpath(archive_directory)),
+            '-mapsonly' +' '+ (opts or ''))
 
     def deploy(self, mapstocook, flavor, generate_manifest, full, opts):
         if not mapstocook:
@@ -268,16 +349,18 @@ class BuildCommand(CoreBuilder):
 
         options = addargs + (opts or '').split(' ')
 
-        result = self._package(generate_manifest, flavor, 
-            '-deploy', 
-            #  '-compile', 
+        result = self._package(generate_manifest, flavor,
+            '-deploy',
+            #  '-compile',
             '-nocompile',
-            '-stage', 
-            '-pak', 
+            '-stage',
+            '-pak',
             #  '-archive', '-archivedirectory=\'{}\''.format(self.wpath(archive_path)),
-            '-compressed', 
+            '-compressed',
             '-map={}'.format(mapstocook),
             '-cmdline="{}"'.format(mapstocook.split('+')[0]),
+            # '-run',
+            '-ini:Game:[/Script/UnrealEd.ProjectPackagingSettings]:BlueprintNativizationMethod=Disabled',
             *options)
 
         #  if result:
@@ -313,16 +396,17 @@ class BuildCommand(CoreBuilder):
             addcmdlines = []
             if use_session:
                 username = self.ctx.run('cmd.exe /c echo %USERNAME%', hide=True).stdout.strip()
-                addcmdlines.append('''-SessionId={} -SessionOwner='{}' -SessionName='{}' -messaging'''.format( 
+                addcmdlines.append('''-SessionId={} -SessionOwner='{}' -SessionName='{}' -messaging'''.format(
                     uuid.uuid4().hex, username, session_name or self.uproject.name))
 
             cmdline = '''{} {} {}'''.format(
                uproject_path, cmdline, ' '.join(addcmdlines))
 
-            external_storage = self.ctx.run('''cmd.exe /c adb.exe shell 'echo $EXTERNAL_STORAGE' ''', hide=True).stdout.strip()
+            adb_path = 'cmd.exe /c adb.exe'
+            adb_path = '/mnt/c/NVPACK/android-sdk-windows/platform-tools/adb.exe'
+            external_storage = self.ctx.run(f'''{adb_path} shell 'echo $EXTERNAL_STORAGE' ''', hide=True).stdout.strip()
 
-            self.ctx.run('cmd.exe /c adb.exe shell "echo {} > {}/UE4Game/{}/UE4CommandLine.txt"'.format(
-                cmdline, external_storage, self.uproject.name), echo=True)
+            self.ctx.run(f'''{adb_path} shell "echo {cmdline} > {external_storage}/UE4Game/{self.uproject.name}/UE4CommandLine.txt"''', echo=True)
 
     def uat(self):
         cmdargs = [

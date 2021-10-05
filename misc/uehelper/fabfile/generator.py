@@ -34,7 +34,7 @@ class ProjectGenerator(CoreBuilder):
             uproject_path,
             '-generatemanifest',
             '-Game', '-Engine', '-2017',
-            #  '-WaitMutex', '-FromMsBuild', 
+            #  '-WaitMutex', '-FromMsBuild',
             ]
             #  '-NoUBTMakefiles', '-remoteini={}'.format(self.wpath(self.uproject.root_path)),
             #  '-skipdeploy', '-noxge', '-generatemanifest', '-NoHotReload']
@@ -71,9 +71,9 @@ class ProjectGenerator(CoreBuilder):
                         'gtagsdb_root': os.path.join(self.uproject.root_path, '.uproject'),
                     }),
                 ('globalrc.template.bat', 'globalrc.bat', {
-                        'project_root': self.wpath(self.uproject.project_root),
-                        'engine_root': self.wpath(self.uproject.engine_root),
-                        'gtagsdb_root': self.wpath(os.path.join(self.uproject.root_path, '.uproject')),
+                        'project_root': self.wpath(self.uproject.project_root, escape=False),
+                        'engine_root': self.wpath(self.uproject.engine_root, escape=False),
+                        'gtagsdb_root': self.wpath(os.path.join(self.uproject.root_path, '.uproject'), escape=False),
                     }),
                 #  ('clang.template', '.clang', {
                         #  'compilation_database': os.path.join(self.uproject.root_path, '.uproject', 'cmake.build'),
@@ -238,7 +238,7 @@ class UhtManifest():
         context = json.load(open(path, 'r'))
         self.is_game_target = context['IsGameTarget']
         self.root_local_path = context['RootLocalPath']
-        self.root_build_path = context['RootBuildPath']
+        #  self.root_build_path = context['RootBuildPath']
         self.target_name = context['TargetName']
         self.external_dependencies_file = context['ExternalDependenciesFile']
         self.modules = [self.Module(builder, x) for x in context['Modules']]

@@ -21,10 +21,9 @@ class Context(invoke.Context):
         #  if 'cmd-cp932.exe' in tokens[:2]:
         if 'cmd-cp932.exe' in cmd:
             kwargs['encoding'] = 'cp932'
-        kwargs['env'] = {
-            'PATH': ':'.join(_PATH),
-            }
-        return super().run(cmd, *args, **kwargs)
+        env = kwargs.pop('env', {})
+        env['PATH'] = ':'.join(_PATH)
+        return super().run(cmd, *args, env=env, **kwargs)
 
 
 class Call(invoke.Call):
