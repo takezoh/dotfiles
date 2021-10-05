@@ -23,10 +23,10 @@
     "vim.normalModeKeyBindings": [
         {
             "before": [ "leader", "c", "<space>"],
-            "after": [],
+            "after": [<ESC>],
             "commands": [
                 {
-                    "command": "editor.action.addCommentLine",
+                    "command": "editor.action.commentLine",
                     "args": [],
                 }
             ]
@@ -35,18 +35,47 @@
     "vim.visualModeKeyBindings": [
         {
             "before": [ "leader", "c", "<space>"],
-            "after": [],
+            "after": [<ESC>],
             "commands": [
                 {
-                    "command": "editor.action.addCommentLine",
+                    "command": "editor.action.commentLine",
                     "args": [],
                 }
             ]
         }
     ],
+		"vim.easymotion": true,
+		"vim.hlsearch": true,
+		"vim.visualstar": true,
 
+//        "vim.autoSwitchInputMethod.enable": {
+//          "type": "boolean",
+//          "description": "Switch input method automatically when mode changed.",
+//          "default": false
+//        },
+//        "vim.autoSwitchInputMethod.defaultIM": {
+//          "type": "string",
+//          "markdownDescription": "The input method for your normal mode, find more information [here](https://github.com/VSCodeVim/Vim#input-method).",
+//          "default": ""
+//        },
+//        "vim.autoSwitchInputMethod.switchIMCmd": {
+//          "type": "string",
+//          "description": "The shell command to switch input method.",
+//          "default": "/path/to/im-select {im}"
+//        },
+//        "vim.autoSwitchInputMethod.obtainIMCmd": {
+//          "type": "string",
+//          "description": "The shell command to get current input method.",
+//          "default": "/path/to/im-select"
+//        },
+
+    "editor.renderWhitespace": "all",
+    "editor.renderControlCharacters": true,
+    "editor.lineNumbers": "relative",
     "editor.minimap.enabled": false,
     "window.zoomLevel": 0,
+
+		"files.trimTrailingWhitespace": true,
 
     // "git.path"
     // "codegnuglobal.executable": "C:\\cygwin64\\bin\\global.exe",
@@ -62,7 +91,7 @@
     "editor.quickSuggestions": {
         "other": true,
         "comments": true,
-        "strings": true, 
+        "strings": true,
     },
     // Controls the delay in milliseconds after which quick suggestions will show up.
     "editor.quickSuggestionsDelay": 1,
