@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 import subprocess
 
 
@@ -10,9 +11,10 @@ def copy_to_clipboard(filepath, linenumber, text):
 
 BINDINGS = {
     'enter': ('execute', '''less "+{linenumber}" "{filepath}"'''),
+    # 'enter': ('execute', '''bat --style=plain --theme=zenburn "+{linenumber}" "{filepath}"'''),
     'ctrl-o': ('execute', '''nvim "+{linenumber}" "{filepath}"'''),
     'ctrl-v': ('execute-silent', '''code --reuse-window --goto "`wpath -aw '{filepath}'`:{linenumber}"'''),
-    'ctrl-t': ('execute-silent', '''open ~/.local/misc/vshelper/openfile.vbs "{filepath}" {linenumber}'''),
+    'ctrl-t': ('execute-silent', '''wstart ~/.local/misc/vshelper/openfile.vbs "{filepath}" {linenumber}'''),
     'ctrl-y': ('execute-silent', copy_to_clipboard),
     }
 
@@ -23,6 +25,8 @@ RAW_BINDINGS = {
 
 SHOW_FILEPATH = True
 BAT_HIGHLIGHT_THEME = 'zenburn'
+
+# SOURCE_HIGHLIGHTER = os.environ['HOME'] + '/.config/ripsearch/src-highlight.sh'
 
 
 RG_ARGS = [
