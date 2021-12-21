@@ -11,10 +11,12 @@ def start_cmd(program, args):
 
     # たぶんシステムドライブじゃないとショートネーム化できない
     if program.startswith('C:\\'):
-        return ['cmd.exe', '/d', '/c', 'for', '%X', 'in', '(', program, ')', 'do', 'start', '"wstart"', '%~sX'] + args
+        #return ['cmd.exe', '/d', '/c', 'for', '%X', 'in', '(', program, ')', 'do', 'start', '"wstart"', '%~sX'] + args
+        return ['cmd.exe', '/d', '/c', 'for', '%X', 'in', '(', program, ')', 'do', 'start', '%~sX'] + args
 
     # args にスペースが入ってたらこれでもダメ
-    return ['cmd.exe', '/d', '/c', 'start', '"wstart"', program] + args
+    #return ['cmd.exe', '/d', '/c', 'start', '"wstart"', program] + args
+    return ['cmd.exe', '/d', '/c', 'start', program] + args
 
 
 def main(program, args):

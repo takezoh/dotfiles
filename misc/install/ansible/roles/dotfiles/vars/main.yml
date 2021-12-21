@@ -10,7 +10,7 @@ link_files:
   - { dest: ~/.zshenv, src: config/zsh/.zshenv }
   - { dest: ~/.vimrc, src: config/nvim/init.vim }
   - { dest: ~/.ssh/config, src: config/ssh/config }
-  - { dest: ~/.local/scripts, src: scripts }
-  - { dest: ~/.local/misc, src: misc }
-  - { dest: ~/.local/config,  src: .local/config }
+#  - { dest: ~/.local/scripts, src: scripts }
+#  - { dest: ~/.local/misc, src: misc }
+#  - { dest: ~/.local/config,  src: .local/config }
   
