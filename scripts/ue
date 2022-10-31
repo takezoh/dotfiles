@@ -3,7 +3,9 @@ set -e
 
 unsetopt bg_nice
 
-HELPER_DIR="$(cd `dirname $0` && pwd -P)/../misc/uehelper"
+# HELPER_DIR="$(cd `dirname $0` && pwd -P)/../misc/uehelper"
+HELPER_DIR="$(cd `dirname $0` && pwd)/../misc/uehelper"
+HELPER_DIR="$(cd $HELPER_DIR && pwd -P)"
 
 invoke() {
 	if ! which fab >/dev/null 2>&1; then
