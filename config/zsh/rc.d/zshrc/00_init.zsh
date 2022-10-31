@@ -21,15 +21,17 @@ if (( ${_platforms[(I)wsl]} )); then
 		# user
 		$HOME/.local/wsl.local.bin(N-/)
 		$HOME/.local/scripts/wsl(N-/)
-		$HOME/.local/scripts(N-/)
-		$HOME/.local/bin(N-/)
+		# $HOME/.local/scripts(N-/)
+		# $HOME/.local/bin(N-/)
+		$HOME/.dotfiles/scripts(N-/)
 		$path
 	)
 else
 	path=(
 		# user
-		$HOME/.local/scripts(N-/)
-		$HOME/.local/bin(N-/)
+		# $HOME/.local/scripts(N-/)
+		# $HOME/.local/bin(N-/)
+		$HOME/.dotfiles/scripts(N-/)
 		$path
 	)
 fi
