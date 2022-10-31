@@ -1,11 +1,13 @@
 .dropbox
 
+
 *.retry
 
 *.pyc
 
 config/zsh/.zcompdump
 config/zsh/.zcompdump.*
+config/zsh/.zsh_sessions/*
 
 .*_history
 .*.local
