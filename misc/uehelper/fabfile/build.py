@@ -235,7 +235,8 @@ r.DumpShaderDebugWorkerCommandLine=1
     def _package(self, generate_manifestfile, flavor, *args):
         configuration = self.ctx['configuration']
         platform = self.ctx['platform']
-        username = self.ctx.run('cmd.exe /c echo %USERNAME%', hide=True).stdout.strip()
+        # username = self.ctx.run('cmd.exe /c echo %USERNAME%', hide=True).stdout.strip()
+        username = os.environ['USERNAME']
 
         # if self.uproject.has_modules and generate_manifestfile:
         #     self.ctx.run('cmd-cp932.exe /c ' + ' '.join([
@@ -395,7 +396,8 @@ r.DumpShaderDebugWorkerCommandLine=1
         if platform == 'Android':
             addcmdlines = []
             if use_session:
-                username = self.ctx.run('cmd.exe /c echo %USERNAME%', hide=True).stdout.strip()
+                # username = self.ctx.run('cmd.exe /c echo %USERNAME%', hide=True).stdout.strip()
+                username = os.environ['USERNAME']
                 addcmdlines.append('''-SessionId={} -SessionOwner='{}' -SessionName='{}' -messaging'''.format(
                     uuid.uuid4().hex, username, session_name or self.uproject.name))
 

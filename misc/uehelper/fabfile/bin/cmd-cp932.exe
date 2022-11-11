@@ -1,8 +1,10 @@
 #!/bin/bash
 (
-	cd `dirname $0`
+	# cd `dirname $0`
+	cd $USERPROFILE
 	if [ "$1" = "/c" ]; then
 		shift
 	fi
-	/mnt/c/Windows/System32/cmd.exe /d /c run-cp932.bat "$@"
+	bat=$(wslpath -am `dirname $0`/run-cp932.bat)
+	/mnt/c/Windows/System32/cmd.exe /d /c "$bat" "$@"
 )

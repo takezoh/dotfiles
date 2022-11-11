@@ -16,7 +16,8 @@ class ProjectGenerator(CoreBuilder):
         if os.path.exists(builder):
             cmdargs = ['/mnt/c/Windows/System32/cmd.exe', '/c', self.wpath(builder)]
 
-        cmd = ' '.join(cmdargs + [self.wpath(self.uproject.uproject_path), '-Game', '-Engine', '-makefile', '-2017', '-VSCode'] + list(args))
+        # cmd = ' '.join(cmdargs + [self.wpath(self.uproject.uproject_path), '-Game', '-Engine', '-makefile', '-2017', '-VSCode'] + list(args))
+        cmd = ' '.join(cmdargs + [self.wpath(self.uproject.uproject_path), '-Game', '-Engine', '-makefile', '-VSCode'] + list(args))
         self.ctx.run(cmd, echo=True)
 
     def manifest_file(self, *args, **kwargs):

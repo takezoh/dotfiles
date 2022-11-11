@@ -1,16 +1,19 @@
 import invoke
 import fabric
+import os
 from invoke.util import six
 from invoke.parser import ParserContext
 
 import os
 
 _PATH = [
-    '{}/bin'.format(os.path.join(os.path.dirname(__file__), '..')),
-    '/home/linuxbrew/.linuxbrew/bin',
-    '/usr/local/bin',
-    '/usr/bin',
     '/bin',
+    '/usr/bin',
+    '/usr/local/bin',
+    # '{}/.dotfiles/scripts/wsl'.format(os.environ['HOME']),
+    '/home/linuxbrew/.linuxbrew/bin',
+    # '/mnt/c/Windows/system32',
+    '{}/bin'.format(os.path.join(os.path.dirname(__file__), '..')),
     ]
 
 
