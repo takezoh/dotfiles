@@ -10,8 +10,7 @@ function MakeTerminalLink(Name) {
   var Terminal = "%LOCALAPPDATA%\\wsltty\\bin\\mintty.exe"
   var Icon = WslDir + "\\" + Name + ".ico"
   var Shell = "/usr/bin/zsh --login"
-  //var Command = " -i \"" + Icon + "\" --WSL=\"" + Name + "\" --configdir=\"" + WslDir + "\" -~ " + Shell
-  var Command = " -i \"" + Icon + "\" --WSL= --configdir=\"" + WslDir + "\" -~ " + Shell
+  var Command = " -i \"" + Icon + "\" --WSL=\"" + Name + "\" --configdir=\"" + WslDir + "\" -~ " + Shell
   lnk.TargetPath = Terminal
   lnk.Arguments = Command
   lnk.IconLocation = Icon
@@ -20,4 +19,4 @@ function MakeTerminalLink(Name) {
 }
 
 MakeTerminalLink("Ubuntu")
-//MakeTerminalLink("ArchLinux")
+MakeTerminalLink("ArchLinux")
