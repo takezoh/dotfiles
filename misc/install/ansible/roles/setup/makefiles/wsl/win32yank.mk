@@ -12,7 +12,7 @@ PACKAGE_URL := "https://github.com/equalsraf/win32yank/releases/download/$(VERSI
 all: $(SYMLINK)
 
 $(SYMLINK): $(EXECUTABLE)
-	cp $(EXECUTABLE) $(SYMLINK)
+	cp $(EXECUTABLE) $(SYMLINK).exe
 #	sudo ln -snf $(EXECUTABLE) $(SYMLINK).exe
 #	sudo ln -snf $(TARGET).exe $(SYMLINK)
 

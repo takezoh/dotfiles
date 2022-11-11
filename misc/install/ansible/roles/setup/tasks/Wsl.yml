@@ -59,21 +59,33 @@
 #   with_items:
 #     - "{{ wsl_link_files }}"
 
-- name: get wsl make files
-  shell: for x in `ls {{ makefile_dir }}/wsl`; do x=${x%%.mk}; ! type $x >/dev/null 2>&1 && echo $x || true; done
-  ignore_errors: yes
-  register: wsl_makefiles
-
+# - name: get wsl make files
+#   shell: for x in `ls {{ makefile_dir }}/wsl`; do x=${x%%.mk}; ! type $x >/dev/null 2>&1 && echo $x || true; done
+#   ignore_errors: yes
+#   register: wsl_makefiles
+# 
+# - name: execute wsl make files
+#   make:
+#     file: "{{ makefile_dir }}/wsl/{{ item }}.mk"
+#     chdir: "{{ wsl_libpath }}/opt"
+#     params:
+#       # BINDIR: "/usr/local/bin"
+#       BINDIR: "{{ wsl_libpath }}/bin"
+#       ROOT_DIRECTORY: "{{ root_directory }}"
+#   with_items:
+#     - "{{ wsl_makefiles.stdout_lines }}"
+ 
 - name: execute wsl make files
   make:
-    file: "{{ makefile_dir }}/wsl/{{ item }}.mk"
+    file: "{{ makefile_dir }}/{{ item }}.mk"
     chdir: "{{ wsl_libpath }}/opt"
     params:
       # BINDIR: "/usr/local/bin"
       BINDIR: "{{ wsl_libpath }}/bin"
       ROOT_DIRECTORY: "{{ root_directory }}"
   with_items:
-    - "{{ wsl_makefiles.stdout_lines }}"
+    - "{{ wsl_makefiles }}"
+
 
 
 # # 	cat <<EOF > $HOME/.local/platform-generated.gitconfig

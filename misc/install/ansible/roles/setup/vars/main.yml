@@ -13,6 +13,15 @@ win_libpath: '%LOCALAPPDATA%\WSL.local'
 makefile_dir: "{{ ansible_env.PWD }}/roles/setup/makefiles"
 #wsl_libpath: "{{ ansible_env.LOCALAPPDATA }}/WSL.local"
 
+common_makefiles:
+  - common/apktool
+  - common/pyenv
+
+wsl_makefiles:
+  # - wsl/global
+  - wsl/win32yank
+  - wsl/wsltty
+
 wsl_link_files:
   #- { src: ~/.ssh, dest: '%USERPROFILE%\.ssh' }
   #- { src: ~/.config, dest: '%USERPROFILE%\.config' }

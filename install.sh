@@ -61,6 +61,8 @@ fi
 
 base_dir=$(cd `dirname $0` && pwd -P)
 test -d /home/linuxbrew/.linuxbrew && eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-ansible-playbook --module-path=$base_dir/external/ansible/plugins/modules $base_dir/misc/install/ansible/playbook.yml
+pip3 install ansible
+ansible-playbook --module-path=$base_dir/external/ansible/plugins/modules $base_dir/misc/install/ansible/playbook.yml \
+	-e ansible_python_interpreter=/usr/bin/python3
 
 bash $base_dir/misc/pygments/setup.sh
