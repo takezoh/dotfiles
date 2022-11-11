@@ -1,6 +1,10 @@
 "---------------------------------------------------------------------------------
 " 基本設定
 "---------------------------------------------------------------------------------
+" let g:python3_host_prog = $SYSTEM_PYTHON3
+let g:python3_host_prog = $SYSTEM_PYTHON
+let g:python_host_prog = $SYSTEM_PYTHON
+
 set nocompatible
 let mapleader = ","							" キーマップリーダー
 set scrolloff=5									" スクロール時の余白
