@@ -24,7 +24,7 @@ if (( ${_platforms[(I)windows]} )); then
 		exec ugit "$@"
 	fi
 
-	if echo $winpath | grep '^//wsl\$/' 2>&1 >/dev/null; then
+	if echo $winpath | grep '^//wsl' 2>&1 >/dev/null; then
 		exec ugit "$@"
 	fi
 
