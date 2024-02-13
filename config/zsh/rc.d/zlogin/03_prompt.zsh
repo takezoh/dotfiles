@@ -62,7 +62,7 @@ autoload -Uz add-zsh-hook
 
 __prompt_pwd="%{${fg[red]}%}%d%{${reset_color}%}"
 __prompt_host="%{${fg[cyan]}%}$(echo ${HOST%%.*} | tr '[a-z]' '[A-Z]')%{${reset_color}%}"
-__prompt_user="%{${fg[red]}%}$(echo ${USER%%.*} | tr '[a-z]' '[A-Z]')%{${reset_color}%}"
+__prompt_user="%{${fg[yellow]}%}$(echo ${USER%%.*} | tr '[a-z]' '[A-Z]')%{${reset_color}%}"
 __prompt_jobs="%B%{${fg[green]}%}[%j]%{${reset_color}%}%b"
 __prompt_status="%B%(?.%{${fg[green]}%}[  O K  ].%{${fg[red]}%}[ ERROR ])%{${reset_color}%}%b"
 __prompt_tty="%B%{${fg[cyan]}%}($(tty | sed -e "s/\/dev\///"))%{${reset_color}%}%b"
@@ -76,7 +76,7 @@ count_prompt_characters() {
 function update_prompt() {
 	local margin=8
 
-	local name="${__prompt_host}"
+	local name="${__prompt_user}@${__prompt_host}"
 	local current="%{${fg[red]}%}:${__prompt_pwd}%{${reset_color}%}"
 
 	local params="${__prompt_jobs}${__prompt_tty}"
@@ -96,7 +96,7 @@ function update_prompt() {
 	if (($rest_width > $margin)); then
 		bar=${bar}${(l:${rest_width}:: :)}${params}
 	fi
-	PROMPT=${bar}$'\n${__prompt_user} %# '
+	PROMPT=${bar}$'\n%# '
 	PROMPT2="%{%B${fg[red]}%}%_%{%b${reset_color}%} %# "
 	SPROMPT="%{${fg[red]}%}%r is correct? [n,y,a,e]:%{${reset_color}%} "
 	RPROMPT=${__prompt_vcs}
