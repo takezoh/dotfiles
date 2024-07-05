@@ -24,7 +24,7 @@ if (( ${_platforms[(I)wsl]} )); then
 		# $HOME/.local/wsl.local.bin(N-/)
 		$HOME/.dotfiles/scripts/wsl(N-/)
 		# $HOME/.local/scripts(N-/)
-		# $HOME/.local/bin(N-/)
+		$HOME/.local/bin(N-/)
 		$HOME/.dotfiles/scripts(N-/)
 		$path
 	)
