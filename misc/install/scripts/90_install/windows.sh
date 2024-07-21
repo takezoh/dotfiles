@@ -6,7 +6,7 @@ wsl_libpath=$(wslpath -u $win_libpath)
 wsl_makefiles=(
   # wsl/global
   wsl/win32yank
-  wsl/wsltty
+  # wsl/wsltty
 )
 
 cmd.exe /d /c mkdir $win_libpath'\bin' || true

@@ -1,6 +1,0 @@
-- name: get root directory
-  shell: cd {{ ansible_env.PWD }}/../../.. && pwd -P
-  register: root_directory
-
-- set_fact:
-    root_directory: "{{ root_directory.stdout }}"

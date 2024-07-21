@@ -1,4 +1,0 @@
-pip_modules:
-  - pip
-  - neovim
-  - pygments

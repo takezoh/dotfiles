@@ -1,6 +1,0 @@
-- include_vars: "../vars/{{ ansible_distribution }}.yml"
-- include_tasks: "{{ ansible_distribution }}.yml"
-
-- name: Install pip modules
-  shell: pip install --upgrade {{ item }}
-  with_items: "{{ pip_modules }}"
