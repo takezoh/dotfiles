@@ -67,3 +67,6 @@ ansible-playbook --module-path=$base_dir/external/ansible/plugins/modules $base_
 	-e ansible_python_interpreter=/usr/bin/python3
 
 bash $base_dir/misc/pygments/setup.sh
+
+bash $base_dir/install2.sh
+
