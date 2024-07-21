@@ -1,8 +1,8 @@
 #/bin/bash
 
 ROOTDIR=$(cd `dirname $0` && pwd -P)
-if [ -d /mnt/c/Windows ] && ! command cmd.exe /d /c 'openfiles > nul 2>nul'; then
-	cmd.exe /d /c setx WSLENV USERNAME/u:USERPROFILE/pu:APPDATA/pu:LOCALAPPDATA/pu:PROGRAMFILES/pu:ANDROID_HOME/pu:ANDROID_NDK_ROOT/pu
+if [ -d /mnt/c/Windows ] && ! command cmd.exe '/d /c openfiles > nul 2>nul'; then
+	cmd.exe '/d /c setx WSLENV USERNAME/u:USERPROFILE/pu:APPDATA/pu:LOCALAPPDATA/pu:PROGRAMFILES/pu:ANDROID_HOME/pu:ANDROID_NDK_ROOT/pu'
 	powershell.exe -Command Start-Process -FilePath wsl -ArgumentList \"-d\",\"$WSL_DISTRO_NAME\",\"-e\",\"bash\",\"$ROOTDIR/$0\" -Verb RunAs
 	exit 0
 fi
