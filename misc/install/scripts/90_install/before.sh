@@ -13,4 +13,6 @@ for mk in ${common_makefiles[@]}; do
 done
 
 # rust cargo
-curl https://sh.rustup.rs -sSf | sh
+if [ ! -f ~/.cargo/bin/cargo ]; then
+	curl https://sh.rustup.rs -sSf | sh
+fi

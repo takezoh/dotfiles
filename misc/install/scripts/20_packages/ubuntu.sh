@@ -92,10 +92,13 @@ brew_formulas=(
 	# sudo apt install -y software-properties-common
 	# sudo apt update -y
 
-if ! type brew >/dev/null 2>&1; then
+# if ! type brew >/dev/null 2>&1; then
+# if [ -d /home/linuxbrew/.linuxbrew ]; then
+if [ ! -f /home/linuxbrew/.linuxbrew/bin/brew ]; then
 	sudo apt install -y build-essential curl file git
 	sh -c "$(curl -fsSL https://raw.githubusercontent.com/Linuxbrew/install/master/install.sh)"
 fi
+eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 
 for repo in ${ubuntu_repos[@]}; do
 	sudo add-apt-repository $repo
@@ -111,13 +114,6 @@ sudo apt-get upgrade -y
 
 sudo apt-get install ${ubuntu_packages[@]}
 
-
-if [ -d /home/linuxbrew/.linuxbrew ]; then
-	eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-	# $HOMEBREW_PREFIX/bin/brew update
-	# $HOMEBREW_PREFIX/bin/brew upgrade
-	# $HOMEBREW_PREFIX/bin/brew install ${brew_formulas[@]}
-	brew update
-	brew upgrade
-	brew install ${brew_formulas[@]}
-fi
+brew update
+brew upgrade
+brew install ${brew_formulas[@]}
