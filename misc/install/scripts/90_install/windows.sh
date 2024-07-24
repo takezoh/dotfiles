@@ -13,5 +13,5 @@ cmd.exe /d /c mkdir $win_libpath'\bin' || true
 cmd.exe /d /c mkdir $win_libpath'\opt' || true
 
 for mk in ${wsl_makefiles[@]}; do
-	BINDIR=$wsl_libpath/bin ROOT_DIRECTORY=$ROOTDIR make -f $ROOTDIR/misc/install/scripts/90_install/makefiles/$mk.mk -C $wsl_libpath/opt
+	BINDIR=$wsl_libpath/bin ROOT_DIRECTORY=$ROOTDIR make -f $ROOTDIR/misc/install/makefiles/$mk.mk -C $wsl_libpath/opt
 done
