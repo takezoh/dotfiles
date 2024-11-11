@@ -75,6 +75,9 @@ _zsh.load() {
 		done
 	fi
 	# load .*.local if exists
-	local localsrc=$HOME/.local/config/${1}
-	[ -f $localsrc ] && source $localsrc
+	if [ -d $HOME/.local/config/$1 ]; then
+		for src in `/bin/ls -d $HOME/.local/config/$1/*`; do
+			source $src
+		done
+	fi
 }
