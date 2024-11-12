@@ -7,5 +7,6 @@ if type rbenv >/dev/null 2>&1; then
 		fi
 		eval "$(rbenv init -)"
 	}
-	eval "$(lazyenv.load _rbenv_init rbenv `lazyenv.load.shims ~/.local/env/rbenv/shims`)"
+	# eval "$(lazyenv.load _rbenv_init rbenv `lazyenv.load.shims ~/.local/env/rbenv/shims`)"
+	eval "$(lazyenv.load _rbenv_init rbenv ruby gem bundler bundle)"
 fi

@@ -35,17 +35,17 @@ endif
 
 " カラースキーマ
 " set background=dark
-"if has('gui_running')
-"	autocmd GUIEnter * colorscheme zenburn
-"	" autocmd GUIEnter * colorscheme jellybeans
-"	" autocmd GUIEnter * colorscheme molokai
-"	set iminsert=0 imsearch=0
-"else
-"	colorscheme zenburn
-"	" colorscheme jellybeans
-"	" colorscheme molokai
-"	" hi Normal ctermbg=NONE
-"endif
+if has('gui_running')
+	autocmd GUIEnter * colorscheme zenburn
+	" autocmd GUIEnter * colorscheme jellybeans
+	" autocmd GUIEnter * colorscheme molokai
+	set iminsert=0 imsearch=0
+else
+	colorscheme zenburn
+	" colorscheme jellybeans
+	" colorscheme molokai
+	" hi Normal ctermbg=NONE
+endif
 
 if has('kaoriya')
 	" 半透明処理

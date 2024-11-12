@@ -8,5 +8,5 @@ pip_modules=(
 )
 
 for mod in ${pip_modules[@]}; do
-	pip install --upgrade $mod
+	pip3 install --upgrade $mod
 done

@@ -1,7 +1,14 @@
 #/bin/bash
 set -ex
 
-sudo mkdir -p /usr/local/opt && chown -R $USER:$USER /usr/local/opt
+case "$OSTYPE" in
+darwin*)
+	sudo mkdir -p /usr/local/opt && chown -R $USER:staff /usr/local/opt
+	;;
+*)
+	sudo mkdir -p /usr/local/opt && chown -R $USER:$USER /usr/local/opt
+	;;
+esac
 
 common_makefiles=(
   common/apktool

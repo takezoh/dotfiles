@@ -24,7 +24,7 @@ brew_formulas=(
   awscli
   peco
   fzf
-  # nvim
+  nvim
   python3
   ripgrep
   # global

@@ -101,12 +101,12 @@ hook_add = """
   let g:deoplete#enable_smart_case = 1
   "let g:deoplete#file#enable_buffer_path = 1
   let g:deoplete#max_list = 10000
-	call deoplete#custom#var('file', 'enable_buffer_path', v:true)
-	call deoplete#custom#option({
+  call deoplete#custom#var('file', 'enable_buffer_path', v:true)
+  call deoplete#custom#option({
     \ 'auto_complete_delay': 1,
     \ 'smart_case': v:true,
     \ })
-	inoremap <expr><tab> pumvisible() ? "\<C-n>" : "\<tab>"
+  inoremap <expr><tab> pumvisible() ? "\<C-n>" : "\<tab>"
 """
 #   set completeopt-=preview
 #   " autocmd InsertLeave,CompleteDone * if pumvisible() == 0 | pclose | endif
