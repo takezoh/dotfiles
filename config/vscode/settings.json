@@ -9,7 +9,7 @@
 
     "terminal.integrated.copyOnSelection": true,
     "terminal.integrated.cursorBlinking": true,
-    "terminal.integrated.confirmOnExit": true,
+    "terminal.integrated.confirmOnExit": "always",
     "terminal.integrated.rightClickBehavior": "selectWord",
     "terminal.explorerKind": "external",
     "terminal.integrated.shell.windows": "C:\\WINDOWS\\System32\\wsl.exe",
@@ -23,7 +23,7 @@
     "vim.normalModeKeyBindings": [
         {
             "before": [ "leader", "c", "<space>"],
-            "after": [<ESC>],
+            "after": ["<ESC>"],
             "commands": [
                 {
                     "command": "editor.action.commentLine",
@@ -35,7 +35,7 @@
     "vim.visualModeKeyBindings": [
         {
             "before": [ "leader", "c", "<space>"],
-            "after": [<ESC>],
+            "after": ["<ESC>"],
             "commands": [
                 {
                     "command": "editor.action.commentLine",
@@ -85,7 +85,7 @@
 
     "window.openFilesInNewWindow": "on",
 
-    "workbench.editor.showTabs": true,
+    "workbench.editor.showTabs": "multiple",
 
     // Controls whether suggestions should automatically show up while typing.
     "editor.quickSuggestions": {
