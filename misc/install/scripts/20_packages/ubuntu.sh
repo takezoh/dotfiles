@@ -18,6 +18,7 @@ ubuntu_packages=(
   tree
   wget
   curl
+	direnv
 
   zsh
   git

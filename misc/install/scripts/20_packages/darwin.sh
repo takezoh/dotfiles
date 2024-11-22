@@ -6,6 +6,7 @@ brew_formulas=(
   tree
   wget
   curl
+	direnv
 
   zsh
   python
