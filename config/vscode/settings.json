@@ -9,7 +9,8 @@
 
     "terminal.integrated.copyOnSelection": true,
     "terminal.integrated.cursorBlinking": true,
-    "terminal.integrated.confirmOnExit": "always",
+    //"terminal.integrated.confirmOnExit": "always",
+    "terminal.integrated.confirmOnExit": "never",
     "terminal.integrated.rightClickBehavior": "selectWord",
     "terminal.explorerKind": "external",
     "terminal.integrated.shell.windows": "C:\\WINDOWS\\System32\\wsl.exe",
@@ -19,6 +20,16 @@
 
     "vim.leader": ",",
     "vim.useSystemClipboard": true,
+
+    "vim.handleKeys": {
+        "<C-a>": false,
+//        "<C-f>": false,
+        "<C-S-f>": false,
+        "<C-z>": false,
+        "<C-s>": false,
+        "<C-p>": false,
+        "<C-S-p>": false,
+    },
 
     "vim.normalModeKeyBindings": [
         {
@@ -30,7 +41,12 @@
                     "args": [],
                 }
             ]
-        }
+        },
+				{
+					"before": ["<ESC>", "<ESC>"],
+					"after": ["<ESC>"],
+					"commands": [":nohl"],
+				},
     ],
     "vim.visualModeKeyBindings": [
         {
@@ -47,6 +63,7 @@
 		"vim.easymotion": true,
 		"vim.hlsearch": true,
 		"vim.visualstar": true,
+		"vim.easymotion": true,
 
 //        "vim.autoSwitchInputMethod.enable": {
 //          "type": "boolean",
@@ -71,7 +88,7 @@
 
     "editor.renderWhitespace": "all",
     "editor.renderControlCharacters": true,
-    "editor.lineNumbers": "relative",
+//    "editor.lineNumbers": "relative",
     "editor.minimap.enabled": false,
     "window.zoomLevel": 0,
 
@@ -97,4 +114,43 @@
     "editor.quickSuggestionsDelay": 1,
     "explorer.confirmDelete": false,
     "javascript.updateImportsOnFileMove.enabled": "always",
+
+    "terminal.integrated.profiles.windows": {
+        "PowerShell": {
+            "source": "PowerShell",
+            "icon": "terminal-powershell"
+        },
+        "Command Prompt": {
+            "path": [
+                "${env:windir}\\Sysnative\\cmd.exe",
+                "${env:windir}\\System32\\cmd.exe"
+            ],
+            "args": [],
+            "icon": "terminal-cmd"
+        },
+        "Git Bash": {
+            "source": "Git Bash"
+        },
+        "Ubuntu-22.04 (WSL)": {
+            "path": "C:\\WINDOWS\\System32\\wsl.exe",
+            "args": [
+                "-d",
+                "Ubuntu-22.04",
+								"--",
+								"/usr/bin/zsh",
+								"--login"
+            ]
+        }
+    },
+    "terminal.integrated.defaultProfile.windows": "Ubuntu-22.04 (WSL)",
+
+    "terminal.integrated.profiles.linux": {
+        "zsh": {
+            "path": "zsh",
+            "args": [
+							"--login",
+						],
+        },
+    },
+    "terminal.integrated.defaultProfile.linux": "zsh",
 }
