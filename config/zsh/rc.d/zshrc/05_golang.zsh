@@ -11,5 +11,5 @@ if type goenv >/dev/null 2>&1; then
 		eval "$(goenv init -)"
 	}
 
-	eval "$(lazyenv.load _golang_init goenv `lazyenv.load.shims ~/.local/env/goenv/shims`)"
+	eval "$(lazyenv.load _golang_init goenv go gofmt)"
 fi
