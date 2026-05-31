@@ -15,8 +15,6 @@ modules=(
 	cli-gcloud
 	shell
 	editor-nvim
-	cli-git
-	cli-tig
 	cli
 	android-re
 	roost

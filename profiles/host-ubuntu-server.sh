@@ -12,8 +12,6 @@ modules=(
 	sdk-python
 	shell
 	editor-nvim
-	cli-git
-	cli-tig
 	cli
 	docker
 	agent-claude

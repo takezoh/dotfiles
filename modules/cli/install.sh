@@ -8,6 +8,8 @@ log "cli: install"
 
 # 旧 host-wsl profile から brew_install されていたパッケージ群
 brew_install \
+	git \
+	tig \
 	jq \
 	yq \
 	gh \

@@ -13,8 +13,6 @@ modules=(
 	cli-gcloud
 	shell
 	editor-nvim
-	cli-git
-	cli-tig
 	cli
 	agent-claude
 	agent-codex
