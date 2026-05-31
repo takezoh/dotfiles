@@ -51,7 +51,7 @@ RUN bash /opt/dotfiles/modules/brew/install.sh
 # --------------------------------------------------------------------------- #
 FROM brew AS install
 
-# 残りの install フェーズ（mise/rust/sdk-go/shell/editor-nvim/vcs-*/cli/agent-*）
+# 残りの install フェーズ（mise/rust/sdk-go/shell/editor-nvim/cli-*/cli/agent-*）
 # ここで初めて全モジュールを配置。_lib/apt/brew は前段から継承済み
 COPY --parents \
         modules/*/install.sh \

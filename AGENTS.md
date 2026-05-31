@@ -28,8 +28,8 @@ modules/
   rust/{install,env}.sh # rustup インストール + cargo/env
   shell/{install,setup,env}.sh  # zsh/tmux/starship 等 + zsh config symlink
   editor-nvim/{install,setup}.sh
-  vcs-git/{install,setup}.sh    # git + gitconfig symlink
-  vcs-tig/{install,setup}.sh    # tig + tigrc symlink
+  cli-git/{install,setup}.sh    # git + gitconfig symlink
+  cli-tig/{install,setup}.sh    # tig + tigrc symlink
   cli/setup.sh                  # atuin/bat/direnv/ripgrep/starship.toml symlink
   cli-gcloud/{install,env}.sh   # Google Cloud SDK
   roost/setup.sh                # settings.toml symlink

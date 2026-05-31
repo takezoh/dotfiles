@@ -3,6 +3,6 @@ set -euo pipefail
 MODULES_DIR="${MODULES_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
 . "$MODULES_DIR/_lib/common.sh"
 
-log "vcs-git: setup"
+log "cli-git: setup"
 
-link vcs-git/gitconfig "$HOME/.gitconfig"
+link cli-git/gitconfig "$HOME/.gitconfig"

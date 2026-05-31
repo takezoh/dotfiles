@@ -14,8 +14,8 @@ modules=(
 	cli-gcloud
 	shell
 	editor-nvim
-	vcs-git
-	vcs-tig
+	cli-git
+	cli-tig
 	cli
 	roost
 	agent-claude

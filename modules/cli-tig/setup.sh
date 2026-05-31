@@ -3,7 +3,6 @@ set -euo pipefail
 MODULES_DIR="${MODULES_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
 . "$MODULES_DIR/_lib/common.sh"
 
-log "vcs-git: install"
+log "cli-tig: setup"
 
-. "$MODULES_DIR/brew/env.sh"
-brew_install git
+link cli-tig/tigrc "$HOME/.tigrc"

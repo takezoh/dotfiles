@@ -12,4 +12,4 @@ cmd.exe /d /c rmdir /q /s '%USERPROFILE%\.ssh' || true
 cmd.exe /d /c mklink /d '%USERPROFILE%\.ssh' "$(wslpath -aw "$HOME/.ssh")"
 
 cmd.exe /d /c del /q '%USERPROFILE%\.gitconfig' || true
-cmd.exe /d /c mklink '%USERPROFILE%\.gitconfig' "$(wslpath -aw "$MODULES_DIR/vcs-git/gitconfig")"
+cmd.exe /d /c mklink '%USERPROFILE%\.gitconfig' "$(wslpath -aw "$MODULES_DIR/cli-git/gitconfig")"
