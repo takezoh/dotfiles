@@ -1,0 +1,64 @@
+#compdef wt
+
+_wt() {
+	local -a subcmds
+	subcmds=(
+		'add:add a worktree'
+		'ls:list worktrees'
+		'rm:remove a worktree'
+		'purge:force-remove worktree and delete directory'
+		'cd:cd into worktree directory'
+		'cp:copy file into worktree'
+	)
+
+	_arguments -C \
+		'1:command:->cmd' \
+		'*::arg:->args'
+
+	case "$state" in
+	cmd)
+		_describe 'command' subcmds
+		;;
+	args)
+		case "$words[1]" in
+		add)
+			_arguments \
+				'-b[create new branch]' \
+				'1:branch:__wt_git_branches' \
+				'2:base:__wt_git_branches'
+			;;
+		rm|purge|cd)
+			_arguments '1:branch:__wt_worktree_branches'
+			;;
+		cp)
+			_arguments \
+				'1:branch:__wt_worktree_branches' \
+				'2:source:_files' \
+				'3:dest:_files'
+			;;
+		esac
+		;;
+	esac
+}
+
+__wt_git_branches() {
+	local -a branches
+	branches=(${(f)"$(git branch -a --format='%(refname:short)' 2>/dev/null)"})
+	branches=(${branches/#origin\//})
+	branches=(${(u)branches})
+	_describe 'branch' branches
+}
+
+__wt_worktree_branches() {
+	local repo
+	repo="$(basename "$(git rev-parse --show-toplevel 2>/dev/null)" 2>/dev/null)" || return
+	local wt_root="$HOME/worktrees/$repo"
+	[[ -d "$wt_root" ]] || return
+	# linked worktrees have a .git FILE (not directory) in the worktree root
+	local -a git_files branches
+	git_files=(${wt_root}/**/.git(N.))
+	branches=(${${git_files/#${wt_root}\/}/%\/.git/})
+	_describe 'worktree branch' branches
+}
+
+_wt "$@"

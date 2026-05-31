@@ -1,0 +1,22 @@
+apk.rev() {
+	local apk=$1
+	local dir=`echo $apk | sed -e 's/\.apk$//'`
+	mkdir $dir
+	cp $apk $dir
+	(
+		cd $dir
+		unzip $apk
+		jadx classes.dex
+		# if type dex2jar >/dev/null 2>&1; then
+		# 	dex2jar classes.dex
+		# elif type d2j-dex2jar >/dev/null 2>&1; then
+		# 	d2j-dex2jar classes.dex
+		# fi
+		# mv classes-dex2jar.jar classes.jar.jar
+		# jar.rev classes.jar.jar
+		# rm -f classes.jar.jar
+	)
+	# rm $dir/classes.dex
+	rm $dir/$apk
+}
+apk.rev "$@"

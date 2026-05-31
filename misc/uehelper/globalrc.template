@@ -1,0 +1,10 @@
+#!/bin/bash
+
+current_dir=$(cd `dirname $0` && pwd -P)
+
+if [ "$1" = "-u" ]; then
+	(cd "{project_root}" && $GLOBALBIN "{gtagsdb_root}/gtags.game" "$@")
+else
+	GTAGSROOT="{project_root}" GTAGSDBPATH="{gtagsdb_root}/gtags.game"   $GLOBALBIN "$@" 2>/dev/null
+	GTAGSROOT="{engine_root}"  GTAGSDBPATH="{gtagsdb_root}/gtags.engine" $GLOBALBIN "$@" 2>/dev/null
+fi

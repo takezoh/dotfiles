@@ -1,0 +1,20 @@
+# 全ヒストリを表示（Ctrl+R 中に Tab でフィルタ切替: global → workspace → directory）
+filter_mode = "global"
+search_mode = "fuzzy"
+# git リポジトリ配下のコマンドをまとめて表示する workspace フィルタを有効化
+workspaces = true
+
+# ディレクトリ・実行時刻を表示
+style = "full"
+inline_height = 20
+
+[search]
+# Tab で切り替えるフィルタの順序
+filters = ["global", "workspace"]
+
+[ui]
+columns = [{ type = "directory", width = 20 }, "command"]
+
+# 同期は無効（ローカルのみ）
+[sync]
+records = false

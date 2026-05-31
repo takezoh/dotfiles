@@ -1,0 +1,22 @@
+# starship prompt configuration
+
+[directory]
+truncation_length = 0
+truncate_to_repo = false
+
+[username]
+show_always = false
+
+[hostname]
+ssh_only = true
+
+[cmd_duration]
+min_time = 3000
+
+[time]
+disabled = false
+format = "[$time]($style) "
+time_format = "%H:%M"
+
+[status]
+disabled = true

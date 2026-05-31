@@ -1,0 +1,97 @@
+#compdef claude
+
+# Cache-based completion for claude CLI.
+# Regenerate with: _claude_update_cache
+# Auto-regenerates when cache is older than _claude_cache_ttl seconds.
+
+autoload -Uz _claude_update_cache
+
+_claude_cache="${XDG_CACHE_HOME:-$HOME/.cache}/zsh/_claude_completion"
+_claude_cache_ttl=604800  # 7 days
+
+_claude_load_cache() {
+	local now mtime age
+	now=$(date +%s)
+
+	if [[ -f "$_claude_cache" ]]; then
+		mtime=$(stat -c %Y "$_claude_cache" 2>/dev/null || echo 0)
+		age=$(( now - mtime ))
+	else
+		age=$(( _claude_cache_ttl + 1 ))
+	fi
+
+	(( age > _claude_cache_ttl )) && _claude_update_cache
+	[[ -f "$_claude_cache" ]] && source "$_claude_cache"
+}
+
+_claude() {
+	local -a _claude_cached_cmds _claude_cached_opts
+	_claude_load_cache
+
+	# Opts that we override with richer completions (exclude from cache)
+	local override_pat='^(--model|--permission-mode|--output-format|--input-format|--effort)\['
+	local -a base_opts
+	local spec
+	for spec in "${_claude_cached_opts[@]}"; do
+		[[ "$spec" =~ $override_pat ]] || base_opts+=("$spec")
+	done
+
+	_arguments -C \
+		"${base_opts[@]}" \
+		'--model[model for the current session]:model:(sonnet opus haiku claude-sonnet-4-6 claude-opus-4-6 claude-haiku-4-5-20251001)' \
+		'--permission-mode[permission mode]:mode:(acceptEdits bypassPermissions default dontAsk plan auto)' \
+		'--output-format[output format]:format:(text json stream-json)' \
+		'--input-format[input format]:format:(text stream-json)' \
+		'--effort[effort level]:level:(low medium high)' \
+		'1:command or prompt:->cmd' \
+		'*::args:->args'
+
+	case "$state" in
+	cmd)
+		_describe 'command' _claude_cached_cmds
+		;;
+	args)
+		case "$words[1]" in
+		auth)
+			local -a auth_cmds
+			auth_cmds=(
+				'login:log in to Claude'
+				'logout:log out of Claude'
+				'status:show authentication status'
+			)
+			_describe 'auth command' auth_cmds
+			;;
+		mcp)
+			local -a mcp_cmds
+			mcp_cmds=(
+				'add:add an MCP server'
+				'remove:remove an MCP server'
+				'list:list configured MCP servers'
+				'get:get MCP server details'
+				'add-json:add MCP server from JSON'
+				'add-from-claude-desktop:import from Claude desktop'
+				'serve:start a stdio MCP server'
+				'reset-project-choices:reset project MCP choices'
+			)
+			_describe 'mcp command' mcp_cmds
+			;;
+		plugin)
+			local -a plugin_cmds
+			plugin_cmds=(
+				'add:add a plugin'
+				'remove:remove a plugin'
+				'list:list installed plugins'
+			)
+			_describe 'plugin command' plugin_cmds
+			;;
+		install)
+			_arguments \
+				'--local[install as local npm package]' \
+				'1:target:(stable latest)'
+			;;
+		esac
+		;;
+	esac
+}
+
+_claude "$@"

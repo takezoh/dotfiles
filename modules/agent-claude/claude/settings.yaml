@@ -1,0 +1,313 @@
+env:
+  ENABLE_CLAUDEAI_MCP_SERVERS: false
+
+language: japanese
+
+model: opusplan
+effortLevel: medium
+
+permissions:
+  # サンドボックス第一防御。cwd 内 read/write/exec は sandbox + acceptEdits でカバー
+  defaultMode: acceptEdits
+
+  allow:
+    - Read(~/Obsidian/**)
+    - Edit(~/Obsidian/**)
+    - Write(~/Obsidian/**)
+    - Read(~/Downloads/**)
+    - Edit(~/Downloads/**)
+    - Write(~/Downloads/**)
+    # WebFetch (sandbox network 制限と二段階)
+    - WebFetch(domain:github.com)
+    - WebFetch(domain:raw.githubusercontent.com)
+    - WebFetch(domain:docs.github.com)
+    - WebFetch(domain:code.claude.com)
+    - WebFetch(domain:platform.claude.com)
+    - WebFetch(domain:pkg.go.dev)
+    - WebFetch(domain:docs.python.org)
+    - WebFetch(domain:docs.aws.amazon.com)
+    - WebFetch(domain:cloud.google.com)
+    - WebFetch(domain:developer.mozilla.org)
+    - WebFetch(domain:docs.rs)
+    - WebFetch(domain:doc.rust-lang.org)
+    - WebFetch(domain:kubernetes.io)
+    - WebFetch(domain:registry.terraform.io)
+    - WebFetch(domain:www.terraform.io)
+    - WebFetch(domain:nodejs.org)
+    - WebFetch(domain:docs.npmjs.com)
+    - WebFetch(domain:bun.sh)
+    - WebFetch(domain:react.dev)
+    - WebFetch(domain:nextjs.org)
+    # CLI (sandbox excludedCommands で sandbox 外実行)
+    - Bash(aws *)
+    - Bash(gcloud *)
+    - Bash(gh *)
+    - Bash(git *)
+    - Bash(mise exec *)
+    # MCP (sandbox 対象外)
+    - mcp__codex__codex
+    - mcp__awslabs-core__cloudwatch_describe_log_*
+    - mcp__awslabs-core__cloudwatch_execute_log_*
+    - mcp__observability__list_log_*
+    # MCP 読み取り専用
+    - mcp__context7__query-docs
+    - mcp__context7__resolve-library-id
+    - mcp__filesystem__read_file
+    - mcp__filesystem__read_text_file
+    - mcp__filesystem__read_media_file
+    - mcp__filesystem__read_multiple_files
+    - mcp__filesystem__list_directory
+    - mcp__filesystem__list_directory_with_sizes
+    - mcp__filesystem__directory_tree
+    - mcp__filesystem__search_files
+    - mcp__filesystem__get_file_info
+    - mcp__filesystem__list_allowed_directories
+    - mcp__linear-server__get_*
+    - mcp__linear-server__list_*
+    - mcp__linear-server__search_documentation
+    - mcp__linear-server__extract_images
+    - mcp__playwright__browser_snapshot
+    - mcp__playwright__browser_console_messages
+    - mcp__playwright__browser_network_requests
+    - mcp__playwright__browser_take_screenshot
+    - mcp__plugin_discord_discord__fetch_messages
+    - mcp__plugin_discord_discord__download_attachment
+
+  ask:
+    # クラウド storage 経由 exfil
+    - Bash(aws s3 cp*)
+    - Bash(aws s3 sync*)
+    - Bash(aws s3 mv*)
+    - Bash(aws s3api put-object*)
+    - Bash(gcloud storage cp*)
+    - Bash(gcloud storage rsync*)
+    - Bash(gcloud storage mv*)
+    # GitHub 経由 exfil
+    - Bash(gh gist create*)
+    - Bash(gh release upload*)
+    # gh CLI 副作用系
+    - Bash(gh pr create*)
+    - Bash(gh pr close*)
+    - Bash(gh pr merge*)
+    - Bash(gh pr edit*)
+    - Bash(gh issue create*)
+    - Bash(gh issue close*)
+    - Bash(gh issue edit*)
+    - Bash(gh release create*)
+    - Bash(gh release delete*)
+    - Bash(gh repo delete*)
+    - Bash(gh api -X POST*)
+    - Bash(gh api -X PUT*)
+    - Bash(gh api -X DELETE*)
+    - Bash(gh api -X PATCH*)
+    # docker は全て人間承認 (daemon が root 権限で動作し FS 露出・権限昇格の surface が広いため)
+    - Bash(docker *)
+
+  deny:
+    # secrets - Read tool 側
+    - Read(.env*)
+    - Grep(.env*)
+    - Read(~/.secrets/**)
+    - Grep(~/.secrets/**)
+    - Read(~/.ssh/**)
+    - Grep(~/.ssh/**)
+    # AWS/GCP/gh credentials (Claude の Read ツール・Bash による dump を防ぐ)
+    # aws/gcloud/gh 自身は unsandboxed 実行のため bwrap 制約を受けず通常通り動作する
+    - Read(~/.aws/**)
+    - Grep(~/.aws/**)
+    - Read(~/.config/**)
+    - Grep(~/.config/**)
+    # secrets - Bash 側
+    - Bash(cat ~/.ssh/*)
+    - Bash(less ~/.ssh/*)
+    - Bash(head ~/.ssh/*)
+    - Bash(tail ~/.ssh/*)
+    - Bash(cat ~/.secrets/*)
+    - Bash(cat .env*)
+    - Bash(cat ./.env*)
+    - Bash(cat ~/.aws/*)
+    - Bash(less ~/.aws/*)
+    - Bash(head ~/.aws/*)
+    - Bash(tail ~/.aws/*)
+    - Bash(cat ~/.config/*)
+    - Bash(less ~/.config/*)
+    - Bash(head ~/.config/*)
+    - Bash(tail ~/.config/*)
+    # WSL2 Windows filesystem
+    - Read(/mnt/c/**)
+    - Grep(/mnt/c/**)
+    # アンチパターン
+    - Bash(curl * | bash)
+    - Bash(curl * | sh)
+    - Bash(wget * | bash)
+    - Bash(wget * | sh)
+    - Bash(ssh *)
+    - Bash(scp *)
+    - Bash(nc *)
+    - Bash(*ANTHROPIC_BASE_URL*)
+    # 環境変数ダンプ
+    - Bash(env)
+    - Bash(env *)
+
+sandbox:
+  enabled: true
+  mode: auto-allow
+  failIfUnavailable: true
+  # クラウド CLI は sandbox 外実行 (認証ファイルを自由に read/write させるため)
+  # network は sandbox で制限しても trusted domain 経由の exfil は防げないので network 制限は諦め
+  # 代わりに exfil 系サブコマンド (s3 cp, storage cp, gist create, release upload) は ask で人間承認
+  excludedCommands:
+    - aws *
+    - gcloud *
+    - gh *
+    - git *
+    - mise exec *
+    - docker *
+  filesystem:
+    allowRead:
+      # SDK が直接読むクレデンシャル (Claude の Read tool は deny で引き続き blocked)
+      - ~/.config/gcloud/application_default_credentials.json
+      - ~/.aws/credentials
+      - ~/.aws/config
+      - ~/.local/share/mise # mise toolchain 全体 (installs/shims/downloads)
+      - ~/.local/state/mise # mise state (trusted-configs 等)
+      - ~/.cargo/bin # Rust ツールチェーン
+    allowWrite:
+      - /proc/self/fd/3 # Claude Code Bash tool trailer (exit code 通信用 fd)
+      - /tmp
+      - ~/.local/bin # go install / cargo install 等のユーザーローカルバイナリ配置先
+      - ~/.cache/go-build # Go ビルドキャッシュ
+      - ~/.local/share/go/pkg/mod # Go モジュールキャッシュ
+      - ~/.local/share/mise # mise install / go install の書き込み先
+      - ~/.cache/pip # pip cache
+      - ~/.cache/uv # uv cache
+      - ~/.cache/bun # bun cache
+      - ~/.npm # npm cache
+      - ~/.cache/golangci-lint # golangci-lint キャッシュ
+      - ~/.cargo/registry # Rust crates cache
+      - ~/.cargo/git # Rust git dependency cache
+      - /mnt/c/Obsidian
+      - $USERPROFILE/Downloads/ # Windows Downloads (setup-claude.sh で展開。未定義時はスキップ)
+  network:
+    allowedDomains:
+      # General
+      - github.com
+      - api.github.com
+      - raw.githubusercontent.com
+      - codeload.github.com
+      - objects.githubusercontent.com
+      # Go
+      - proxy.golang.org
+      - sum.golang.org
+      - pkg.go.dev
+      - go.dev
+      # Python
+      - pypi.org
+      - files.pythonhosted.org
+      # Node (補助)
+      - registry.npmjs.org
+      # Rust (補助)
+      - crates.io
+      - static.crates.io
+      # AWS
+      - "*.amazonaws.com"
+      - "*.awsapps.com"
+      - docs.aws.amazon.com
+      # xAI
+      - api.x.ai
+      # AI APIs
+      - api.anthropic.com
+      - api.openai.com
+      - huggingface.co
+      - cdn-lfs.huggingface.co
+      # Container registries
+      - registry-1.docker.io
+      - auth.docker.io
+      - production.cloudflare.docker.com
+      - ghcr.io
+      - quay.io
+      # SaaS APIs
+      - api.linear.app
+      - discord.com
+      # Additional package registries
+      - jsr.io
+      - deno.land
+      - esm.sh
+      # GCP
+      - "*.googleapis.com"
+      - accounts.google.com
+      - dl.google.com
+      - "*.pkg.dev"
+      - gcr.io
+      - "*.gcr.io"
+      - cloud.google.com
+
+showTurnDuration: true
+respectGitignore: false
+
+spinnerVerbs:
+  mode: append
+  verbs:
+    - 考え中
+    - 探索中
+    - 分析中
+    - 設計中
+    - 検証中
+    - 構築中
+    - 最適化中
+    - 推論中
+
+statusLine:
+  type: command
+  command: ~/.claude/statusline.sh
+
+awsAuthRefresh: aws sso login --profile thirdverse
+
+hooks:
+  # PermissionRequest:
+  #   - hooks:
+  #       - type: command
+  #         command: ~/.claude/hooks/win-notify.sh
+
+  Notification: []
+    # - matcher: permission_prompt
+    #   hooks:
+    #     - type: command
+    #       command: ~/.claude/hooks/win-notify.sh
+    # - matcher: idle_prompt
+    #   hooks:
+    #     - type: command
+    #       command: ~/.claude/hooks/win-notify.sh
+    # - matcher: auth_success
+    #   hooks:
+    #     - type: command
+    #       command: ~/.claude/hooks/win-notify.sh
+    # - matcher: elicitation_dialog
+    #   hooks:
+    #     - type: command
+    #       command: ~/.claude/hooks/win-notify.sh
+
+  Stop: []
+    # - hooks:
+    #     - type: command
+    #       command: ~/.claude/hooks/win-notify.sh
+
+  PostToolUse:
+    - matcher: Bash
+      hooks:
+        - type: command
+          command: ~/.claude/hooks/bash-audit.sh
+    - matcher: Write
+      hooks:
+        - type: command
+          command: ~/.claude/hooks/post-write-check.sh
+        - type: command
+          command: ~/.claude/hooks/post-format.sh
+          timeout: 10
+    - matcher: Edit
+      hooks:
+        - type: command
+          command: ~/.claude/hooks/post-write-check.sh
+        - type: command
+          command: ~/.claude/hooks/post-format.sh
+          timeout: 10

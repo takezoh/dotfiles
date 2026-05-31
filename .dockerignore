@@ -1,0 +1,16 @@
+# Deny everything by default
+*
+
+# Allow dotfiles structure needed for build
+!profiles/**
+!modules/**
+!external/**
+!scripts/**
+
+# Re-deny noise
+.git
+**/.zcompdump
+**/.zcompdump.*
+**/.zcompcache
+*.zwc
+*.pyc

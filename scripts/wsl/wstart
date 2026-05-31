@@ -1,0 +1,32 @@
+#!/usr/bin/env python3
+# coding: utf-8
+import sys
+import shutil
+import subprocess
+from lib import cmd_backend
+
+
+def start_cmd(program, args):
+    ''' space path hack '''
+
+    # たぶんシステムドライブじゃないとショートネーム化できない
+    if program.startswith('C:\\'):
+        #return ['cmd.exe', '/d', '/c', 'for', '%X', 'in', '(', program, ')', 'do', 'start', '"wstart"', '%~sX'] + args
+        return ['cmd.exe', '/d', '/c', 'for', '%X', 'in', '(', program, ')', 'do', 'start', '%~sX'] + args
+
+    # args にスペースが入ってたらこれでもダメ
+    #return ['cmd.exe', '/d', '/c', 'start', '"wstart"', program] + args
+    return ['cmd.exe', '/d', '/c', 'start', program] + args
+
+
+def main(program, args):
+    program, args = cmd_backend.argparse(program, args)
+    cmd = start_cmd(program, args)
+    ret = subprocess.check_call(cmd, stdout=subprocess.DEVNULL, shell=False)
+    sys.exit(ret)
+
+
+if __name__ == '__main__':
+    if not shutil.which('cmd.exe'):
+        raise ValueError('not found cmd.exe')
+    main(sys.argv[1], sys.argv[2:])

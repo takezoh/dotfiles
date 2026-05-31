@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+BAT_THEME="zenburn"
+
+preview() {
+	local file=$1 line=$2
+	# w: コード表示行数 (プレビュー高さ - ファイルパス行)
+	local w=$((FZF_PREVIEW_LINES - 1))
+	local total
+	total=$(wc -l < "$file")
+	# 該当行を中心に w 行分の範囲を決定
+	local s=$((line - w / 2))
+	local e=$((s + w - 1))
+	# ファイル末尾を超える場合、末尾に貼り付けて開始行を手前にずらす
+	if [ "$e" -gt "$total" ]; then
+		e=$total
+		s=$((e - w + 1))
+	fi
+	# ファイル先頭を超える場合、先頭に貼り付けて終了行を再計算
+	if [ "$s" -lt 1 ]; then
+		s=1
+		e=$((s + w - 1))
+	fi
+	printf '\e[37;40;1;4m> %s\e[0m\n' "$file"
+	# 該当行をマゼンタ背景+白太字で強調 (bat の highlight-line より視認性が高い)
+	local hl=$((line - s + 1))
+	bat --style=plain --theme="$BAT_THEME" --color=always --line-range "$s:$e" -- "$file" |
+		awk -v n="$hl" 'NR==n{gsub(/\033\[0m/,"\033[0m\033[4m");printf "▶ \033[4m%s\033[0m\n",$0;next}{printf "  %s\n",$0}'
+}
+
+if [ "${1:-}" = --preview ]; then
+	preview "$2" "$3"
+	exit
+fi
+
+rg --line-number --ignore-case "$@" . |
+	fzf \
+		--exact \
+		--multi \
+		--no-sort \
+		--exit-0 \
+		--reverse \
+		--inline-info \
+		--ansi \
+		--delimiter : \
+		--prompt "$* > " \
+		--height=100% \
+		--no-border \
+		--no-separator \
+		--preview-border=none \
+		--preview-window 'up,60%' \
+		--preview "$0 --preview {1} {2}" \
+		--bind "enter:execute(less +{2} -- {1})" \
+		--bind "ctrl-o:execute(nvim +{2} -- {1})" \
+		--bind "ctrl-v:execute-silent(code --reuse-window --goto \"\$(wpath -aw '{1}'):{2}\")" \
+		--bind "ctrl-t:execute-silent(wstart ~/.local/misc/vshelper/openfile.vbs {1} {2})" \
+		--bind "ctrl-y:execute-silent(echo {3..} | clipboard -i)"

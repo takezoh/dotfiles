@@ -1,0 +1,99 @@
+# theme = "minimal"
+theme = "default"
+language = "japanese"
+
+[log]
+level = "debug"
+
+[tmux]
+session_name = "roost"
+prefix = "C-b"              # prefix キー（デフォルト: C-b）
+pane_ratio_horizontal = 75      # メインペイン幅 %
+pane_ratio_vertical = 75        # メインペイン高さ %
+
+[monitor]
+poll_interval_ms = 1000
+idle_threshold_sec = 30
+
+[session]
+auto_name = true
+commands = [
+	"claude",
+	"sonnet-medium",
+	"sonnet-high",
+	"sonnet-xhigh",
+	"opus-xhigh",
+	"opusplan-high",
+	"opusplan-xhigh",
+	"shell",
+	"gemini",
+	"codex",
+]
+push_commands=[
+	"tig status",
+	"tig",
+	"shell",
+]
+
+[sandbox]
+# mode = "direct"
+mode = "devcontainer"
+isolation = "shared"
+
+[sandbox.proxy.ssh_agent]
+keys = ["~/.ssh/id_ed25519"]
+
+[sandbox.proxy.host_exec]
+allow = [
+	"explorer.exe *",
+	"clip.exe *",
+	"op.exe *",
+	"gh auth login",
+	"gh auth status",
+	"gh browse *",
+	"gh issue *",
+	"gh gist *",
+	"gh pr *",
+	"gh project *",
+	"gh release *",
+	"gh repo create *",
+	"gh repo sync *",
+	"gh repo list *",
+	"gh repo view *",
+	"gh repo edit *",
+	"gh run *",
+	"gh search *",
+	"gh status *",
+]
+deny = [
+	'gh repo edit *',
+]
+
+[driver]
+# summarize_command = "claude -p --model=haiku --no-session-persistence --setting-sources user"
+summarize_command = "gemini -p '' -m gemini-2.5-flash-lite"
+pager = "glow -p"
+
+[drivers.claude]
+show_thinking = true
+
+[projects]
+project_roots = [
+	"/workspace",
+	"/workspace/ops",
+	"~/Obsidian",
+	"~/dev",
+]
+project_paths = [
+	"~/.dotfiles",
+]
+
+[[notifications.rules]]
+# claude requests tool approval under ~/projects/prjA
+# driver  = "claude"
+# project = "~/projects/prjA"
+# kind    = "pending_approval"
+
+[[notifications.rules]]
+# any agent finishes its turn
+# kind = "done"

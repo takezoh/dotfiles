@@ -1,0 +1,51 @@
+_claude_update_cache() {
+	local cache="${XDG_CACHE_HOME:-$HOME/.cache}/zsh/_claude_completion"
+	local help
+	help=$(CLAUDECODE= claude --help 2>/dev/null) || return 1
+
+	mkdir -p "${cache:h}"
+
+	{
+		echo "_claude_cached_cmds=("
+		awk '
+		/^Commands:/ { sec=1; next }
+		sec && /^  [a-z]/ {
+			line = substr($0, 3)
+			idx = match(line, /[ ]{2,}/)
+			if (!idx) next
+			name = substr(line, 1, idx - 1)
+			desc = substr(line, idx + RLENGTH)
+			gsub(/'"'"'/, "'"'"'\\'"'"''"'"'", desc)
+			sub(/ \[.*/, "", name)
+			sub(/\|.*/, "", name)
+			printf "  '"'"'%s:%s'"'"'\n", name, desc
+		}
+		' <<< "$help"
+		echo ")"
+
+		echo "_claude_cached_opts=("
+		awk '
+		/^Options:/  { sec=1; next }
+		/^Commands:/ { sec=0; next }
+		sec && /^  -/ {
+			line = substr($0, 3)
+			idx = match(line, /[ ]{4,}/)
+			if (!idx) next
+			flags = substr(line, 1, idx - 1)
+			desc  = substr(line, idx + RLENGTH)
+			gsub(/'"'"'/, "'"'"'\\'"'"''"'"'", desc)
+			gsub(/[\[\]]/, "", desc)
+			has_arg = (flags ~ /</) ? 1 : 0
+			if (!match(flags, /--[a-zA-Z][a-zA-Z-]+/)) next
+			opt = substr(flags, RSTART, RLENGTH)
+			if (has_arg)
+				printf "  '"'"'%s[%s]:arg:'"'"'\n", opt, desc
+			else
+				printf "  '"'"'%s[%s]'"'"'\n", opt, desc
+		}
+		' <<< "$help"
+		echo ")"
+	} > "$cache"
+}
+
+_claude_update_cache "$@"

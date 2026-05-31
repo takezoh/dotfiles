@@ -1,0 +1,41 @@
+#!/usr/bin/env zsh
+
+WINGIT="/mnt/c/Program Files/Git/bin/git.exe"
+
+script_dir=$(cd `dirname $0` && pwd -P)
+
+ugit() {
+	for p in $path; do
+		local dir="${p%/}"
+		[[ "$dir" == "$script_dir" ]] && continue
+		if [[ -x "$dir/git" ]]; then
+			"$dir/git" "$@"
+			return $?
+		fi
+	done
+	print -u2 "ugit: no git found in PATH"
+	return 127
+}
+
+
+if [[ -z "${_platforms+x}" ]]; then
+	ugit "$@"
+	exit
+fi
+
+if (( ${_platforms[(I)windows]} )); then
+	winpath="$(wslpath -am `pwd` 2>/dev/null)"
+	if [ $? -ne 0 ]; then
+		ugit "$@"
+		exit
+	fi
+
+	if echo $winpath | grep -q '^//wsl'; then
+		ugit "$@"
+		exit
+	fi
+
+	exec $WINGIT "$@"
+fi
+
+ugit "$@"

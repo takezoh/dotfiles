@@ -1,0 +1,7 @@
+oculus.debugtool() {
+	if is_wsl; then
+		local path="`echo ${^path}/../oculus-diagnostics/OculusDebugTool.exe(N)`"
+		$path >/dev/null 2>&1 &
+	fi
+}
+oculus.debugtool "$@"

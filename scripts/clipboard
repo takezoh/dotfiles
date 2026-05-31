@@ -1,0 +1,23 @@
+#!/usr/bin/env zsh
+
+if is_wsl; then
+	C="| win32yank.exe -i"
+	P="win32yank.exe -o"
+elif is_darwin; then
+	C="| pbcopy"
+	P="pbpaste"
+else
+	if type xclip >/dev/null 2>&1; then
+		C="| xclip -i -selection clipboard"
+		P="xclip -o -selection clipboard"
+	fi
+fi
+
+case "$1" in
+	-i)
+		eval "cat - $C"
+		;;
+	-o)
+		eval "$P"
+		;;
+esac

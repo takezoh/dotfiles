@@ -1,0 +1,107 @@
+# git worktree helper — creates worktrees under ~/worktrees/<repo>/<branch>
+
+WORKTREE_ROOT="/worktree"
+
+_wt_usage() {
+	cat <<-'EOF'
+	usage: wt <command> [args]
+
+	commands:
+	  add   <branch> [-b] [base]  add a worktree (use -b to create new branch)
+	  ls                          list worktrees for current repo
+	  rm    <branch>              remove a worktree (keeps directory if unclean)
+	  purge <branch>              force-remove worktree and delete its directory
+	  cd    <branch>              cd into worktree directory
+	  cp    <branch> <src> <dst>  copy src to <worktree>/<dst>
+	EOF
+}
+
+_wt_repo_name() {
+	basename "$(git rev-parse --show-toplevel)"
+}
+
+_wt_path() {
+	local repo="$(_wt_repo_name)"
+	local branch="${1:?branch name required}"
+	echo "$WORKTREE_ROOT/$repo/$branch"
+}
+
+_wt_add() {
+	local create_branch=false
+	local branch=""
+	local base=""
+
+	while [[ $# -gt 0 ]]; do
+		case "$1" in
+			-b) create_branch=true; shift ;;
+			*)
+				if [[ -z "$branch" ]]; then
+					branch="$1"
+				else
+					base="$1"
+				fi
+				shift
+				;;
+		esac
+	done
+
+	if [[ -z "$branch" ]]; then
+		echo "error: branch name required" >&2
+		echo "usage: wt add <branch> [-b] [base]" >&2
+		return 1
+	fi
+
+	local dest="$(_wt_path "$branch")"
+	mkdir -p "$(dirname "$dest")"
+
+	if $create_branch; then
+		git worktree add -b "$branch" "$dest" ${base:+$base}
+	else
+		git worktree add "$dest" "$branch"
+	fi
+
+	echo "$dest"
+}
+
+_wt_rm() {
+	local branch="${1:?branch name required}"
+	local dest="$(_wt_path "$branch")"
+	git worktree remove --force "$dest"
+}
+
+_wt_purge() {
+	local branch="${1:?branch name required}"
+	local dest="$(_wt_path "$branch")"
+	git worktree remove --force "$dest"
+	if [[ -d "$dest" ]]; then
+		rm -rf "$dest"
+	fi
+}
+
+_wt_cd() {
+	local branch="${1:?branch name required}"
+	cd "$(_wt_path "$branch")"
+}
+
+_wt_cp() {
+	local branch="${1:?branch name required}"
+	local src="${2:?source path required}"
+	local dest="${3:?destination path required}"
+	local wt="$(_wt_path "$branch")"
+	cp -r "$src" "$wt/$dest"
+}
+
+wt() {
+	case "${1:-}" in
+		add)   shift; _wt_add "$@" ;;
+		ls)    git worktree list ;;
+		rm)    shift; _wt_rm "$@" ;;
+		purge) shift; _wt_purge "$@" ;;
+		cd)    shift; _wt_cd "$@" ;;
+		cp)    shift; _wt_cp "$@" ;;
+		-h|--help|"") _wt_usage ;;
+		*) echo "error: unknown command '$1'" >&2; _wt_usage >&2; return 1 ;;
+	esac
+}
+
+wt "$@"

@@ -1,0 +1,15 @@
+jar.rev() {
+	local jar=$1
+	local dir=`echo $jar | sed -e 's/\.jar$//'`
+	mkdir $dir
+	cp $jar $dir
+	(
+		cd $dir
+		unzip $jar
+		# jad -s java -r **/*.class
+		jad -s java -r `find . -name "*.class"`
+		find . -name "*.class" | xargs rm
+	)
+	rm $dir/$jar
+}
+jar.rev "$@"

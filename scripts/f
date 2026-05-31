@@ -1,0 +1,60 @@
+#!/usr/bin/env zsh
+
+
+#	exec rg --line-number --ignore-case "$@" . 2>/dev/null | fzf -e --multi --no-sort --exit-0 --reverse --prompt="$* > " \
+#		--preview 'exec g --preview {}' \
+#		--preview-window up \
+#		--bind 'enter:execute(g --open less {})' \
+#		--bind 'ctrl-o:execute(g --open nvim {})' \
+#		--bind 'ctrl-v:execute-silent(g --open code {})' \
+#		--bind 'ctrl-t:execute-silent(g --open vs {})' \
+#		--bind 'ctrl-y:execute-silent(echo {} | clipboard -i)'
+
+main() {
+	exec find . -path "./.git" -prune -o -type f | awk '{ print substr($0, 3); }' | fzf -e --multi --no-sort --exit-0 --reverse --prompt "* search file > " \
+			--bind 'enter:execute(f --open less {})' \
+			--bind 'ctrl-o:execute(f --open nvim {})' \
+			--bind 'ctrl-v:execute-silent(f --open code {})' \
+			--bind 'ctrl-t:execute-silent(f --open vs {})' \
+			--bind 'ctrl-y:execute-silent(echo {} | clipboard -i)'
+}
+
+open() {
+	local cmd=$1
+	shift
+
+	local filename="$@"
+	local linenumber="1"
+
+	case "$cmd" in
+	vs)
+		(wcmd `wpath -aw ~/.dotfiles/misc/etc/vshelper/openfile.vbs` `wpath -aw $filename` $linenumber) &
+		;;
+	code)
+		code --reuse-window --goto "`wpath -aw $filename`:$linenumber"
+		;;
+	*)
+		exec $cmd "+${linenumber}" $filename
+		;;
+	esac
+}
+
+case "$1" in
+	--preview)
+		shift
+		preview "$@"
+		exit $?
+		;;
+	--open)
+		shift
+		open "$@"
+		exit $?
+		;;
+	--)
+		shift
+		;;
+	*)
+		;;
+esac
+
+main "$@"
