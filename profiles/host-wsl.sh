@@ -22,7 +22,6 @@ modules=(
 	agent-claude-lsp
 	agent-codex
 	agent-gemini
-	agent-shared
 	agent-skills
 	terminal-windows
 	terminal-wezterm

@@ -8,15 +8,12 @@ log "agent-gemini: setup"
 GEMINI_DIR="$HOME/.gemini"
 SETTINGS="$GEMINI_DIR/settings.json"
 MANAGED_SETTINGS="$MODULES_DIR/agent-gemini/gemini/settings.json"
-AGENTS_MD_SOURCE="$MODULES_DIR/agent-shared/AGENTS.md"
+# AGENTS.md の symlink は skills リポの setup が担当する
 MERGE_APPEND="$MODULES_DIR/_lib/merge_append.py"
 ROOST_BIN="/workspace/agent-roost/roost"
 
 mkdir -p "$GEMINI_DIR"
 
-# AGENTS.md
-ln -sf "$AGENTS_MD_SOURCE" "$GEMINI_DIR/AGENTS.md"
-echo "Linked: $GEMINI_DIR/AGENTS.md -> $AGENTS_MD_SOURCE"
 rm -f "$GEMINI_DIR/GEMINI.md"
 
 UPDATED=$("$MERGE_APPEND" json "$MANAGED_SETTINGS" "$SETTINGS")

@@ -8,15 +8,11 @@ log "agent-codex: setup"
 CODEX_DIR="$HOME/.codex"
 MANAGED_CONFIG="$MODULES_DIR/agent-codex/codex/config.toml"
 CODEX_CONFIG="$CODEX_DIR/config.toml"
-AGENTS_MD_SOURCE="$MODULES_DIR/agent-shared/AGENTS.md"
+# AGENTS.md の symlink は skills リポの setup が担当する
 MERGE_APPEND="$MODULES_DIR/_lib/merge_append.py"
 ROOST_BIN="/workspace/agent-roost/roost"
 
 mkdir -p "$CODEX_DIR"
-
-# AGENTS.md
-ln -sf "$AGENTS_MD_SOURCE" "$CODEX_DIR/AGENTS.md"
-echo "Linked: $CODEX_DIR/AGENTS.md -> $AGENTS_MD_SOURCE"
 
 # config.toml
 UPDATED_CONFIG=$("$MERGE_APPEND" toml "$MANAGED_CONFIG" "$CODEX_CONFIG")

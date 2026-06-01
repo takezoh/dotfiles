@@ -17,7 +17,6 @@ modules=(
 	agent-claude
 	agent-codex
 	agent-gemini
-	agent-shared
 	agent-skills
 )
 

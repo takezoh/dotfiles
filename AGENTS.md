@@ -36,8 +36,7 @@ modules/
   agent-codex/{setup}.sh
   agent-gemini/{setup}.sh
   agent-mcp-servers/install.sh
-  agent-shared/setup.sh         # AGENTS.md symlink
-  agent-skills/{install,setup}.sh  # 同階層の skills/ を配置（存在時のみ）
+  agent-skills/{install,setup}.sh  # 同階層の skills/ を配置（skills/agents/contexts + 共有 AGENTS.md。存在時のみ）
   terminal-windows/setup.sh
   terminal-wezterm/setup.sh
   net-ssh/setup.sh              # ssh config symlink（鍵は触らない）

@@ -20,7 +20,6 @@ modules=(
 	agent-claude-lsp
 	agent-codex
 	agent-gemini
-	agent-shared
 	agent-skills
 	terminal-wezterm
 	net-ssh
