@@ -86,6 +86,7 @@ if has_cmd claude; then
 		skill-creator@claude-plugins-official
 		claude-md-management@claude-plugins-official
 		pr-review-toolkit@claude-plugins-official
+		security-guidance@claude-plugins-official
 		plugin-dev@claude-plugins-official
 		slack@claude-plugins-official
 		claude-obsidian@claude-obsidian-marketplace
