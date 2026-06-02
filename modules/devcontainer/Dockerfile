@@ -68,6 +68,12 @@ FROM install AS setup
 ARG USERNAME=ubuntu
 COPY --chown=${USERNAME}:${USERNAME} . ${HOME}/.dotfiles
 
+# skills（dotfiles 同階層の別リポ）を named build context から焼き込む。
+# 配置先 ~/skills は ~/.dotfiles/../skills と一致し、agent-skills の $DOTFILES_DIR/../skills 参照が解決する。
+# .git は不要（dotfiles と同様コピーのみ。git 操作はホスト側で行う）。
+# build.sh が --build-context skills=... を渡す（不在時は空コンテキストでスキップ）。
+COPY --from=skills --exclude=.git --chown=${USERNAME}:${USERNAME} . ${HOME}/skills
+
 # claude plugin install が SSH URL を組み立てるケースに備え、HTTPS に強制リライト
 # （イメージ内 gitconfig のみに反映、ホスト環境には影響しない）
 RUN git config --global url."https://github.com/".insteadOf "git@github.com:"

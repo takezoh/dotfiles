@@ -99,9 +99,25 @@ if [[ "$dockerfile" != /* ]]; then
   dockerfile="$workspace/$dockerfile"
 fi
 
+# skills: dotfiles 同階層の別リポ。setup ステージの `COPY --from=skills` 用に
+# named build context として渡す。不在なら空ディレクトリを渡し COPY を空に保つ
+# （agent-skills が中身を見つけずスキップ＝dotfiles の「無ければスキップ」哲学に一致）。
+skills_ctx="$(cd "$context/.." && pwd -P)/skills"
+build_contexts=()
+if [[ -d "$skills_ctx" ]]; then
+  build_contexts+=(--build-context "skills=$skills_ctx")
+else
+  _empty_skills="$(mktemp -d)"
+  trap 'rm -rf "$_empty_skills"' EXIT
+  build_contexts+=(--build-context "skills=$_empty_skills")
+  echo "build.sh: warn: skills not found at $skills_ctx — building without skills" >&2
+  skills_ctx="(none: empty context)"
+fi
+
 echo "build.sh: building $workspace"
 echo "build.sh:   image    = $name  (base: $base)"
 echo "build.sh:   context  = $context"
+echo "build.sh:   skills   = $skills_ctx"
 echo "build.sh:   file     = $dockerfile"
 
 # Intermediate stages — built and tagged so they survive docker image prune.
@@ -122,6 +138,7 @@ for stage in "${intermediate_stages[@]}"; do
 done
 
 # Final stage: tagged as both <base>:setup and <base>:latest (= build.name)
+# skills は setup ステージでのみ COPY されるため、named context は final ビルドにのみ渡す。
 echo ""
 echo "build.sh: ── stage: setup → $base:setup  $name"
 docker build \
@@ -129,6 +146,7 @@ docker build \
   --tag "$name" \
   --cache-from "$base:setup" \
   --build-arg BUILDKIT_INLINE_CACHE=1 \
+  "${build_contexts[@]}" \
   --file "$dockerfile" \
   "${extra_args[@]}" \
   "$context"
