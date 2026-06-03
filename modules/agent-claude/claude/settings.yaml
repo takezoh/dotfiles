@@ -301,13 +301,7 @@ hooks:
       hooks:
         - type: command
           command: ~/.claude/hooks/post-write-check.sh
-        - type: command
-          command: ~/.claude/hooks/post-format.sh
-          timeout: 10
     - matcher: Edit
       hooks:
         - type: command
           command: ~/.claude/hooks/post-write-check.sh
-        - type: command
-          command: ~/.claude/hooks/post-format.sh
-          timeout: 10
