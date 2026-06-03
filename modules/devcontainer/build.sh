@@ -102,15 +102,37 @@ fi
 # skills: dotfiles 同階層の別リポ。setup ステージの `COPY --from=skills` 用に
 # named build context として渡す。不在なら空ディレクトリを渡し COPY を空に保つ
 # （agent-skills が中身を見つけずスキップ＝dotfiles の「無ければスキップ」哲学に一致）。
-skills_ctx="$(cd "$context/.." && pwd -P)/skills"
+#
+# 実体位置は呼び出し環境で変わる（ホスト/サンドボックス等）。固有パスを埋め込まず、
+# build.sh が持つ変数から導いた候補を優先順に探索し最初に存在したものを使う。
+#   1. $DOTFILES_SKILLS_DIR  明示オーバーライド（環境固有パスは設定側で注入）
+#   2. dotfiles 同階層        build.sh 実体(_script_dir)→dotfiles ルート→その隣
+#   3. workspace 直下         ビルド対象 workspace の中の skills
+#   4. build context の親      従来ヒューリスティック（最後のフォールバック）
+_dotfiles_root="$(cd "$_script_dir/../.." && pwd -P)"
+skills_candidates=(
+  ${DOTFILES_SKILLS_DIR:+"$DOTFILES_SKILLS_DIR"}
+  "$(cd "$_dotfiles_root/.." && pwd -P)/skills"
+  "$workspace/skills"
+  "$(cd "$context/.." && pwd -P)/skills"
+)
+
+skills_ctx=""
+for _cand in "${skills_candidates[@]}"; do
+  if [[ -d "$_cand" ]]; then
+    skills_ctx="$(cd "$_cand" && pwd -P)"
+    break
+  fi
+done
+
 build_contexts=()
-if [[ -d "$skills_ctx" ]]; then
+if [[ -n "$skills_ctx" ]]; then
   build_contexts+=(--build-context "skills=$skills_ctx")
 else
   _empty_skills="$(mktemp -d)"
   trap 'rm -rf "$_empty_skills"' EXIT
   build_contexts+=(--build-context "skills=$_empty_skills")
-  echo "build.sh: warn: skills not found at $skills_ctx — building without skills" >&2
+  echo "build.sh: warn: skills not found (tried: ${skills_candidates[*]}) — building without skills" >&2
   skills_ctx="(none: empty context)"
 fi
 
