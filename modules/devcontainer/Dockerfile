@@ -81,6 +81,11 @@ RUN git config --global url."https://github.com/".insteadOf "git@github.com:"
 # setup フェーズ: symlink 配置・設定マージ
 RUN PHASE=setup bash ${HOME}/.dotfiles/profiles/devcontainer.sh
 
+# nvim プラグインを焼き込む（~/.config/nvim symlink が張られた後）
+# lazy-lock.json が変わるまで layer キャッシュが効く
+RUN nvim --headless "+Lazy! restore" +qa \
+ && nvim --headless "+TSUpdateSync" +qa
+
 # --------------------------------------------------------------------------- #
 FROM setup AS updated
 
