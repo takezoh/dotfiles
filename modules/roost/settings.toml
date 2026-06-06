@@ -18,16 +18,13 @@ idle_threshold_sec = 30
 [session]
 auto_name = true
 commands = [
-	"claude",
 	"sonnet-medium",
 	"sonnet-high",
-	"sonnet-xhigh",
 	"opus-xhigh",
 	"opusplan-high",
-	"opusplan-xhigh",
-	"shell",
-	"gemini",
 	"codex",
+	"gemini",
+	"shell",
 ]
 push_commands=[
 	"tig status",
