@@ -33,7 +33,13 @@ mcp_add notion    --transport http https://mcp.notion.com/mcp
 mcp_add filesystem        -- npx -y @modelcontextprotocol/server-filesystem
 
 if ! claude mcp get "playwright" &>/dev/null; then
-	npx -y playwright install --with-deps chrome
+	# Playwright が未対応の新しい Ubuntu (例: 26.04) では chromium/ffmpeg のバイナリ取得に失敗する。
+	# その場合はサポート済みプラットフォームのバイナリ (24.04 は 26.04 でも動作) にフォールバックして再試行する。
+	# ffmpeg は録画用途のみで MCP のデフォルト動作には不要だが、ここで揃えておく。
+	if ! npx -y playwright install --with-deps chrome; then
+		echo "[warn] playwright install failed; retrying with PLAYWRIGHT_HOST_PLATFORM_OVERRIDE=ubuntu24.04"
+		PLAYWRIGHT_HOST_PLATFORM_OVERRIDE=ubuntu24.04 npx -y playwright install --with-deps chrome
+	fi
 	mcp_add playwright        -- npx -y @playwright/mcp@latest
 fi
 mcp_add context7            -- npx -y @upstash/context7-mcp@latest
