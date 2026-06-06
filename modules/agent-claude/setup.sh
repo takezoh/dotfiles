@@ -113,5 +113,4 @@ if has_cmd claude; then
 	done
 fi
 
-echo ""
-echo "Done. Run 'bash modules/agent-mcp-servers/install.sh' to setup MCP servers."
+echo "Done."

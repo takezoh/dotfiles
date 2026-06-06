@@ -15,6 +15,7 @@ modules=(
 	editor-nvim
 	cli
 	agent-claude
+	agent-mcp-servers
 	agent-codex
 	agent-gemini
 	agent-skills

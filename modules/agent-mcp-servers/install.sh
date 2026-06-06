@@ -40,7 +40,14 @@ if ! claude mcp get "playwright" &>/dev/null; then
 		echo "[warn] playwright install failed; retrying with PLAYWRIGHT_HOST_PLATFORM_OVERRIDE=ubuntu24.04"
 		PLAYWRIGHT_HOST_PLATFORM_OVERRIDE=ubuntu24.04 npx -y playwright install --with-deps chrome
 	fi
-	mcp_add playwright        -- npx -y @playwright/mcp@latest
+	mcp_add playwright      -- npx -y @playwright/mcp@latest
+fi
+if ! claude mcp get "chrome-devtools" &>/dev/null; then
+	if ! npx -y playwright install --with-deps chrome; then
+		echo "[warn] playwright install failed; retrying with PLAYWRIGHT_HOST_PLATFORM_OVERRIDE=ubuntu24.04"
+		PLAYWRIGHT_HOST_PLATFORM_OVERRIDE=ubuntu24.04 npx -y playwright install --with-deps chrome
+	fi
+	mcp_add chrome-devtools -- npx -y @modelcontextprotocol/server-puppeteer
 fi
 mcp_add context7            -- npx -y @upstash/context7-mcp@latest
 

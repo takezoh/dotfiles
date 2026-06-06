@@ -70,6 +70,8 @@ permissions:
     - mcp__playwright__browser_console_messages
     - mcp__playwright__browser_network_requests
     - mcp__playwright__browser_take_screenshot
+    - mcp__chrome-devtools__puppeteer_screenshot
+    - mcp__chrome-devtools__puppeteer_console_logs
     - mcp__plugin_discord_discord__fetch_messages
     - mcp__plugin_discord_discord__download_attachment
 

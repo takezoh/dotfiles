@@ -17,6 +17,7 @@ modules=(
 	cli
 	roost
 	agent-claude
+	agent-mcp-servers
 	agent-claude-lsp
 	agent-codex
 	agent-gemini

@@ -15,6 +15,7 @@ modules=(
 	cli
 	docker
 	agent-claude
+	agent-mcp-servers
 	agent-codex
 	agent-gemini
 	agent-skills
