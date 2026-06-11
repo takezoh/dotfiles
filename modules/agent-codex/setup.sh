@@ -10,7 +10,7 @@ MANAGED_CONFIG="$MODULES_DIR/agent-codex/codex/config.toml"
 CODEX_CONFIG="$CODEX_DIR/config.toml"
 # AGENTS.md の symlink は skills リポの setup が担当する
 MERGE_APPEND="$MODULES_DIR/_lib/merge_append.py"
-ROOST_BIN="/workspace/agent-roost/roost"
+AGENT_REACTOR_BIN="/workspace/agent-reactor/agent-reactor"
 
 mkdir -p "$CODEX_DIR"
 
@@ -23,6 +23,6 @@ echo "Updated: $CODEX_CONFIG"
 printf '%s\n' "$(cat "$MODULES_DIR/agent-codex/codex/hooks.json")" > "$CODEX_DIR/hooks.json"
 echo "Initialized: $CODEX_DIR/hooks.json"
 
-if [ -x "$ROOST_BIN" ]; then
-	"$ROOST_BIN" codex setup
+if [ -x "$AGENT_REACTOR_BIN" ]; then
+	"$AGENT_REACTOR_BIN" codex setup
 fi

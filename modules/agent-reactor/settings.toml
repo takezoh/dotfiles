@@ -6,7 +6,7 @@ language = "japanese"
 level = "debug"
 
 [tmux]
-session_name = "roost"
+session_name = "agent-reactor"
 prefix = "C-b"              # prefix キー（デフォルト: C-b）
 pane_ratio_horizontal = 75      # メインペイン幅 %
 pane_ratio_vertical = 75        # メインペイン高さ %
@@ -58,6 +58,7 @@ allow = [
 	"gh repo list *",
 	"gh repo view *",
 	"gh repo edit *",
+	"gh repo rename *",
 	"gh run *",
 	"gh search *",
 	"gh status *",

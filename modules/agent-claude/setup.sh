@@ -12,7 +12,7 @@ SETTINGS="$CLAUDE_DIR/settings.json"
 MANAGED_SETTINGS="$MODULES_DIR/agent-claude/claude/settings.yaml"
 CLAUDE_MD_SOURCE="$MODULES_DIR/agent-claude/claude/CLAUDE.md"
 MERGE_APPEND="$MODULES_DIR/_lib/merge_append.py"
-ROOST_BIN="/workspace/agent-roost/roost"
+AGENT_REACTOR_BIN="/workspace/agent-reactor/agent-reactor"
 
 mkdir -p "$CLAUDE_DIR"
 

@@ -17,7 +17,7 @@ modules=(
 	editor-nvim
 	cli
 	android-re
-	roost
+	agent-reactor
 	agent-claude
 	agent-mcp-servers
 	agent-claude-lsp

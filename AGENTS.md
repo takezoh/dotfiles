@@ -30,7 +30,7 @@ modules/
   editor-nvim/{install,setup}.sh
   cli/{install,setup}.sh        # git/tig/atuin/bat/direnv/ripgrep + gitconfig/tigrc/starship.toml symlink
   cli-gcloud/{install,env}.sh   # Google Cloud SDK
-  roost/setup.sh                # settings.toml symlink
+  agent-reactor/setup.sh        # settings.toml symlink
   agent-claude/{install,setup}.sh  # bwrap/socat + YAML→JSON merge
   agent-claude-lsp/install.sh   # LSP サーバー（clangd/pyright/gopls 等）
   agent-codex/{setup}.sh

@@ -9,7 +9,7 @@
 #
 # Reads:
 #   - <workspace>/devcontainer.json
-#   - build.name  (preferred — roost extension)
+#   - build.name  (preferred — agent-reactor extension)
 #   - image       (fallback — no build needed; just verifies tag is set)
 #
 # Usage:

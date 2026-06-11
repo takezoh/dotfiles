@@ -15,7 +15,7 @@ modules=(
 	shell
 	editor-nvim
 	cli
-	roost
+	agent-reactor
 	agent-claude
 	agent-mcp-servers
 	agent-claude-lsp

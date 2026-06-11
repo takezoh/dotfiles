@@ -10,7 +10,7 @@ SETTINGS="$GEMINI_DIR/settings.json"
 MANAGED_SETTINGS="$MODULES_DIR/agent-gemini/gemini/settings.json"
 # AGENTS.md の symlink は skills リポの setup が担当する
 MERGE_APPEND="$MODULES_DIR/_lib/merge_append.py"
-ROOST_BIN="/workspace/agent-roost/roost"
+AGENT_REACTOR_BIN="/workspace/agent-reactor/agent-reactor"
 
 mkdir -p "$GEMINI_DIR"
 
@@ -21,6 +21,6 @@ UPDATED=$(printf '%s\n' "$UPDATED" | jq --slurpfile managed "$MANAGED_SETTINGS" 
 printf '%s\n' "$UPDATED" > "$SETTINGS"
 echo "Updated: $SETTINGS"
 
-if [ -x "$ROOST_BIN" ]; then
-	"$ROOST_BIN" gemini setup
+if [ -x "$AGENT_REACTOR_BIN" ]; then
+	"$AGENT_REACTOR_BIN" gemini setup
 fi

@@ -3,6 +3,6 @@ set -euo pipefail
 MODULES_DIR="${MODULES_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
 . "$MODULES_DIR/_lib/common.sh"
 
-log "roost: setup"
+log "agent-reactor: setup"
 
-link roost/settings.toml "$HOME/.roost/settings.toml"
+link agent-reactor/settings.toml "$HOME/.agent-reactor/settings.toml"
