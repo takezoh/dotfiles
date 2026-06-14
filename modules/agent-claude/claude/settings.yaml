@@ -44,6 +44,11 @@ permissions:
     - Bash(gh *)
     - Bash(git *)
     - Bash(mise exec *)
+    # docker 読み取り専用 (run/exec/build/create/cp は ask で人間承認)
+    - Bash(docker ps *)
+    - Bash(docker images *)
+    - Bash(docker version *)
+    - Bash(docker stats *)
     # MCP (sandbox 対象外)
     - mcp__codex__codex
     - mcp__awslabs-core__cloudwatch_describe_log_*
@@ -62,18 +67,18 @@ permissions:
     - mcp__filesystem__search_files
     - mcp__filesystem__get_file_info
     - mcp__filesystem__list_allowed_directories
-    - mcp__linear-server__get_*
-    - mcp__linear-server__list_*
-    - mcp__linear-server__search_documentation
-    - mcp__linear-server__extract_images
+    # - mcp__linear-server__get_*
+    # - mcp__linear-server__list_*
+    # - mcp__linear-server__search_documentation
+    # - mcp__linear-server__extract_images
     - mcp__playwright__browser_snapshot
     - mcp__playwright__browser_console_messages
     - mcp__playwright__browser_network_requests
     - mcp__playwright__browser_take_screenshot
     - mcp__chrome-devtools__puppeteer_screenshot
     - mcp__chrome-devtools__puppeteer_console_logs
-    - mcp__plugin_discord_discord__fetch_messages
-    - mcp__plugin_discord_discord__download_attachment
+    # - mcp__plugin_discord_discord__fetch_messages
+    # - mcp__plugin_discord_discord__download_attachment
 
   ask:
     # クラウド storage 経由 exfil

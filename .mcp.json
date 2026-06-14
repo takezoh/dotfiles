@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "chrome-devtools": {
+      "type": "stdio",
+      "command": "/opt/agent-reactor/run/reactor-bridge",
+      "args": [
+        "mcp-exec",
+        "chrome-devtools"
+      ]
+    },
+    "playwright": {
+      "type": "stdio",
+      "command": "/opt/agent-reactor/run/reactor-bridge",
+      "args": [
+        "mcp-exec",
+        "playwright"
+      ]
+    }
+  }
+}

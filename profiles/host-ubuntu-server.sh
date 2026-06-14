@@ -14,11 +14,13 @@ modules=(
 	editor-nvim
 	cli
 	docker
+	agent-reactor
 	agent-claude
 	agent-mcp-servers
 	agent-codex
 	agent-gemini
 	agent-skills
+	devcontainer
 )
 
 PHASE="${PHASE:-${1:-all}}"
