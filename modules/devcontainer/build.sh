@@ -101,7 +101,7 @@ fi
 
 # skills: dotfiles 同階層の別リポ。setup ステージの `COPY --from=skills` 用に
 # named build context として渡す。不在なら空ディレクトリを渡し COPY を空に保つ
-# （agent-skills が中身を見つけずスキップ＝dotfiles の「無ければスキップ」哲学に一致）。
+# （agent-module が中身を見つけずスキップ＝dotfiles の「無ければスキップ」哲学に一致）。
 #
 # 実体位置は呼び出し環境で変わる（ホスト/サンドボックス等）。固有パスを埋め込まず、
 # build.sh が持つ変数から導いた候補を優先順に探索し最初に存在したものを使う。

@@ -21,7 +21,7 @@ modules=(
 	agent-claude-lsp
 	agent-codex
 	agent-gemini
-	agent-skills
+	agent-module
 	terminal-wezterm
 	net-ssh
 	macos-defaults

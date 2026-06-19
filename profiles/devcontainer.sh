@@ -18,7 +18,7 @@ modules=(
 	agent-mcp-servers
 	agent-codex
 	agent-gemini
-	agent-skills
+	agent-module
 )
 
 PHASE="${PHASE:-${1:-all}}"

@@ -19,7 +19,7 @@ modules=(
 	agent-mcp-servers
 	agent-codex
 	agent-gemini
-	agent-skills
+	agent-module
 	devcontainer
 )
 

@@ -7,11 +7,11 @@ MODULES_DIR="${MODULES_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
 SKILLS_DIR="$(cd "$DOTFILES_DIR/.." && pwd -P)/skills"
 
 if [ ! -d "$SKILLS_DIR" ]; then
-	log "agent-skills: $SKILLS_DIR が無いためスキップ"
+	log "agent-module: $SKILLS_DIR が無いためスキップ"
 	exit 0
 fi
 
-if [ -f "$SKILLS_DIR/install.sh" ]; then
-	log "agent-skills: install ($SKILLS_DIR)"
-	bash "$SKILLS_DIR/install.sh"
+if [ -f "$SKILLS_DIR/setup.sh" ]; then
+	log "agent-module: setup ($SKILLS_DIR)"
+	bash "$SKILLS_DIR/setup.sh"
 fi

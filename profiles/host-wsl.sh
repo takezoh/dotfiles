@@ -23,7 +23,7 @@ modules=(
 	agent-claude-lsp
 	agent-codex
 	agent-gemini
-	agent-skills
+	agent-module
 	terminal-windows
 	terminal-wezterm
 	net-ssh
