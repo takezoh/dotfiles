@@ -70,6 +70,7 @@ if has_cmd claude; then
 		[claude-plugins-official]="anthropics/claude-plugins-official"
 		[obsidian-skills]="kepano/obsidian-skills"
 		[claude-obsidian-marketplace]="AgriciDaniel/claude-obsidian"
+		[understand-anything]="Egonex-AI/Understand-Anything"
 	)
 	PLUGINS=(
 		discord@claude-plugins-official
@@ -90,6 +91,7 @@ if has_cmd claude; then
 		plugin-dev@claude-plugins-official
 		slack@claude-plugins-official
 		claude-obsidian@claude-obsidian-marketplace
+		understand-anything@understand-anything
 	)
 
 	EXISTING_MP=$(claude plugin marketplace list 2>/dev/null || true)
