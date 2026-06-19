@@ -17,12 +17,6 @@ modules=(
 	editor-nvim
 	cli
 	android-re
-	agent-reactor
-	agent-claude
-	agent-mcp-servers
-	agent-claude-lsp
-	agent-codex
-	agent-gemini
 	agent-module
 	terminal-windows
 	terminal-wezterm

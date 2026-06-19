@@ -15,12 +15,6 @@ modules=(
 	shell
 	editor-nvim
 	cli
-	agent-reactor
-	agent-claude
-	agent-mcp-servers
-	agent-claude-lsp
-	agent-codex
-	agent-gemini
 	agent-module
 	terminal-wezterm
 	net-ssh

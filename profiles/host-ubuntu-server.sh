@@ -14,11 +14,6 @@ modules=(
 	editor-nvim
 	cli
 	docker
-	agent-reactor
-	agent-claude
-	agent-mcp-servers
-	agent-codex
-	agent-gemini
 	agent-module
 	devcontainer
 )

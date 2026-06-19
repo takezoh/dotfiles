@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Thin entry point — defer to the external agent-module repository (dotfiles と同階層)。
+# Thin entry point — defer update to the external agent-module repository.
 set -euo pipefail
 MODULES_DIR="${MODULES_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
 . "$MODULES_DIR/_lib/common.sh"
@@ -11,6 +11,6 @@ if [ ! -d "$AGENT_MODULE_DIR" ]; then
 	exit 0
 fi
 
-log "agent-module: install ($AGENT_MODULE_DIR)"
+log "agent-module: update ($AGENT_MODULE_DIR)"
 export DOTFILES_DIR AGENT_MODULE_DIR
-bash "$AGENT_MODULE_DIR/install.sh" "$(dotfiles_profile)"
+PHASE=update bash "$AGENT_MODULE_DIR/profiles/$(dotfiles_profile).sh"

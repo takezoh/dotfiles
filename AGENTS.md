@@ -13,7 +13,7 @@
 
 - `external/` は git submodule のみ。変更は上流リポジトリで行うこと
 - **このリポジトリはユーザー環境定義リポジトリ**: ルートの `AGENTS.md` / `CLAUDE.md` はこのリポジトリでの作業用です
-- **Claude Code 設定管理**: `modules/agent-claude/claude/` の設定が Claude Code のユーザー環境定義となります。Claude Code は `modules/agent-claude/claude/` を編集し、`~/.claude/CLAUDE.md` と `~/.claude/settings.json` は直接編集しません（`modules/agent-claude/setup.sh` で自動生成）
+- **エージェント関連設定**: Claude Code / Codex / Gemini / MCP / Reactor / LSP / Skills は外部リポジトリ `../agent-module` で管理します。Claude Code は `../agent-module/modules/claude/claude/` を編集し、`~/.claude/CLAUDE.md` と `~/.claude/settings.json` は直接編集しません（`../agent-module/modules/claude/setup.sh` で自動生成）
 
 ## モジュール構成
 
@@ -30,13 +30,7 @@ modules/
   editor-nvim/{install,setup}.sh
   cli/{install,setup}.sh        # git/tig/atuin/bat/direnv/ripgrep + gitconfig/tigrc/starship.toml symlink
   cli-gcloud/{install,env}.sh   # Google Cloud SDK
-  agent-reactor/setup.sh        # settings.toml symlink
-  agent-claude/{install,setup}.sh  # bwrap/socat + YAML→JSON merge
-  agent-claude-lsp/install.sh   # LSP サーバー（clangd/pyright/gopls 等）
-  agent-codex/{setup}.sh
-  agent-gemini/{setup}.sh
-  agent-mcp-servers/install.sh
-  agent-module/{install,setup}.sh  # 同階層の skills/ を配置（skills/agents/contexts + 共有 AGENTS.md。存在時のみ）
+  agent-module/{install,setup,update}.sh  # 外部リポ ../agent-module への薄いエントリポイント
   terminal-windows/setup.sh
   terminal-wezterm/setup.sh
   net-ssh/setup.sh              # ssh config symlink（鍵は触らない）
@@ -64,19 +58,6 @@ modules/
 Dockerfile は `modules/` の install 段階を RUN で呼ぶ（context: dotfiles ルート）。
 `.dockerignore` はリポジトリルートにコミット済み。
 
-## Claude Code 設定の構成
+## agent-module 連携
 
-`modules/agent-claude/claude/` が Claude Code のユーザー設定。`modules/agent-claude/setup.sh` で `~/.claude/` に適用される。
-
-### settings.yaml
-
-Claude Code の設定ファイル。YAML で管理し setup.sh で JSON に変換・マージされる。permissions, hooks, statusline 等を定義。
-
-### hooks/
-
-| ファイル | トリガー | 動作 |
-|----------|----------|------|
-| win-notify.sh | Stop, PermissionRequest, Notification | Windows 通知 |
-| bash-audit.sh | PostToolUse (Bash) | コマンドをログに記録 |
-| post-write-check.sh | PostToolUse (Write, Edit) | 500 行超ファイルの警告 |
-| slack-notify.sh | （未使用） | Slack 通知 |
+エージェント関連の設定とインストールは外部リポジトリ `../agent-module` に切り出している。`modules/agent-module/{install,setup,update}.sh` は薄いエントリポイントで、`DOTFILES_DIR` と `AGENT_MODULE_DIR` を export してから `../agent-module/{install,setup}.sh <profile>` を呼ぶ。各サブモジュール（`claude`, `codex`, `gemini`, `mcp-servers`, `claude-lsp`, `reactor`, `skills`）の追加・変更は agent-module 側で完結する。

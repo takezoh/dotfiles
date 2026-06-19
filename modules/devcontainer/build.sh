@@ -99,48 +99,48 @@ if [[ "$dockerfile" != /* ]]; then
   dockerfile="$workspace/$dockerfile"
 fi
 
-# skills: dotfiles 同階層の別リポ。setup ステージの `COPY --from=skills` 用に
+# agent-module: dotfiles 同階層の別リポ。setup ステージの `COPY --from=agent-module` 用に
 # named build context として渡す。不在なら空ディレクトリを渡し COPY を空に保つ
-# （agent-module が中身を見つけずスキップ＝dotfiles の「無ければスキップ」哲学に一致）。
+# （dotfiles modules/agent-module が中身を見つけずスキップ＝「無ければスキップ」哲学に一致）。
 #
 # 実体位置は呼び出し環境で変わる（ホスト/サンドボックス等）。固有パスを埋め込まず、
 # build.sh が持つ変数から導いた候補を優先順に探索し最初に存在したものを使う。
-#   1. $DOTFILES_SKILLS_DIR  明示オーバーライド（環境固有パスは設定側で注入）
-#   2. dotfiles 同階層        build.sh 実体(_script_dir)→dotfiles ルート→その隣
-#   3. workspace 直下         ビルド対象 workspace の中の skills
-#   4. build context の親      従来ヒューリスティック（最後のフォールバック）
+#   1. $DOTFILES_AGENT_MODULE_DIR  明示オーバーライド（環境固有パスは設定側で注入）
+#   2. dotfiles 同階層             build.sh 実体(_script_dir)→dotfiles ルート→その隣
+#   3. workspace 直下              ビルド対象 workspace の中の agent-module
+#   4. build context の親           従来ヒューリスティック（最後のフォールバック）
 _dotfiles_root="$(cd "$_script_dir/../.." && pwd -P)"
-skills_candidates=(
-  ${DOTFILES_SKILLS_DIR:+"$DOTFILES_SKILLS_DIR"}
-  "$(cd "$_dotfiles_root/.." && pwd -P)/skills"
-  "$workspace/skills"
-  "$(cd "$context/.." && pwd -P)/skills"
+agent_module_candidates=(
+  ${DOTFILES_AGENT_MODULE_DIR:+"$DOTFILES_AGENT_MODULE_DIR"}
+  "$(cd "$_dotfiles_root/.." && pwd -P)/agent-module"
+  "$workspace/agent-module"
+  "$(cd "$context/.." && pwd -P)/agent-module"
 )
 
-skills_ctx=""
-for _cand in "${skills_candidates[@]}"; do
+agent_module_ctx=""
+for _cand in "${agent_module_candidates[@]}"; do
   if [[ -d "$_cand" ]]; then
-    skills_ctx="$(cd "$_cand" && pwd -P)"
+    agent_module_ctx="$(cd "$_cand" && pwd -P)"
     break
   fi
 done
 
 build_contexts=()
-if [[ -n "$skills_ctx" ]]; then
-  build_contexts+=(--build-context "skills=$skills_ctx")
+if [[ -n "$agent_module_ctx" ]]; then
+  build_contexts+=(--build-context "agent-module=$agent_module_ctx")
 else
-  _empty_skills="$(mktemp -d)"
-  trap 'rm -rf "$_empty_skills"' EXIT
-  build_contexts+=(--build-context "skills=$_empty_skills")
-  echo "build.sh: warn: skills not found (tried: ${skills_candidates[*]}) — building without skills" >&2
-  skills_ctx="(none: empty context)"
+  _empty_am="$(mktemp -d)"
+  trap 'rm -rf "$_empty_am"' EXIT
+  build_contexts+=(--build-context "agent-module=$_empty_am")
+  echo "build.sh: warn: agent-module not found (tried: ${agent_module_candidates[*]}) — building without agent-module" >&2
+  agent_module_ctx="(none: empty context)"
 fi
 
 echo "build.sh: building $workspace"
-echo "build.sh:   image    = $name  (base: $base)"
-echo "build.sh:   context  = $context"
-echo "build.sh:   skills   = $skills_ctx"
-echo "build.sh:   file     = $dockerfile"
+echo "build.sh:   image         = $name  (base: $base)"
+echo "build.sh:   context       = $context"
+echo "build.sh:   agent-module  = $agent_module_ctx"
+echo "build.sh:   file          = $dockerfile"
 
 # Intermediate stages — built and tagged so they survive docker image prune.
 # --cache-from reuses the named image when inline layer cache was pruned.
@@ -160,7 +160,7 @@ for stage in "${intermediate_stages[@]}"; do
 done
 
 # Final stage: tagged as both <base>:setup and <base>:latest (= build.name)
-# skills は setup ステージでのみ COPY されるため、named context は final ビルドにのみ渡す。
+# agent-module は setup ステージでのみ COPY されるため、named context は final ビルドにのみ渡す。
 echo ""
 echo "build.sh: ── stage: setup → $base:setup  $name"
 docker build \

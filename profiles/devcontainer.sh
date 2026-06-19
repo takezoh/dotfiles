@@ -14,10 +14,6 @@ modules=(
 	shell
 	editor-nvim
 	cli
-	agent-claude
-	agent-mcp-servers
-	agent-codex
-	agent-gemini
 	agent-module
 )
 
