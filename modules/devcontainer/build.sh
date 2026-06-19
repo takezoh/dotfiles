@@ -149,18 +149,20 @@ intermediate_stages=(base apt brew install)
 for stage in "${intermediate_stages[@]}"; do
   echo ""
   echo "build.sh: ── stage: $stage → $base:$stage"
+  # agent-module は install ステージで `COPY --from=agent-module` されるため、
+  # named context を中間ビルドにも渡す（base/apt/brew では参照されないので無害）。
   docker build \
     --target "$stage" \
     --tag    "$base:$stage" \
     --cache-from "$base:$stage" \
     --build-arg BUILDKIT_INLINE_CACHE=1 \
+    "${build_contexts[@]}" \
     --file   "$dockerfile" \
     "${extra_args[@]}" \
     "$context"
 done
 
 # Final stage: tagged as both <base>:setup and <base>:latest (= build.name)
-# agent-module は setup ステージでのみ COPY されるため、named context は final ビルドにのみ渡す。
 echo ""
 echo "build.sh: ── stage: setup → $base:setup  $name"
 docker build \

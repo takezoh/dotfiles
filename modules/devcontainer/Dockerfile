@@ -51,8 +51,10 @@ RUN bash /opt/dotfiles/modules/brew/install.sh
 # --------------------------------------------------------------------------- #
 FROM brew AS install
 
-# 残りの install フェーズ（mise/rust/sdk-go/shell/editor-nvim/cli/agent-*）
-# ここで初めて全モジュールを配置。_lib/apt/brew は前段から継承済み
+# 各ステージは dotfiles → agent-module の順に閉じる。
+# install: ツール本体のインストール（claude CLI 公式 installer 等もここ）。
+
+# (1) dotfiles install — 残り全モジュール（mise/rust/sdk-go/shell/editor-nvim/cli）
 COPY --parents \
         modules/*/install.sh \
         modules/*/env.sh \
@@ -61,18 +63,28 @@ COPY profiles /opt/dotfiles/profiles
 # 各 install.sh は冪等なので、再 RUN しても has_cmd でスキップされる
 RUN PHASE=install bash /opt/dotfiles/profiles/devcontainer.sh
 
+# (2) agent-module install — claude / codex / gemini / mcp-servers / skills 等の本体。
+# キャッシュ効率のため、install フェーズに必要な最小集合のみ COPY する
+# (modules/<m>/setup.sh や設定アセットは setup ステージで ~/agent-module へフル COPY)。
+# build.sh が --build-context agent-module=... を渡す（不在時は空コンテキストでスキップ）。
+COPY --from=agent-module --parents \
+        _lib/ \
+        profiles/ \
+        modules/*/install.sh \
+        modules/*/env.sh \
+        /opt/agent-module/
+RUN DOTFILES_DIR=/opt/dotfiles AGENT_MODULE_DIR=/opt/agent-module \
+    PHASE=install bash /opt/agent-module/profiles/devcontainer.sh
+
 # --------------------------------------------------------------------------- #
 FROM install AS setup
 
-# dotfiles を image に焼き込む（インストール層より後ろに置いてキャッシュ効率を保つ）
+# dotfiles と agent-module を image に焼き込む（インストール層より後ろに置いてキャッシュ効率を保つ）。
+# 配置先 ~/agent-module は ~/.dotfiles/../agent-module と一致するため、
+# 他 profile (host-*) のシム `$DOTFILES_DIR/../agent-module` 参照とも整合する。
+# .git は不要（dotfiles と同様コピーのみ。git 操作はホスト側で行う）。
 ARG USERNAME=ubuntu
 COPY --chown=${USERNAME}:${USERNAME} . ${HOME}/.dotfiles
-
-# agent-module（dotfiles 同階層の別リポ）を named build context から焼き込む。
-# 配置先 ~/agent-module は ~/.dotfiles/../agent-module と一致し、dotfiles modules/agent-module/
-# の $DOTFILES_DIR/../agent-module 参照が解決する。
-# .git は不要（dotfiles と同様コピーのみ。git 操作はホスト側で行う）。
-# build.sh が --build-context agent-module=... を渡す（不在時は空コンテキストでスキップ）。
 COPY --from=agent-module --exclude=.git --chown=${USERNAME}:${USERNAME} . ${HOME}/agent-module
 
 # claude plugin install が SSH URL を組み立てるケースに備え、HTTPS に強制リライト
@@ -80,7 +92,11 @@ COPY --from=agent-module --exclude=.git --chown=${USERNAME}:${USERNAME} . ${HOME
 RUN git config --global url."https://github.com/".insteadOf "git@github.com:"
 
 # setup フェーズ: symlink 配置・設定マージ
+# (1) dotfiles setup
 RUN PHASE=setup bash ${HOME}/.dotfiles/profiles/devcontainer.sh
+# (2) agent-module setup — claude plugin / settings.json マージなど
+RUN DOTFILES_DIR=${HOME}/.dotfiles AGENT_MODULE_DIR=${HOME}/agent-module \
+    PHASE=setup bash ${HOME}/agent-module/profiles/devcontainer.sh
 
 # nvim プラグインを焼き込む（~/.config/nvim symlink が張られた後）
 # lazy-lock.json が変わるまで layer キャッシュが効く
@@ -93,4 +109,8 @@ FROM setup AS updated
 # update フェーズ: ツール・エージェント最新化（setup までのキャッシュを温存）
 # 使い方: docker build --build-arg UPDATE_DATE=$(date +%Y-%V) --target updated .
 ARG UPDATE_DATE
+# (1) dotfiles update
 RUN PHASE=update bash ${HOME}/.dotfiles/profiles/devcontainer.sh
+# (2) agent-module update
+RUN DOTFILES_DIR=${HOME}/.dotfiles AGENT_MODULE_DIR=${HOME}/agent-module \
+    PHASE=update bash ${HOME}/agent-module/profiles/devcontainer.sh
