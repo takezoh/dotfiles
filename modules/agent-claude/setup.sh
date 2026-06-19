@@ -65,7 +65,7 @@ ln -sf "$MODULES_DIR/agent-claude/claude/statusline.sh" "$CLAUDE_DIR/statusline.
 echo "Linked: $CLAUDE_DIR/statusline.sh -> $MODULES_DIR/agent-claude/claude/statusline.sh"
 
 # zshrc snippet symlink
-link agent-claude/zshrc/10_claude.zsh "$HOME/.local/config/zshrc/10_claude.zsh"
+link agent-claude/zshrc/claude.zsh "$HOME/.local/config/zshrc/claude.zsh"
 
 # Plugin marketplaces & plugins（claude が PATH にあるときのみ）
 if has_cmd claude; then
