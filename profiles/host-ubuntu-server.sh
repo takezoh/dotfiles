@@ -10,6 +10,7 @@ modules=(
 	sdk-go
 	sdk-node
 	sdk-python
+	cli-gcloud
 	shell
 	editor-nvim
 	cli
