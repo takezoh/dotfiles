@@ -13,16 +13,22 @@
 #   - image       (fallback — no build needed; just verifies tag is set)
 #
 # Usage:
-#   ~/.devcontainer/build.sh                       # build cwd
-#   ~/.devcontainer/build.sh ~/code/myproject      # build given workspace
-#   ~/.devcontainer/build.sh -- --no-cache         # extra args forwarded to docker build
+#   ~/.devcontainer/build.sh                        # build cwd
+#   ~/.devcontainer/build.sh ~/code/myproject       # build given workspace
+#   ~/.devcontainer/build.sh --clean                # remove this devcontainer images, then build
+#   ~/.devcontainer/build.sh -- --no-cache          # extra args forwarded to docker build
 
 set -euo pipefail
 
 workspace="."
+clean_build=0
 extra_args=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    -c|--clean)
+      clean_build=1
+      shift
+      ;;
     --) shift; extra_args=("$@"); break ;;
     -*)
       echo "build.sh: unknown flag: $1" >&2
@@ -141,6 +147,32 @@ echo "build.sh:   image         = $name  (base: $base)"
 echo "build.sh:   context       = $context"
 echo "build.sh:   agent-module  = $agent_module_ctx"
 echo "build.sh:   file          = $dockerfile"
+echo "build.sh:   clean         = $clean_build"
+
+if [[ "$clean_build" == "1" ]]; then
+  clean_targets=(
+    "$base:base"
+    "$base:apt"
+    "$base:brew"
+    "$base:install"
+    "$base:setup"
+    "$name"
+  )
+  mapfile -t image_ids < <(docker image ls --format '{{.Repository}}:{{.Tag}} {{.ID}}' \
+    | awk -v targets="${clean_targets[*]}" '
+        BEGIN {
+          split(targets, wanted, " ")
+          for (i in wanted) allow[wanted[i]] = 1
+        }
+        allow[$1] && !seen[$2]++ { print $2 }
+      ')
+  if [[ "${#image_ids[@]}" -gt 0 ]]; then
+    echo "build.sh: removing devcontainer images before build"
+    docker image rm -f "${image_ids[@]}"
+  else
+    echo "build.sh: no devcontainer images to remove"
+  fi
+fi
 
 # Intermediate stages — built and tagged so they survive docker image prune.
 # --cache-from reuses the named image when inline layer cache was pruned.
