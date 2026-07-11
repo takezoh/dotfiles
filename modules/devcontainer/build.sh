@@ -174,6 +174,11 @@ if [[ "$clean_build" == "1" ]]; then
   fi
 fi
 
+run_docker_build() {
+  local docker_args=("$@")
+  docker "${docker_args[@]}"
+}
+
 # Intermediate stages — built and tagged so they survive docker image prune.
 # --cache-from reuses the named image when inline layer cache was pruned.
 intermediate_stages=(base apt brew install)
@@ -183,29 +188,43 @@ for stage in "${intermediate_stages[@]}"; do
   echo "build.sh: ── stage: $stage → $base:$stage"
   # agent-module は install ステージで `COPY --from=agent-module` されるため、
   # named context を中間ビルドにも渡す（base/apt/brew では参照されないので無害）。
-  docker build \
-    --target "$stage" \
-    --tag    "$base:$stage" \
-    --cache-from "$base:$stage" \
-    --build-arg BUILDKIT_INLINE_CACHE=1 \
-    "${build_contexts[@]}" \
-    --file   "$dockerfile" \
-    "${extra_args[@]}" \
-    "$context"
+  docker_args=(
+    build
+    --target "$stage"
+    --tag "$base:$stage"
+    --cache-from "$base:$stage"
+    --build-arg BUILDKIT_INLINE_CACHE=1
+    --file "$dockerfile"
+  )
+  if [[ "${#build_contexts[@]}" -gt 0 ]]; then
+    docker_args+=("${build_contexts[@]}")
+  fi
+  if [[ "${#extra_args[@]}" -gt 0 ]]; then
+    docker_args+=("${extra_args[@]}")
+  fi
+  docker_args+=("$context")
+  run_docker_build "${docker_args[@]}"
 done
 
 # Final stage: tagged as both <base>:setup and <base>:latest (= build.name)
 echo ""
 echo "build.sh: ── stage: setup → $base:setup  $name"
-docker build \
-  --tag "$base:setup" \
-  --tag "$name" \
-  --cache-from "$base:setup" \
-  --build-arg BUILDKIT_INLINE_CACHE=1 \
-  "${build_contexts[@]}" \
-  --file "$dockerfile" \
-  "${extra_args[@]}" \
-  "$context"
+docker_args=(
+  build
+  --tag "$base:setup"
+  --tag "$name"
+  --cache-from "$base:setup"
+  --build-arg BUILDKIT_INLINE_CACHE=1
+  --file "$dockerfile"
+)
+if [[ "${#build_contexts[@]}" -gt 0 ]]; then
+  docker_args+=("${build_contexts[@]}")
+fi
+if [[ "${#extra_args[@]}" -gt 0 ]]; then
+  docker_args+=("${extra_args[@]}")
+fi
+docker_args+=("$context")
+run_docker_build "${docker_args[@]}"
 
 echo ""
 echo "build.sh: done."
