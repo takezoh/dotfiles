@@ -19,7 +19,6 @@ modules=(
 	terminal-wezterm
 	net-ssh
 	macos-defaults
-	devcontainer
 )
 
 PHASE="${PHASE:-${1:-all}}"

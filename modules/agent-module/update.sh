@@ -13,4 +13,4 @@ fi
 
 log "agent-module: update ($AGENT_MODULE_DIR)"
 export DOTFILES_DIR AGENT_MODULE_DIR
-PHASE=update bash "$AGENT_MODULE_DIR/profiles/$(dotfiles_profile).sh"
+bash "$AGENT_MODULE_DIR/update.sh" "$(dotfiles_profile)"

@@ -16,7 +16,6 @@ modules=(
 	cli
 	docker
 	agent-module
-	devcontainer
 )
 
 PHASE="${PHASE:-${1:-all}}"

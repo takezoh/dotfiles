@@ -22,7 +22,6 @@ modules=(
 	terminal-wezterm
 	net-ssh
 	# wsl-windows-bridge
-	devcontainer
 )
 
 PHASE="${PHASE:-${1:-all}}"

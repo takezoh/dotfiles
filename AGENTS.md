@@ -38,7 +38,7 @@ modules/
   docker/install.sh             # Docker CE (公式 apt) + docker グループ/サービス
   android-re/install.sh         # Android リバースエンジニアリングツール
   macos-defaults/setup.sh       # macOS システム設定（defaults write）
-  devcontainer/setup.sh         # ~/.devcontainer symlink（Dockerfile + devcontainer.json）
+
   wsl-windows-bridge/setup.sh   # WSL ⇄ Windows interop
 ```
 
@@ -54,10 +54,10 @@ modules/
 
 ### devcontainer との接点
 
-`modules/devcontainer/` が `~/.devcontainer` の実体（Dockerfile + devcontainer.json）。`modules/devcontainer/setup.sh` が symlink を張る（host profile に含まれており `dotfiles.sh` 実行で自動配置）。
-Dockerfile は `modules/` の install 段階を RUN で呼ぶ（context: dotfiles ルート）。
-`.dockerignore` はリポジトリルートにコミット済み。
+devcontainer 資産（Dockerfile / devcontainer.json / build.sh）は外部リポジトリ `../agent-module/devcontainer/` で管理する。`agent-module` の setup が `~/.devcontainer` symlink を張る（host の `dotfiles.sh setup` → `agent-module` setup 経由で自動配置）。
+Dockerfile は dotfiles `modules/` の install/setup/update 段階を RUN で呼ぶ（build context: dotfiles ルート）。
+`.dockerignore` は dotfiles リポジトリルートにコミット済み。
 
 ## agent-module 連携
 
-エージェント関連の設定とインストールは外部リポジトリ `../agent-module` に切り出している。`modules/agent-module/{install,setup,update}.sh` は薄いエントリポイントで、`DOTFILES_DIR` と `AGENT_MODULE_DIR` を export してから `../agent-module/{install,setup}.sh <profile>` を呼ぶ。各サブモジュール（`claude`, `codex`, `gemini`, `mcp-servers`, `claude-lsp`, `reactor`, `skills`）の追加・変更は agent-module 側で完結する。
+エージェント関連の設定とインストールは外部リポジトリ `../agent-module` に切り出している。`modules/agent-module/{install,setup,update}.sh` は薄いエントリポイントで、`DOTFILES_DIR` と `AGENT_MODULE_DIR` を export してから `../agent-module/{install,setup,update}.sh <profile>` を呼ぶ。各サブモジュール（`claude`, `codex`, `gemini`, `mcp-servers`, `claude-lsp`, `reactor`, `skills`）の追加・変更は agent-module 側で完結する。
