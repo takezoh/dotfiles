@@ -1,0 +1,158 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-module.local/docs/ux.schema.json",
+  "title": "UX plan (user-facing flows and Given-When-Then acceptance scenarios)",
+  "description": "What the user experiences. Sibling of spec (which is system-facing). Holds primary user flows, acceptance scenarios in Given-When-Then form, states, and edge cases.",
+  "allOf": [{"$ref": "_common.schema.json"}],
+  "type": "object",
+  "required": ["goal"],
+  "unevaluatedProperties": false,
+  "if": {"properties": {"phase": {"const": "explore"}}},
+  "then": {"properties": {"status": {"const": "draft"}}},
+  "properties": {
+    "kind":   {"const": "ux"},
+    "status": {"enum": ["draft", "approved", "implemented", "obsolete"]},
+    "phase": {"enum": ["explore", "specify"]},
+    "goal":   {"type": "string", "minLength": 1},
+    "target_users": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    },
+    "primary_flows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "steps"],
+        "additionalProperties": false,
+        "properties": {
+          "id":    {"type": "string", "pattern": "^F-[0-9]{3,4}$"},
+          "name":  {"type": "string", "minLength": 1},
+          "steps": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1},
+            "description": "Methodology may require an activation modality tag prefix (e.g. `[keyboard|pointer-mouse] ...`). See skills/requirements/knowledge/artifact-semantics.md §1."
+          }
+        }
+      }
+    },
+    "acceptance_scenarios": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "given", "when", "then"],
+        "additionalProperties": false,
+        "properties": {
+          "id":    {"type": "string", "pattern": "^UAC-[0-9]{3,4}$"},
+          "given": {"type": "string", "minLength": 1},
+          "when":  {"type": "string", "minLength": 1},
+          "then":  {"type": "string", "minLength": 1},
+          "flow_ref": {
+            "type": "string",
+            "pattern": "^F-[0-9]{3,4}$",
+            "description": "Optional reference to a primary_flows[].id this scenario validates."
+          },
+          "counterexample": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Methodology §7 (requirements): description of a wrong implementation that would still pass this scenario. Empty if none can be constructed (= scenario is discriminating)."
+          },
+          "vs_legacy": {
+            "enum": ["must-fail", "must-pass", "irrelevant"],
+            "description": "Methodology §8 (requirements): only meaningful in refactor/port/migration context. must-fail = the legacy implementation would fail this scenario (delta encoding); must-pass = legacy behavior intentionally preserved; irrelevant = new territory."
+          }
+        }
+      }
+    },
+    "reference_ux": {
+      "type": "array",
+      "description": "Methodology §1 (requirements): UX patterns this design models on or rejects. Names may be products (Raycast / Spotlight / Linear) or UI primitives (combobox / breadcrumb).",
+      "items": {
+        "type": "object",
+        "required": ["name", "stance"],
+        "additionalProperties": false,
+        "properties": {
+          "name":   {"type": "string", "minLength": 1},
+          "stance": {"enum": ["modeled_on", "rejected"]},
+          "aspects": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1}
+          }
+        }
+      }
+    },
+    "legacy_context": {
+      "type": "object",
+      "description": "Methodology §8 (requirements): present only when this UX is a refactor / port / migration of an existing implementation. Encodes what is inherited vs replaced.",
+      "additionalProperties": false,
+      "properties": {
+        "source_implementation": {"type": "string", "minLength": 1},
+        "inherited_behaviors": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1}
+        },
+        "replaced_behaviors": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "states": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    },
+    "edge_cases": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    },
+    "assumptions": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    },
+    "technology_candidates": {
+      "type": "array",
+      "description": "requirementsからdesignへ渡す非規範的な技術候補。採否はdesignが所有する。",
+      "items": {
+        "type": "object",
+        "required": ["id", "candidate", "source", "proposed_for", "required_capabilities", "ux_constraints_relevant_to_evaluation", "design_questions", "disqualifiers"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {"type": "string", "pattern": "^candidate-[a-z0-9-]+$"},
+          "candidate": {"type": "string", "minLength": 1},
+          "source": {"enum": ["explicit_user_input", "repository_context", "planner_proposal"]},
+          "proposed_for": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+          "required_capabilities": {"type": "array", "items": {"type": "string", "minLength": 1}},
+          "ux_constraints_relevant_to_evaluation": {"type": "array", "items": {"type": "string", "minLength": 1}},
+          "design_questions": {"type": "array", "items": {"type": "string", "minLength": 1}},
+          "disqualifiers": {"type": "array", "items": {"type": "string", "minLength": 1}}
+        }
+      }
+    },
+    "design_handoffs": {
+      "type": "array",
+      "description": "requirementsが確定したoutcomeをdesign判断へ渡す非規範的handoff。",
+      "items": {
+        "type": "object",
+        "required": ["id", "required_outcome", "design_obligations", "verification_obligations", "provenance"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {"type": "string", "pattern": "^handoff-[a-z0-9-]+$"},
+          "required_outcome": {"type": "string", "minLength": 1},
+          "design_obligations": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+          "verification_obligations": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+          "decision_refs": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+          "provenance": {
+            "type": "object",
+            "required": ["source", "confidence", "evidence_refs", "rationale"],
+            "additionalProperties": false,
+            "properties": {
+              "source": {"enum": ["explicit_user_requirement", "user_consultation", "repository_evidence", "accepted_adr", "measured_data", "external_standard", "existing_product_behavior", "planner_proposal", "critic_proposal", "proposed_for_validation"]},
+              "confidence": {"enum": ["confirmed", "inferred", "provisional"]},
+              "evidence_refs": {"type": "array", "items": {"type": "string"}},
+              "rationale": {"type": "string", "minLength": 1}
+            }
+          }
+        }
+      }
+    }
+  }
+}

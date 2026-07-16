@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-module.local/docs/note.schema.json",
+  "title": "Loose note (memo, research log, ad-hoc record)",
+  "description": "ADR / spec / plan / task に乗らない緩いメモ。短期的・草稿的な記録に使う。長期に重要なら ADR に格上げする。",
+  "allOf": [{"$ref": "_common.schema.json"}],
+  "type": "object",
+  "unevaluatedProperties": false,
+  "properties": {
+    "kind":   {"const": "note"},
+    "status": {"enum": ["draft", "published", "archived"]},
+    "topic": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80,
+      "description": "tags より粒度大きい単一ラベル (例: 'auth-flow', 'perf-investigation')。"
+    },
+    "summary": {
+      "type": "string",
+      "maxLength": 280,
+      "description": "1-2 文の要約。索引から人間/agent が把握するためのもの。"
+    },
+    "expires": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+      "description": "古くなる予定日。期限を過ぎたら status: archived に遷移する判断材料。"
+    }
+  }
+}

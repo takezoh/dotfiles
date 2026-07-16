@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-module.local/docs/_common.schema.json",
+  "title": "Common frontmatter fields for all docs kinds",
+  "type": "object",
+  "required": ["id", "kind", "title", "status", "created"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^((change|adr|plan|spec|task|note|component|ux)-[0-9]{8}-[a-z0-9][a-z0-9-]*|design-[a-z0-9][a-z0-9-]*)$",
+      "description": "change/ADR/task/note are dated; persistent design IDs are stable and undated"
+    },
+    "kind": {
+      "enum": ["change", "design", "adr", "plan", "spec", "task", "note", "component", "ux"]
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 300,
+      "description": "Optional 1-2 line summary for search/index/context output."
+    },
+    "status": {
+      "type": "string"
+    },
+    "created": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "updated": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "expires": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+      "description": "Optional freshness deadline. Non-terminal docs past this date are flagged by `docs lint --drift` even when their source_paths did not change (time-based staleness)."
+    },
+    "drift_ignore": {
+      "type": "boolean",
+      "description": "When true, `docs lint --drift` suppresses this doc from stale candidates (both source-change and expires based)."
+    },
+    "methodology": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "description": "Which methodology (e.g. 'sdd', 'atdd', 'bdd') this doc follows. Optional. Resolution order when omitted: project `.docs-config.yaml` default_methodology[<kind>] → skill default 'sdd'. Schema overlay at `methodologies/<name>/<kind>.schema.json` tightens kind-specific constraints (e.g. EARS for sdd, G-W-T-required for atdd)."
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9-]*$"
+      },
+      "uniqueItems": true
+    },
+    "owners": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    },
+    "relations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type", "target"],
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "enum": [
+              "dependsOn", "dependencyOf", "partOf", "hasPart",
+              "implements", "implementedBy", "supersedes", "supersededBy",
+              "references", "referencedBy", "blocks", "blockedBy",
+              "ownedBy", "owns", "providesApi", "consumesApi",
+              "conformsTo", "conformedBy", "modifies", "modifiedBy",
+              "introduces", "introducedBy", "retires", "retiredBy",
+              "originatedFrom", "originOf", "providedTo"
+            ]
+          },
+          "target": {
+            "type": "string",
+            "pattern": "^((change|adr|plan|spec|task|note|component|ux)-[0-9]{8}-[a-z0-9][a-z0-9-]*|design-[a-z0-9][a-z0-9-]*)$"
+          }
+        }
+      }
+    },
+    "source_paths": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "description": "Lineage to code/config files this doc relates to"
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type", "ref"],
+        "additionalProperties": false,
+        "properties": {
+          "type": {"enum": ["test", "contract", "source", "command"]},
+          "ref": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  }
+}

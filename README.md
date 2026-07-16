@@ -2,6 +2,8 @@
 
 個人用 dotfiles リポジトリ。モジュール単位でツールチェイン導入と設定 symlink を一元管理する。
 
+永続設計は [`docs/design/`](docs/design/)、判断履歴は [`docs/adr/`](docs/adr/) で管理する。具体的な導入・操作手順はこの README と各 module README が正本である。
+
 ## リポジトリ構造
 
 ```

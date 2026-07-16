@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-module.local/docs/change-member.schema.json",
+  "title": "Change package member frontmatter",
+  "type": "object",
+  "required": ["change", "role"],
+  "additionalProperties": true,
+  "properties": {
+    "change": {"type": "string", "pattern": "^change-[0-9]{8}-[a-z0-9][a-z0-9-]*$"},
+    "role": {"enum": ["requirements", "implementation", "verification", "ux", "consultation"]}
+  }
+}

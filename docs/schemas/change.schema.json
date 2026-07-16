@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-module.local/docs/change.schema.json",
+  "title": "Agentic change package manifest",
+  "allOf": [{"$ref": "_common.schema.json"}],
+  "type": "object",
+  "unevaluatedProperties": false,
+  "required": ["profile", "intent", "outcomes", "scope", "non_goals", "change_classes", "governance", "members", "promotion", "unresolved_decisions"],
+  "properties": {
+    "kind": {"const": "change"},
+    "status": {"enum": ["draft", "ready", "active", "closing", "done", "abandoned"]},
+    "profile": {"type": "string", "pattern": "^[a-z][a-z0-9-]*@[1-9][0-9]*$"},
+    "intent": {"type": "string", "minLength": 1},
+    "outcomes": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "scope": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "non_goals": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "change_classes": {"type": "array", "uniqueItems": true, "items": {"enum": ["behavior", "responsibility", "boundary", "dependency", "invariant", "internal_design", "implementation_only", "capability"]}},
+    "governance": {
+      "type": "object", "required": ["gate", "reasons"], "additionalProperties": false,
+      "properties": {
+        "gate": {"enum": ["auto", "soft", "hard"]},
+        "reasons": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "approval_evidence": {"type": "string", "minLength": 1}
+      }
+    },
+    "members": {
+      "type": "array", "minItems": 3,
+      "items": {
+        "type": "object", "required": ["role", "path", "required"], "additionalProperties": false,
+        "properties": {
+          "role": {"enum": ["requirements", "implementation", "verification", "ux", "consultation"]},
+          "path": {"type": "string", "pattern": "^changes/[^/]+/.+\\.md$"},
+          "required": {"type": "boolean"}
+        }
+      }
+    },
+    "promotion": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object", "required": ["target", "section", "action", "item"], "additionalProperties": false,
+            "properties": {
+              "target": {"type": "string", "minLength": 1, "not": {"const": "none"}},
+              "section": {"enum": ["responsibilities", "invariants", "capabilities", "boundaries.provides", "boundaries.consumes", "boundaries.forbidden", "variability.fixed", "variability.free", "failure_responsibilities", "trust_boundaries", "compatibility_policies", "relations"]},
+              "action": {"enum": ["upsert", "retire"]},
+              "item": {"type": "object"},
+              "reason": {"type": "string", "minLength": 1}
+            }
+          },
+          {
+            "type": "object", "required": ["action", "reason"], "additionalProperties": false,
+            "properties": {
+              "target": {"const": "none"},
+              "section": {"const": "none"},
+              "action": {"const": "none"},
+              "item": {"type": "object", "maxProperties": 0},
+              "reason": {"type": "string", "minLength": 1}
+            }
+          }
+        ]
+      }
+    },
+    "promotion_applied_at": {"type": "string", "format": "date-time"},
+    "unresolved_decisions": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "closure": {
+      "type": "object", "required": ["closed_at", "content_hash"], "additionalProperties": false,
+      "properties": {
+        "closed_at": {"type": "string", "format": "date-time"},
+        "content_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "legacy_exception": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

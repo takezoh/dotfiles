@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-module.local/docs/methodologies/atdd/spec.schema.json",
+  "title": "Specification overlay for Acceptance Test-Driven Development (G-W-T-required)",
+  "description": "Overlays the baseline `spec.schema.json` with ATDD-style enforcement: acceptance[] must contain at least one Given-When-Then scenario. functional_requirements[].statement remains free-form (no EARS pattern) so behaviors can be expressed in any natural style, and each acceptance scenario should reference the relevant FR via requirement_refs. Activated when frontmatter `methodology: atdd` is declared (or via project default_methodology / skill default override).",
+  "allOf": [{"$ref": "../../spec.schema.json"}],
+  "type": "object",
+  "required": ["acceptance"],
+  "properties": {
+    "acceptance": {
+      "type": "array",
+      "minItems": 1,
+      "description": "ATDD requires at least one Given-When-Then acceptance scenario. Each item should reference at least one FR/NFR via requirement_refs for traceability."
+    }
+  }
+}

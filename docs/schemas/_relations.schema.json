@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-module.local/docs/_relations.schema.json",
+  "title": "Well-known relation edge types and their inverse pairs",
+  "description": "Canonical one-way edge vocabulary. Inverses are virtual query projections and are never stored.",
+  "type": "object",
+  "properties": {
+    "pairs": {
+      "type": "object",
+      "additionalProperties": {"type": "string"},
+      "examples": [{
+        "dependsOn": "dependencyOf", "partOf": "hasPart",
+        "implements": "implementedBy", "consumesApi": "providesApi",
+        "supersedes": "supersededBy", "references": "referencedBy",
+        "blocks": "blockedBy", "ownedBy": "owns",
+        "conformsTo": "conformedBy", "modifies": "modifiedBy",
+        "introduces": "introducedBy", "retires": "retiredBy",
+        "originatedFrom": "originOf"
+      }]
+    }
+  },
+  "pairs": {
+    "dependsOn": "dependencyOf",
+    "partOf": "hasPart",
+    "implements": "implementedBy",
+    "supersedes": "supersededBy",
+    "references": "referencedBy",
+    "blocks": "blockedBy",
+    "ownedBy": "owns",
+    "consumesApi": "providesApi",
+    "conformsTo": "conformedBy",
+    "modifies": "modifiedBy",
+    "introduces": "introducedBy",
+    "retires": "retiredBy",
+    "originatedFrom": "originOf"
+  },
+  "acyclic_types": ["dependsOn", "blocks", "partOf", "supersedes"]
+}

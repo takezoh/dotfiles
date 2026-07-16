@@ -1,0 +1,229 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-module.local/docs/spec.schema.json",
+  "title": "Specification (requirements with EARS-formatted functional requirements)",
+  "description": "EARS-formatted functional requirements in English (`The system shall ...` / `When ..., the system shall ...` / `While ..., the system shall ...` / `If ..., then the system shall ...` / `Where ..., the system shall ...`) or Japanese (`システムは...` / `<E>のとき、システムは...` / `<S>の間、システムは...` / `もし<C>であれば、システムは...` / `<F>を備える場合、システムは...`), ISO/IEC 25010 non-functional requirements, and Given-When-Then acceptance criteria. Body uses Markdoc {% req id=\"FR-XXX\" %} / {% acceptance id=\"AC-XXX\" %} tags whose id must match frontmatter.",
+  "allOf": [{"$ref": "_common.schema.json"}],
+  "type": "object",
+  "unevaluatedProperties": false,
+  "properties": {
+    "kind":   {"const": "spec"},
+    "status": {"enum": ["draft", "approved", "implemented", "obsolete"]},
+    "plan": {
+      "type": "string",
+      "pattern": "^plan-[0-9]{8}-[a-z0-9][a-z0-9-]*$",
+      "description": "Primary plan id implementing this spec. Use links.related_plans for multiple plans."
+    },
+    "functional_requirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "statement", "priority"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^FR-[0-9]{3,4}$"
+          },
+          "statement": {
+            "type": "string",
+            "pattern": "^((The system (shall|SHALL|MUST|MUST NOT) |When .+, the system (shall|SHALL|MUST|MUST NOT) |While .+, the system (shall|SHALL|MUST|MUST NOT) |If .+, then the system (shall|SHALL|MUST|MUST NOT) |Where .+, the system (shall|SHALL|MUST|MUST NOT) )|(システムは|もし.+(なら|であれば|場合)、システムは|.+(とき|時|間|場合|後|ごとに|時に)、システムは)).+$",
+            "description": "EARS format. English: 'The system (shall|SHALL|MUST|MUST NOT) ...' (ubiquitous), 'When <trigger>, the system ... ...' (event-driven), 'While <state>, the system ... ...' (state-driven), 'If <condition>, then the system ... ...' (unwanted), 'Where <feature>, the system ... ...' (optional). RFC 2119 vocabulary (SHALL/MUST/MUST NOT) added in v1 (adr-20260709-rfc2119-staged-adoption); SHOULD/MAY/SHALL NOT/WHERE reserved for v2. Japanese: 'システムは...' (ubiquitous), '<E>(の|した)とき、システムは...' or '<E>(した|の|を満たす)場合、システムは...' (event-driven), '<S>の間、システムは...' (state-driven), 'もし<C>(なら|であれば|の場合)、システムは...' (unwanted), '<F>を備える場合、システムは...' (optional)."
+          },
+          "priority": {
+            "enum": ["must", "should", "could", "wont"],
+            "description": "MoSCoW prioritization."
+          },
+          "rationale": {"type": "string"}
+        }
+      }
+    },
+    "non_functional_requirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "criteria"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^NFR-[0-9]{3,4}$"
+          },
+          "type": {
+            "enum": [
+              "performance",
+              "security",
+              "reliability",
+              "usability",
+              "maintainability",
+              "compatibility",
+              "scalability",
+              "portability"
+            ],
+            "description": "ISO/IEC 25010 quality characteristics."
+          },
+          "criteria": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Measurable criterion. Pattern is not enforced; agent should prefer numeric / observable thresholds."
+          },
+          "measurement": {"type": "string"}
+        }
+      }
+    },
+    "acceptance": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "given", "when", "then"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^AC-[0-9]{3,4}$"
+          },
+          "given": {"type": "string", "minLength": 1},
+          "when":  {"type": "string", "minLength": 1},
+          "then":  {"type": "string", "minLength": 1},
+          "requirement_refs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^(FR|NFR)-[0-9]{3,4}$"
+            },
+            "uniqueItems": true
+          }
+        }
+      }
+    },
+    "links": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "related_plans": {
+          "type": "array",
+          "items": {"type": "string", "pattern": "^plan-[0-9]{8}-[a-z0-9][a-z0-9-]*$"},
+          "uniqueItems": true
+        },
+        "related_adrs": {
+          "type": "array",
+          "items": {"type": "string", "pattern": "^adr-[0-9]{8}-[a-z0-9][a-z0-9-]*$"},
+          "uniqueItems": true
+        }
+      }
+    },
+    "entities": {
+      "type": "array",
+      "description": "[x-tentative] spec-detail (2026-07-09): Data Model 節 (optional). frontmatter signal — pipeline G1 が entity 名詞 3+ で trigger する。各要素は entity と invariants / normalization_rules を持つ。skills/design/knowledge/artifact-semantics.md §14 が SoT。廃止基準: 2027-01-09 (6 ヶ月経過) までに spec-detail 以外で 2 spec 以上が使わなければ削除",
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "additionalProperties": false,
+        "properties": {
+          "name":                {"type": "string", "minLength": 1},
+          "fields":              {"type": "array", "items": {"type": "string"}, "description": "e.g. 'id: uuid (immutable)' — 型と constraint を 1 行で"},
+          "invariants":          {"type": "array", "items": {"type": "string"}},
+          "normalization_rules": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+    "state_machine": {
+      "type": "object",
+      "description": "[x-tentative] spec-detail (2026-07-09): State Machine 節 (optional). frontmatter signal — state_driven FR >=1 かつ unwanted FR >=2 で trigger。state_driven FR statement の <state> は本節 states[].id を id 参照 (docs lint Markdoc validator が整合検査、FR-007 / NFR-003)。skills/design/knowledge/artifact-semantics.md §15 が SoT。廃止基準: 2027-01-09 までに spec-detail 以外で 2 spec 以上が使わなければ削除",
+      "additionalProperties": false,
+      "properties": {
+        "states": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id"],
+            "additionalProperties": false,
+            "properties": {
+              "id":          {"type": "string", "pattern": "^[a-z0-9][a-z0-9_-]*$", "description": "state_driven FR statement の <state> 参照先"},
+              "description": {"type": "string"}
+            }
+          }
+        },
+        "transitions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["from", "to", "trigger"],
+            "additionalProperties": false,
+            "properties": {
+              "from":          {"type": "string", "description": "states[].id を参照"},
+              "to":            {"type": "string", "description": "states[].id を参照"},
+              "trigger":       {"type": "string", "minLength": 1},
+              "precondition":  {"type": "string"},
+              "postcondition": {"type": "string"},
+              "idempotency":   {"type": "string", "description": "e.g. 'idempotent (重複 trigger は no-op)'"}
+            }
+          }
+        }
+      }
+    },
+    "failure_modes": {
+      "type": "array",
+      "description": "[x-tentative] spec-detail (2026-07-09): Failure Modes 節 (optional). frontmatter signal — source_paths 記述 or NFR reliability >=1 で trigger。error-design-triage §13 の 3 分類 (i 意味論再定義 / ii fail_fast / iii 回復) を recovery で参照。skills/design/knowledge/artifact-semantics.md §16 (3 者 SoT 表) が SoT。廃止基準: 2027-01-09 までに spec-detail 以外で 2 spec 以上が使わなければ削除",
+      "items": {
+        "type": "object",
+        "required": ["class", "detection", "recovery"],
+        "additionalProperties": false,
+        "properties": {
+          "class":           {"type": "string", "minLength": 1, "description": "e.g. 'ext-timeout' / 'invariant-violation' / 'user-input-invalid'"},
+          "detection":       {"type": "string", "minLength": 1, "description": "検出手段"},
+          "recovery":        {"enum": ["retry", "degrade", "fail_fast", "escalate"], "description": "error-design-triage §13 の三分法に対応 (retry/degrade = 回復、fail_fast = 内部契約違反、escalate = 外部通知 / manual)"},
+          "operator_action": {"type": "string", "description": "recovery=escalate 時の運用者 action"},
+          "related_fr":      {"type": "array", "items": {"type": "string", "pattern": "^FR-[0-9]{3,4}$"}, "uniqueItems": true, "description": "対応する unwanted FR (SSOT: unwanted FR = 起きてはならない状態 / Failure Modes = 失敗 class × recovery)"}
+        }
+      }
+    },
+    "non_goals": {
+      "type": "object",
+      "description": "[x-tentative] spec-detail (2026-07-09): Non-Goals 節 (optional). 常時 opt-in (G1 では聞かない)。MUST NOT (絶対しない) と SHOULD NOT (原則しない) の 2 段。skills/design/knowledge/artifact-semantics.md §20 が SoT (§17 の RFC 2119 語彙写像と整合)。廃止基準: 2027-01-09 までに spec-detail 以外で 2 spec 以上が使わなければ削除",
+      "additionalProperties": false,
+      "properties": {
+        "must_not":   {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "should_not": {"type": "array", "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "worked_examples": {
+      "type": "array",
+      "description": "[x-tentative] spec-detail (2026-07-09): Worked Example 節 (optional). primary FR 1 件につき I/O 例 2-3 件 (上限 5)。counterexample は ux 有り feature では書かない (ux.md SoT)、ux 無し backend feature のみ 1 件許容 (FR-009)。skills/design/knowledge/artifact-semantics.md §19 が SoT。廃止基準: 2027-01-09 までに spec-detail 以外で 2 spec 以上が使わなければ削除",
+      "items": {
+        "type": "object",
+        "required": ["id", "fr", "cases"],
+        "additionalProperties": false,
+        "properties": {
+          "id":             {"type": "string", "pattern": "^ex-[0-9]{3,4}$"},
+          "fr":             {"type": "string", "pattern": "^FR-[0-9]{3,4}$"},
+          "cases": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 5,
+            "items": {
+              "type": "object",
+              "required": ["input", "expected"],
+              "additionalProperties": false,
+              "properties": {
+                "input":    {"type": "string"},
+                "expected": {"type": "string"}
+              }
+            }
+          },
+          "counterexample": {
+            "type": "object",
+            "description": "ux 無し backend feature のみ 1 件許容。ux 有り feature では省略 (ux.md counterexample が SoT)。",
+            "required": ["input", "wrong_output", "why_wrong"],
+            "additionalProperties": false,
+            "properties": {
+              "input":        {"type": "string"},
+              "wrong_output": {"type": "string"},
+              "why_wrong":    {"type": "string"}
+            }
+          }
+        }
+      }
+    }
+  }
+}

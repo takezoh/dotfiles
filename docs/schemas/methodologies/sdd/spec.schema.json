@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-module.local/docs/methodologies/sdd/spec.schema.json",
+  "title": "Specification overlay for Spec-Driven Development (EARS-enforced)",
+  "description": "Overlays the baseline `spec.schema.json` with EARS 5-pattern enforcement on functional_requirements[].statement. Activated when frontmatter `methodology: sdd` is declared (or via project default_methodology / skill default). English: 'The system shall ...' (ubiquitous), 'When <trigger>, the system shall ...' (event-driven), 'While <state>, the system shall ...' (state-driven), 'If <condition>, then the system shall ...' (unwanted), 'Where <feature>, the system shall ...' (optional). Japanese: 'システムは...' (ubiquitous), '<E>(の|した)とき、システムは...' or '<E>(した|の|を満たす)場合、システムは...' (event-driven), '<S>の間、システムは...' (state-driven), 'もし<C>(なら|であれば|の場合)、システムは...' (unwanted), '<F>を備える場合、システムは...' (optional).",
+  "allOf": [{"$ref": "../../spec.schema.json"}],
+  "type": "object",
+  "properties": {
+    "functional_requirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "statement": {
+            "type": "string",
+            "pattern": "^((The system shall |When .+, the system shall |While .+, the system shall |If .+, then the system shall |Where .+, the system shall )|(システムは|もし.+(なら|であれば|場合)、システムは|.+(とき|時|間|場合|後|ごとに|時に)、システムは)).+$",
+            "description": "EARS format. English: 'The system shall ...' (ubiquitous), 'When <trigger>, the system shall ...' (event-driven), 'While <state>, the system shall ...' (state-driven), 'If <condition>, then the system shall ...' (unwanted), 'Where <feature>, the system shall ...' (optional). Japanese: 'システムは...' (ubiquitous), '<E>(の|した)とき、システムは...' or '<E>(した|の|を満たす)場合、システムは...' (event-driven), '<S>の間、システムは...' (state-driven), 'もし<C>(なら|であれば|の場合)、システムは...' (unwanted), '<F>を備える場合、システムは...' (optional)."
+          }
+        }
+      }
+    }
+  }
+}

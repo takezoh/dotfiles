@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-module.local/docs/markdoc-tags.json",
+  "title": "Markdoc tag registry",
+  "description": "Reserved Markdoc tag names and their attribute schemas. `docs lint` enforces open/close pairing, required/allowed attribute keys, and (for req/acceptance/milestone) frontmatter id existence and body-level id uniqueness against this registry.",
+  "tags": {
+    "decision": {
+      "block": true,
+      "required_attrs": [],
+      "allowed_attrs": ["id"],
+      "purpose": "ADR's Decision section body (one per ADR)."
+    },
+    "context": {
+      "block": true,
+      "required_attrs": [],
+      "allowed_attrs": ["id"],
+      "purpose": "ADR's Context section body."
+    },
+    "consequence": {
+      "block": true,
+      "required_attrs": [],
+      "allowed_attrs": ["id", "kind"],
+      "purpose": "ADR's Consequence (kind: positive|negative|neutral)."
+    },
+    "req": {
+      "block": true,
+      "required_attrs": ["id"],
+      "allowed_attrs": ["id"],
+      "purpose": "Spec requirement body (functional or non-functional). id must match frontmatter.functional_requirements[].id or non_functional_requirements[].id."
+    },
+    "acceptance": {
+      "block": true,
+      "required_attrs": ["id"],
+      "allowed_attrs": ["id"],
+      "purpose": "Spec acceptance criterion body. id must match frontmatter acceptance[].id."
+    },
+    "milestone": {
+      "block": true,
+      "required_attrs": ["id"],
+      "allowed_attrs": ["id"],
+      "purpose": "Plan milestone body. id must match frontmatter milestones[].id."
+    },
+    "task-ref": {
+      "block": false,
+      "required_attrs": ["id"],
+      "allowed_attrs": ["id"],
+      "purpose": "Inline reference to a task by id."
+    },
+    "adr-ref": {
+      "block": false,
+      "required_attrs": ["id"],
+      "allowed_attrs": ["id"],
+      "purpose": "Inline reference to an ADR by id."
+    },
+    "snippet": {
+      "block": true,
+      "required_attrs": ["path"],
+      "allowed_attrs": ["path", "lang", "lines"],
+      "purpose": "Embed code from a source path. Phase 2C renderer expands; lint leaves as-is."
+    },
+    "transition": {
+      "block": true,
+      "required_attrs": ["from", "to", "date"],
+      "allowed_attrs": ["from", "to", "date"],
+      "purpose": "Status transition journal entry. Appended to body by `docs transition <id> <to> --reason '...'`."
+    }
+  }
+}

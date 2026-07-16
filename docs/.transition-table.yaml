@@ -1,0 +1,62 @@
+# 構造化ドキュメント (dev-docs skill) の状態遷移ホワイトリスト。
+# docs init で project の docs/.transition-table.yaml にコピーされる。
+# project ごとに status enum を増やしたい場合はこのファイルを編集する
+# (spec.schema.json 等の status enum も併せて更新が必要)。
+#
+# 形式: kind: { from_status: [allowed_next_status, ...] }
+# 空配列 [] は終端状態 (それ以降の遷移なし)。
+
+adr:
+  proposed:   [accepted, rejected]
+  accepted:   [deprecated, superseded]
+  rejected:   []
+  deprecated: []
+  superseded: []
+
+change:
+  draft:     [ready, abandoned]
+  ready:     [active, abandoned]
+  active:    [closing, abandoned]
+  closing:   [active, done, abandoned]
+  done:      []
+  abandoned: []
+
+plan:
+  draft:     [active, abandoned]
+  active:    [done, abandoned]
+  done:      []
+  abandoned: []
+
+task:
+  todo:        [in_progress, blocked, cancelled]
+  in_progress: [blocked, done, cancelled]
+  blocked:     [todo, in_progress, cancelled]
+  done:        []
+  cancelled:   []
+
+spec:
+  draft:       [approved]
+  approved:    [implemented, obsolete]
+  implemented: [obsolete]
+  obsolete:    []
+
+ux:
+  draft:       [approved]
+  approved:    [implemented, obsolete]
+  implemented: [obsolete]
+  obsolete:    []
+
+note:
+  draft:     [published, archived]
+  published: [archived]
+  archived:  []
+
+design:
+  active:     [deprecated, superseded]
+  deprecated: []
+  superseded: []
+
+component:
+  active:     [deprecated, superseded]
+  deprecated: []
+  superseded: []

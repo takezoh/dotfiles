@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-module.local/docs/design.schema.json",
+  "title": "Persistent governing design knowledge",
+  "allOf": [{"$ref": "_common.schema.json"}],
+  "type": "object",
+  "unevaluatedProperties": false,
+  "$defs": {
+    "stableStatement": {
+      "type": "object", "required": ["id", "statement"], "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string", "pattern": "^[A-Z][A-Z0-9-]*-[0-9]{3,4}$"},
+        "statement": {"type": "string", "minLength": 1}
+      }
+    },
+    "legacyOrStableStatement": {
+      "oneOf": [
+        {"type": "string", "minLength": 1},
+        {"$ref": "#/$defs/stableStatement"}
+      ]
+    }
+  },
+  "required": ["scope_type", "responsibilities", "invariants", "boundaries", "variability", "capabilities", "failure_responsibilities", "trust_boundaries", "compatibility_policies"],
+  "properties": {
+    "kind": {"const": "design"},
+    "status": {"enum": ["active", "deprecated", "superseded"]},
+    "scope_type": {"enum": ["system", "area", "component", "policy", "capability"]},
+    "responsibilities": {
+      "type": "array", "items": {
+        "type": "object", "required": ["id", "statement"], "additionalProperties": false,
+        "properties": {"id": {"type": "string", "pattern": "^RESP-[0-9]{3,4}$"}, "statement": {"type": "string", "minLength": 1}}
+      }
+    },
+    "invariants": {
+      "type": "array", "items": {
+        "type": "object", "required": ["id", "statement", "enforcement"], "additionalProperties": false,
+        "properties": {"id": {"type": "string", "pattern": "^INV-[0-9]{3,4}$"}, "statement": {"type": "string", "minLength": 1}, "enforcement": {"enum": ["test", "contract", "conformance", "review"]}}
+      }
+    },
+    "boundaries": {
+      "type": "object", "additionalProperties": false,
+      "required": ["provides", "consumes", "forbidden"],
+      "properties": {"provides": {"type": "array", "items": {"$ref": "#/$defs/legacyOrStableStatement"}}, "consumes": {"type": "array", "items": {"$ref": "#/$defs/legacyOrStableStatement"}}, "forbidden": {"type": "array", "items": {"$ref": "#/$defs/legacyOrStableStatement"}}}
+    },
+    "variability": {
+      "type": "object", "required": ["fixed", "free"], "additionalProperties": false,
+      "properties": {"fixed": {"type": "array", "items": {"$ref": "#/$defs/legacyOrStableStatement"}}, "free": {"type": "array", "items": {"$ref": "#/$defs/legacyOrStableStatement"}}}
+    },
+    "capabilities": {
+      "type": "array", "items": {
+        "type": "object", "required": ["id", "uniqueness"], "additionalProperties": false,
+        "properties": {"id": {"type": "string", "pattern": "^cap:[a-z0-9][a-z0-9-]*$"}, "uniqueness": {"enum": ["global", "per-platform", "per-boundary", "multiple"]}}
+      }
+    },
+    "failure_responsibilities": {"type": "array", "items": {"$ref": "#/$defs/legacyOrStableStatement"}},
+    "trust_boundaries": {"type": "array", "items": {"$ref": "#/$defs/legacyOrStableStatement"}},
+    "compatibility_policies": {"type": "array", "items": {"$ref": "#/$defs/legacyOrStableStatement"}}
+  }
+}

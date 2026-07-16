@@ -1,0 +1,9 @@
+format_version: 2
+schemas_dir: schemas
+lint_targets:
+- changes/**/*.md
+- design/**/*.md
+- adr/*.md
+- note/*.md
+sqlite_path: index/docs.sqlite
+default_change_profile: sdd@1

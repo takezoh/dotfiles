@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-module.local/docs/component.schema.json",
+  "title": "Component (aggregation of specs/tasks via hasPart/implements relations)",
+  "description": "A component is an aggregation-focused doc that bundles related specs and tasks. Use `provides` to list capability identifiers and `source_paths` to point to code/config. Relate sub-documents via hasPart/implements relations.",
+  "allOf": [{"$ref": "_common.schema.json"}],
+  "type": "object",
+  "unevaluatedProperties": false,
+  "properties": {
+    "kind":   {"const": "component"},
+    "status": {"enum": ["active", "deprecated", "superseded"]},
+    "provides": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "description": "Capability identifiers this component provides (e.g. API names, feature slugs)"
+    }
+  }
+}
