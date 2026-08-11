@@ -9,8 +9,17 @@ set -eu
 SOCK="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/credproxyd/broker.sock"
 TOKEN_FILE="${CREDPROXY_TOKEN_FILE:-$HOME/.config/credproxyd/token}"
 
+# bearer token は任意 (unix socket 0600 + SO_PEERCRED が一次防御)。file が
+# 無い端末で --token-file を渡すと credproxy exec が起動前に失敗するため、
+# 存在するときだけ付ける。
+if [ -f "$TOKEN_FILE" ]; then
+	exec credproxy exec \
+		--socket "$SOCK" \
+		--route ctx-sync \
+		--token-file "$TOKEN_FILE" \
+		-- ctx "$@"
+fi
 exec credproxy exec \
 	--socket "$SOCK" \
 	--route ctx-sync \
-	--token-file "$TOKEN_FILE" \
 	-- ctx "$@"
