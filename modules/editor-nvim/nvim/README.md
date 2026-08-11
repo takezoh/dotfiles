@@ -86,7 +86,7 @@ mason-lspconfig の `ensure_installed` で自動インストール:
 - 前提: GitHub Copilot サブスクリプション + Node.js v22+（`copilot.lua` のデフォルト nodejs server mode）
 - 初回のみ `:Copilot auth` で GitHub サインインが必要
 - キー: `<A-y>` 確定 / `<A-]>`・`<A-[>` 次・前 / `<A-e>` 消去
-- minuet-ai.nvim (Claude API) は `ai.lua` で `enabled = false` の参照用として残置。戻す場合は copilot.lua を無効化し、completion.lua に minuet ソースを復帰する
+- minuet-ai.nvim (Claude API) は `ANTHROPIC_API_KEY` が credproxy から供給された時だけ有効。必要に応じて copilot.lua を無効化し、completion.lua に minuet ソースを復帰する
 
 ## デバッグ (nvim-dap)
 

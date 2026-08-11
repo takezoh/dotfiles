@@ -30,6 +30,12 @@ path               = "/grok-x-search"
 credential_command = ["${HOME}/.config/credproxyd/hooks/op-resolve.py"]
 hook_timeout_sec   = 10
 
+# Minuet/Neovim reads ANTHROPIC_API_KEY from the login-shell environment.
+[[route]]
+path               = "/anthropic"
+credential_command = ["${HOME}/.config/credproxyd/hooks/op-resolve.py"]
+hook_timeout_sec   = 10
+
 # Tier 1 (HTTP API keys via header injection) is available for any provider whose
 # SDK accepts an HTTP base-URL override. Add an upstream route with a header hook
 # when such a consumer appears; xai is not one (gRPC), so it uses the Tier-2

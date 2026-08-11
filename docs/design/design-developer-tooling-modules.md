@@ -43,7 +43,7 @@ source_paths:
 - modules/editor-nvim/nvim/README.md
 - scripts/README.md
 summary: Capability ownership for editor, CLI, SDK, container, and utility modules.
-updated: '2026-07-16'
+updated: '2026-08-12'
 ---
 
 ## Purpose

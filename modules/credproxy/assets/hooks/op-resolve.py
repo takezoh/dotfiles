@@ -38,6 +38,9 @@ ROUTE_ENV = {
     "grok-x-search": {
         "XAI_API_KEY": "op://local-dev/AI-API-Key/xAI/general",
     },
+    "anthropic": {
+        "ANTHROPIC_API_KEY": "op://local-dev/AI-API-Key/ANTHROPIC/generic",
+    },
 }
 
 # Static-secret TTL. credproxyd caches the response for expires_in_sec-30s.

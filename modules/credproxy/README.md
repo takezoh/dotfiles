@@ -23,7 +23,7 @@ The broker is the host-side half of the credential design (proposal v2). Assets:
 
 | Asset | Role |
 |---|---|
-| `assets/config.toml` | Unix-socket-only daemon; one Tier-2 `ctx-sync` route |
+| `assets/config.toml` | Unix-socket-only daemon; Tier-2 environment routes |
 | `assets/hooks/op-resolve.py` | route → fixed 1Password ref; `op read` with the token passed only to the `op` subprocess; typed `reason:` on failure |
 | `assets/wrappers/ctx-sync` | fixed wrapper: `credproxy exec --route ctx-sync -- ctx …` |
 | `assets/credproxyd.service` | hardened systemd user unit (`RuntimeDirectory` 0700, `ProtectHome=read-only`) |
@@ -52,7 +52,7 @@ Two secrets, two `op` binaries, cleanly separated:
   the service account cannot). `setup.sh` writes it to
   `~/.secrets/op/service-account.token` (0600) — see `CREDPROXY_SA_TOKEN_REF`,
   default `op://Personal/4h3467uq736jjlju6xkeu6uvyq/credential`.
-- The **actual secrets** (xAI key, DB URL) live in the `local-dev` vault and are
+- The **actual secrets** (xAI key, Anthropic key, DB URL) live in the `local-dev` vault and are
   read at **daemon time** by the *native headless* `op` using that token.
 
 Steps:
@@ -85,7 +85,8 @@ Steps:
 
 Rotation: update the Personal item (or the vault secret), then `rm
 ~/.secrets/op/service-account.token` and re-run `setup.sh`. The routes reference
-`op://local-dev/AI-API-Key/xAI/general` and
+`op://local-dev/AI-API-Key/xAI/general`,
+`op://local-dev/AI-API-Key/ANTHROPIC/generic`, and
 `op://local-dev/Context Fabric/PostgreSQL/url` (`ROUTE_ENV` in the hook).
 
 ### Path B — pre-resolved store (fallback; terminals without a token)
@@ -99,7 +100,9 @@ mkdir -p ~/.secrets/credproxyd && chmod 700 ~/.secrets/credproxyd
 umask 077
 jq -n \
   --arg xai "$(op read 'op://local-dev/AI-API-Key/xAI/general')" \
-  '{"op://local-dev/AI-API-Key/xAI/general": $xai}' \
+  --arg anthropic "$(op read 'op://local-dev/AI-API-Key/ANTHROPIC/generic')" \
+  '{"op://local-dev/AI-API-Key/xAI/general": $xai,
+    "op://local-dev/AI-API-Key/ANTHROPIC/generic": $anthropic}' \
   > ~/.secrets/credproxyd/resolved.json
 ```
 
@@ -150,7 +153,14 @@ Retire them only once a shell started after `setup.sh` shows the key present —
 otherwise the skill has no source at all.
 
 Until then `grok.py` exits 2 with `error: xai_key_unprovisioned` and prints the
-host and platform, so an unsupplied key is visible rather than silent.
+host and platform, so an unsupplied credential is visible rather than silent.
+
+### Neovim / Minuet
+
+The Neovim Minuet configuration uses `ANTHROPIC_API_KEY` from the login-shell
+environment and does not read `~/.secrets/anthropic_key`. When the `anthropic`
+route is provisioned, the shared shell snippet supplies the key through
+`credproxy env`; Minuet is enabled automatically in a newly started Neovim.
 
 ## Verify a running broker
 

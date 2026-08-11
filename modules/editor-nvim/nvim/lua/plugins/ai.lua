@@ -1,15 +1,6 @@
 return {
 	"milanglacier/minuet-ai.nvim",
-	enabled = false,
-	cond = vim.fn.filereadable(os.getenv("HOME") .. "/.secrets/anthropic_key") == 1,
-	init = function()
-		local key_file = os.getenv("HOME") .. "/.secrets/anthropic_key"
-		local f = io.open(key_file, "r")
-		if f then
-			vim.env.ANTHROPIC_API_KEY = f:read("*a"):gsub("\n$", "")
-			f:close()
-		end
-	end,
+	enabled = vim.env.ANTHROPIC_API_KEY ~= nil and vim.env.ANTHROPIC_API_KEY ~= "",
 	dependencies = { "nvim-lua/plenary.nvim" },
 	opts = {
 		provider = "claude",
