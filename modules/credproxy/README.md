@@ -105,23 +105,33 @@ jq -n \
 
 Add one `--arg`/key line per ref. Rotation = re-run.
 
-### Open the socket to the sandbox
+### Reaching the socket from a sandboxed agent
 
-The agent host's sandbox must allow the broker socket. For Claude Code this
-module's agent-module counterpart already sets `sandbox.network.allowUnixSockets`
-to `$XDG_RUNTIME_DIR/credproxyd/broker.sock` (per-path; never `allowAllUnixSockets`
-— on WSL2 it also opens the Windows-interop socket) and `denyWrite` on
-`~/.config/credproxyd`. **A session restart loads it; then verify a sandboxed
-`credproxy exec --route ctx-sync -- true` reaches the socket** (per-path
-reachability is the one end-to-end step still unverified).
+No sandbox network hole is needed, because the two consumers already run in a
+command class the agent host executes **outside** its sandbox:
+
+- **skills** run via `mise exec …` (already in Claude Code's `excludedCommands`),
+  so `grok.py` reaches the socket directly — verified 2026-08-11.
+- **`ctx sync`** runs from the SessionStart hook, which is sandbox-external by
+  design (context-fabric ADR 0012).
+
+Do **not** add a per-path `sandbox.network.allowUnixSockets`: on Linux, unix
+socket blocking is a seccomp filter that cannot match by path, so per-path is
+macOS-only and silently ignored on Linux/WSL2. The only Linux switch is
+`allowAllUnixSockets`, which opens every socket (including WSL2's Windows-interop
+socket) — rejected. A host loopback TCP port is no better: the sandbox has its
+own network namespace so it cannot reach the host's 127.0.0.1, and a TCP port
+loses the unix socket's 0600 + SO_PEERCRED protection. The agent-module
+counterpart therefore sets only `denyWrite` on `~/.config/credproxyd` (so a
+sandboxed agent cannot rewrite the fixed routes) and no socket allowance.
 
 ### grok-x-search cutover
 
-Once the `grok-x-search` route resolves, delete the plaintext
-`~/.secrets/env/skills-grok-x-search-scripts` and the skill's `scripts/.env`.
-`grok.py` falls back to the broker route when no plaintext key is present
-(xai_sdk is gRPC, so Tier-1 header injection does not apply — the key is a
-Tier-2 env). The `mise exec … grok.py` command is unchanged.
+Once the `grok-x-search` route resolves (verified 2026-08-11), delete the
+plaintext `~/.secrets/env/skills-grok-x-search-scripts` and the skill's
+`scripts/.env`. `grok.py` falls back to the broker route when no plaintext key
+is present (xai_sdk is gRPC, so Tier-1 header injection does not apply — the key
+is a Tier-2 env). The `mise exec … grok.py` command is unchanged.
 
 Until a store or token exists, the wrappers / grok.py report the broker as
 unconfigured (or fall back to the existing plaintext env) rather than failing
