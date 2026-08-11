@@ -51,13 +51,16 @@ install cannot take on its own:
    agent cannot rewrite the fixed routes. Waiting on: a session restart to load
    the setting, then verify a sandboxed `credproxy exec --route ctx-sync -- true`
    reaches the socket (per-path reachability is unverified end-to-end).
-4. **Tier 1 for xai** — confirm the xAI SDK accepts a base-URL / transport
-   override. If yes, add the `/xai` HTTP route (commented in `config.toml`) and
-   move grok-x-search off its API-key env. If no, keep xai on a Tier-2 wrapper.
-   Waiting on: SDK capability check.
+4. **grok-x-search cutover** — provision `op://agent-secrets/xai/api-key`, then
+   delete the plaintext `~/.secrets/env/skills-grok-x-search-scripts` and the
+   skill's `scripts/.env`. `grok.py` already falls back to the broker's
+   `grok-x-search` route when no plaintext key is present (xai_sdk is gRPC, so
+   Tier 1 header-injection does not apply — the key is served as a Tier-2 env).
+   No skill-command change; the `mise exec … grok.py` invocation is unchanged.
 
-Until step 2, `ctx doctor` / the wrappers report the broker as unconfigured
-rather than failing silently.
+Until step 2, `ctx doctor` / the wrappers / grok.py report the broker as
+unconfigured (or fall back to the existing plaintext env) rather than failing
+silently.
 
 ## Verify a running broker
 

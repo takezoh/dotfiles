@@ -28,6 +28,9 @@ ROUTE_ENV = {
     "ctx-sync": {
         "CTX_DATABASE_URL": "op://agent-secrets/context-fabric-pg/url",
     },
+    "grok-x-search": {
+        "XAI_API_KEY": "op://agent-secrets/xai/api-key",
+    },
 }
 
 # Static-secret TTL. credproxyd caches the response for expires_in_sec-30s, so
