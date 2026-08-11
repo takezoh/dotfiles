@@ -43,7 +43,12 @@ if is_linux && [ ! -x "$OP_BIN" ]; then
 		log "credproxy: installing native op ${OP_VERSION} (${OP_ARCH}) -> $OP_BIN"
 		if curl -fsSL "$URL" -o "$TMP/op.zip"; then
 			( cd "$TMP" && unzip -qo op.zip )
-			as_root install -m 0755 "$TMP/op" "$OP_BIN"
+			# 非対話 (sudo password 不可) でも asset 配置まで進めるため、失敗は
+			# warn に留める。root 所有 /usr/local/bin/op は confused-deputy 対策
+			# なので user パスへは fallback しない — 後で人間が入れ直す。
+			if ! as_root install -m 0755 "$TMP/op" "$OP_BIN" 2>/dev/null; then
+				log "credproxy: WARN native op の配置に sudo が必要 — 対話 shell で install.sh を再実行する"
+			fi
 		else
 			log "credproxy: WARN native op のダウンロード失敗（後で手動導入）"
 		fi
