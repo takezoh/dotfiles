@@ -68,10 +68,19 @@ Steps:
    ```sh
    bash modules/credproxy/install.sh   # interactive shell so sudo can prompt
    ```
-3. **Provision + enable** — `setup.sh` resolves the token from Personal, writes
-   the token file, and starts (or restarts, clearing cache) the daemon:
+3. **Provision + enable** — `setup.sh` runs `op signin` if `op` is not already
+   authenticated (desktop-app integration satisfies `op whoami` on its own),
+   resolves the token from Personal, writes the token file, and starts (or
+   restarts, clearing cache) the daemon. Run it in an interactive terminal so
+   the auth prompt can appear:
    ```sh
    bash modules/credproxy/setup.sh
+   ```
+   If `op signin` can't run (no account added, non-interactive), place the token
+   by hand instead — `setup.sh` never overwrites an existing token file:
+   ```sh
+   mkdir -p ~/.secrets/op && chmod 700 ~/.secrets/op
+   umask 077; cat > ~/.secrets/op/service-account.token   # paste token, Ctrl-D
    ```
 
 Rotation: update the Personal item (or the vault secret), then `rm

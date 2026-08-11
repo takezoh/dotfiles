@@ -24,6 +24,19 @@ provision_sa_token() {
 	[ -f "$TOKEN_STORE" ] && return 0
 	[ -n "$SA_TOKEN_REF" ] || return 0
 	has_cmd op || { log "credproxy: op 不在のため SA token を取得できない（手動配置か対話 shell で再実行）"; return 0; }
+	# op が未サインインなら session を張る。desktop 連携が有効なら whoami 自体が
+	# biometric で通り signin は不要。連携が無い環境では op signin の出力
+	# (export OP_SESSION_...) を eval して以降の op read に効かせる。対話端末で
+	# 実行していること・op account add 済みであることが前提。
+	if ! op whoami >/dev/null 2>&1; then
+		log "credproxy: op 未サインイン、op signin を実行します（認証プロンプトが出ます）"
+		session="$(op signin 2>/dev/null || true)"
+		[ -n "$session" ] && eval "$session"
+		if ! op whoami >/dev/null 2>&1; then
+			log "credproxy: WARN op signin に失敗（対話端末か、op account add 済みか確認）。SA token 取得をスキップ"
+			return 0
+		fi
+	fi
 	mkdir -p "$(dirname "$TOKEN_STORE")"
 	chmod 700 "$(dirname "$TOKEN_STORE")" 2>/dev/null || true
 	tmp="$TOKEN_STORE.tmp.$$"
