@@ -8,7 +8,10 @@ MODULES_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
 ASSETS="$(cd "$(dirname "$0")" && pwd)/assets"
 UNIT_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
+# 解決元は 2 経路 (op-resolve.py 参照): 事前解決 store か service-account token。
+# どちらか一方があれば broker は仕事ができる。
 TOKEN_STORE="$HOME/.secrets/op/service-account.token"
+RESOLVED_STORE="$HOME/.secrets/credproxyd/resolved.json"
 
 # macOS uses launchd, not systemd. Ship the launchd path in README go-live;
 # do not attempt a systemd unit there.
@@ -27,8 +30,8 @@ cp "$ASSETS/credproxyd.service" "$UNIT_DIR/credproxyd.service"
 systemctl --user daemon-reload
 log "credproxy: installed systemd user unit"
 
-if [ ! -f "$TOKEN_STORE" ]; then
-	log "credproxy: service-account token 未設定（$TOKEN_STORE）。daemon は起動しない"
+if [ ! -f "$RESOLVED_STORE" ] && [ ! -f "$TOKEN_STORE" ]; then
+	log "credproxy: 解決元が未設定（$RESOLVED_STORE も $TOKEN_STORE も無い）。daemon は起動しない"
 	log "credproxy: go-live 手順は modules/credproxy/README.md を参照"
 	exit 0
 fi

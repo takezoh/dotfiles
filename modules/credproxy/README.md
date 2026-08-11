@@ -34,31 +34,77 @@ context-fabric's copied `ctx`).
 
 ## go-live (blocked on human / session restart)
 
-The module lays down everything buildable now. These steps need actions the
-install cannot take on its own:
+The module lays down everything buildable now. The hook resolves each ref from
+one of two sources (`assets/hooks/op-resolve.py`): a pre-resolved store file, or
+a service-account live `op read`. Pick the store path unless you specifically
+need non-interactive rotation.
 
-1. **1Password service account** — create one at my.1password.com (Developer
-   Tools → Service Accounts), scoped read-only to the `agent-secrets` vault.
-   Waiting on: human UI action; confirm Individual-plan availability there.
-2. **Provision the token** — write it to `~/.secrets/op/service-account.token`
-   (mode 0600). `~/.secrets` is sandbox read-denied, so the agent cannot read it.
-   Re-run `setup.sh` to enable the daemon.
-3. **Open the socket to the sandbox** — add the broker socket path to the agent
-   host's sandbox settings (Claude Code: `sandbox.network.allowUnixSockets`
-   with the per-path entry `$XDG_RUNTIME_DIR/credproxyd/broker.sock`; do NOT use
-   `allowAllUnixSockets` — on WSL2 it also opens the Windows-interop socket).
-   Add `~/.config/credproxyd/{config.toml,hooks,wrappers}` to `denyWrite` so the
-   agent cannot rewrite the fixed routes. Waiting on: a session restart to load
-   the setting, then verify a sandboxed `credproxy exec --route ctx-sync -- true`
-   reaches the socket (per-path reachability is unverified end-to-end).
-4. **grok-x-search cutover** — provision `op://agent-secrets/xai/api-key`, then
-   delete the plaintext `~/.secrets/env/skills-grok-x-search-scripts` and the
-   skill's `scripts/.env`. `grok.py` already falls back to the broker's
-   `grok-x-search` route when no plaintext key is present (xai_sdk is gRPC, so
-   Tier 1 header-injection does not apply — the key is served as a Tier-2 env).
-   No skill-command change; the `mise exec … grok.py` invocation is unchanged.
+### Path B — pre-resolved store (recommended; no service account)
 
-Until step 2, `ctx doctor` / the wrappers / grok.py report the broker as
+1Password **service accounts cannot read Personal/Private vaults**, and the
+Individual-plan service-account UI is limited. Avoid all of that: resolve each
+ref once with the interactive `op` you already have (the WSL `op.exe` desktop
+integration reads Personal fine) and write the values to a 0600 store the broker
+reads.
+
+1. **Populate the store** — a JSON map of the exact `op://…` ref → value:
+   ```sh
+   mkdir -p ~/.secrets/credproxyd && chmod 700 ~/.secrets/credproxyd
+   umask 077
+   jq -n \
+     --arg xai "$(op read 'op://Personal/AI-API-Key/xAI/general')" \
+     '{"op://Personal/AI-API-Key/xAI/general": $xai}' \
+     > ~/.secrets/credproxyd/resolved.json
+   ```
+   Add a `--arg`/key line per ref you use (e.g. the `ctx-sync` DB URL). The refs
+   must match `ROUTE_ENV` in the hook exactly. `~/.secrets` is sandbox
+   read-denied, so the agent cannot read this file. Rotation = re-run this.
+2. **Enable the daemon** — `setup.sh` starts it once a store OR a token exists:
+   ```sh
+   bash modules/credproxy/setup.sh
+   ```
+   (No token file and no native `op` needed on this path.)
+
+### Path A — service account (optional; non-interactive rotation)
+
+Only if you want the broker to re-read a rotating secret without a human step.
+Requires the secret in a **non-Personal** vault the service account is scoped to,
+created at service-account time (vault access cannot be edited afterward). Via
+CLI with your interactive `op`:
+
+```sh
+op vault create agent-secrets                      # SAs can't use Personal
+# put the item in agent-secrets (app: duplicate/move), then:
+mkdir -p ~/.secrets/op && chmod 700 ~/.secrets/op
+op service-account create local-dev --expires-in 90d \
+  --vault "agent-secrets:read_items" --raw \
+  > ~/.secrets/op/service-account.token       # --raw = token only, straight to file
+chmod 600 ~/.secrets/op/service-account.token
+```
+
+Then set the hook's refs to `op://agent-secrets/…`, install native `op`
+(`sudo`-capable `install.sh`), and `setup.sh`. Delete a stuck account with
+`op service-account delete <name>`.
+
+### Both paths — open the socket to the sandbox
+
+The agent host's sandbox must allow the broker socket. For Claude Code this
+module's agent-module counterpart already sets `sandbox.network.allowUnixSockets`
+to `$XDG_RUNTIME_DIR/credproxyd/broker.sock` (per-path; never `allowAllUnixSockets`
+— on WSL2 it also opens the Windows-interop socket) and `denyWrite` on
+`~/.config/credproxyd`. **A session restart loads it; then verify a sandboxed
+`credproxy exec --route ctx-sync -- true` reaches the socket** (per-path
+reachability is the one end-to-end step still unverified).
+
+### grok-x-search cutover
+
+Once the `grok-x-search` route resolves, delete the plaintext
+`~/.secrets/env/skills-grok-x-search-scripts` and the skill's `scripts/.env`.
+`grok.py` falls back to the broker route when no plaintext key is present
+(xai_sdk is gRPC, so Tier-1 header injection does not apply — the key is a
+Tier-2 env). The `mise exec … grok.py` command is unchanged.
+
+Until a store or token exists, the wrappers / grok.py report the broker as
 unconfigured (or fall back to the existing plaintext env) rather than failing
 silently.
 

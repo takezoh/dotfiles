@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""credproxyd route hook: resolve a fixed 1Password ref to an env map.
+"""credproxyd route hook: resolve a fixed secret ref to an env map.
 
 Contract (credproxyd ScriptProvider):
   stdin : {"action","route","request","context"}
@@ -7,14 +7,23 @@ Contract (credproxyd ScriptProvider):
 
 The route -> ref mapping lives here, not in the request. The agent-facing
 request cannot choose which secret is resolved; it can only reach a route that
-this table already maps. Secrets are read from `op` stdout and written to the
-JSON stdout only — never passed through argv, env, or logs.
+this table already maps. Secrets reach the JSON stdout only — never argv or logs.
 
-Auth: the 1Password service-account token is read from a file (default
-~/.secrets/op/service-account.token) and passed only to the `op` subprocess
-env, never kept in this hook's or the daemon's long-lived environment. The
-native Linux `op` binary is required — the WSL `op.exe` shim is interactive and
-cannot run headless.
+Two resolution sources, tried in order per ref:
+
+1. **Pre-resolved store** (default, no service account needed): a 0600 JSON
+   file (~/.secrets/credproxyd/resolved.json) mapping the op:// ref string to
+   its value. Populate it once with an interactive `op read` (works with the
+   WSL `op.exe` desktop integration), e.g.:
+       op read "op://Personal/AI-API-Key/xAI/general"
+   Rotation = re-run and rewrite the file. This path needs neither a service
+   account (which cannot read Personal/Private vaults) nor a native headless op.
+
+2. **Service-account live read** (optional upgrade for non-interactive
+   rotation): if a ref is absent from the store and a service-account token
+   file exists, run native `op read` with OP_SERVICE_ACCOUNT_TOKEN passed only
+   to that subprocess. Requires the secret to live in a non-Personal vault the
+   service account is scoped to.
 """
 import json
 import os
@@ -23,28 +32,28 @@ import sys
 from pathlib import Path
 from typing import NoReturn
 
-# route name -> {env var name: 1Password ref}. Fixed, host-owned.
-# vault は service account "local-dev" に read-only で scope した agent-secrets。
-# grok の item は Personal/AI-API-Key を名前そのまま copy したもの (ref の
-# item/field 名は 1Password 側の実名に追随する — route 名は client に焼き込み
-# 済みのため変えない)。
+# route name -> {env var name: secret ref}. Fixed, host-owned. Route names are
+# baked into clients and never change; ref item/field names follow 1Password.
 ROUTE_ENV = {
     "ctx-sync": {
-        "CTX_DATABASE_URL": "op://agent-secrets/context-fabric-pg/url",
+        "CTX_DATABASE_URL": "op://Personal/context-fabric-pg/url",
     },
     "grok-x-search": {
-        "XAI_API_KEY": "op://agent-secrets/AI-API-Key/xAI/general",
+        "XAI_API_KEY": "op://Personal/AI-API-Key/xAI/general",
     },
 }
 
-# Static-secret TTL. credproxyd caches the response for expires_in_sec-30s, so
-# `op` is called at most once per route per TTL window (rate-limit friendly).
+# Static-secret TTL. credproxyd caches the response for expires_in_sec-30s.
 EXPIRES_IN_SEC = 3600
 
 OP_BIN = os.environ.get("CREDPROXY_OP_BIN", "/usr/local/bin/op")
 TOKEN_FILE = os.environ.get(
     "CREDPROXY_OP_TOKEN_FILE",
     str(Path.home() / ".secrets/op/service-account.token"),
+)
+STORE_FILE = os.environ.get(
+    "CREDPROXY_RESOLVED_STORE",
+    str(Path.home() / ".secrets/credproxyd/resolved.json"),
 )
 
 
@@ -55,17 +64,27 @@ def fail(reason: str) -> NoReturn:
     sys.exit(1)
 
 
+def load_store() -> dict:
+    try:
+        data = json.loads(Path(STORE_FILE).read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return {}
+    except (OSError, ValueError):
+        fail("store_unreadable")
+    if not isinstance(data, dict):
+        fail("store_unreadable")
+    return data
+
+
 def load_token() -> str:
     try:
         token = Path(TOKEN_FILE).read_text(encoding="utf-8").strip()
     except OSError:
-        fail("op_token_invalid")
-    if not token:
-        fail("op_token_invalid")
+        return ""
     return token
 
 
-def resolve(ref: str, token: str) -> str:
+def op_read(ref: str, token: str) -> str:
     try:
         proc = subprocess.run(
             [OP_BIN, "read", "--no-newline", ref],
@@ -74,9 +93,7 @@ def resolve(ref: str, token: str) -> str:
             timeout=8,
             env={**os.environ, "OP_SERVICE_ACCOUNT_TOKEN": token},
         )
-    except FileNotFoundError:
-        fail("op_unreachable")
-    except subprocess.TimeoutExpired:
+    except (FileNotFoundError, subprocess.TimeoutExpired):
         fail("op_unreachable")
     if proc.returncode != 0:
         stderr = (proc.stderr or "").lower()
@@ -88,6 +105,16 @@ def resolve(ref: str, token: str) -> str:
     return proc.stdout
 
 
+def resolve(ref: str, store: dict, token: str) -> str:
+    if ref in store and isinstance(store[ref], str) and store[ref]:
+        return store[ref]
+    if token:
+        return op_read(ref, token)
+    # Neither a stored value nor a token: the operator has not provisioned this
+    # ref. Surface it as an unavailable credential rather than a silent empty.
+    fail("secret_unprovisioned")
+
+
 def main() -> None:
     try:
         req = json.load(sys.stdin)
@@ -97,8 +124,9 @@ def main() -> None:
     mapping = ROUTE_ENV.get(route)
     if mapping is None:
         fail("unknown_route")
+    store = load_store()
     token = load_token()
-    env = {name: resolve(ref, token) for name, ref in mapping.items()}
+    env = {name: resolve(ref, store, token) for name, ref in mapping.items()}
     json.dump({"body_replace": {"env": env}, "expires_in_sec": EXPIRES_IN_SEC}, sys.stdout)
 
 
