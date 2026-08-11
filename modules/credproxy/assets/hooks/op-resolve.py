@@ -24,12 +24,16 @@ from pathlib import Path
 from typing import NoReturn
 
 # route name -> {env var name: 1Password ref}. Fixed, host-owned.
+# vault は service account "local-dev" に read-only で scope した agent-secrets。
+# grok の item は Personal/AI-API-Key を名前そのまま copy したもの (ref の
+# item/field 名は 1Password 側の実名に追随する — route 名は client に焼き込み
+# 済みのため変えない)。
 ROUTE_ENV = {
     "ctx-sync": {
         "CTX_DATABASE_URL": "op://agent-secrets/context-fabric-pg/url",
     },
     "grok-x-search": {
-        "XAI_API_KEY": "op://agent-secrets/xai/api-key",
+        "XAI_API_KEY": "op://agent-secrets/AI-API-Key/xAI/general",
     },
 }
 
