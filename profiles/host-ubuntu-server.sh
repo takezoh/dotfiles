@@ -16,6 +16,7 @@ modules=(
 	cli
 	docker
 	agent-module
+	credproxy
 )
 
 PHASE="${PHASE:-${1:-all}}"

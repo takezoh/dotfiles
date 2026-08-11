@@ -18,6 +18,7 @@ modules=(
 	cli
 	android-re
 	agent-module
+	credproxy
 	terminal-windows
 	terminal-wezterm
 	net-ssh

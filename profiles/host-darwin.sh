@@ -16,6 +16,7 @@ modules=(
 	editor-nvim
 	cli
 	agent-module
+	credproxy
 	terminal-wezterm
 	net-ssh
 	macos-defaults

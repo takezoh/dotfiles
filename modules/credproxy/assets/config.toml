@@ -1,0 +1,34 @@
+# credproxyd — per-terminal credential broker for sandboxed LLM agents.
+#
+# Managed asset: installed by modules/credproxy/install.sh as a COPY (never a
+# symlink) into ~/.config/credproxyd/config.toml, and never overwritten once it
+# exists so local edits survive. Edit the installed copy for host-specific
+# routes; edit this source to change the shipped default.
+#
+# Unix-socket only. No TCP listener: the sandbox cannot reach host loopback, and
+# a TCP port would only widen the same-host attack surface. Sandboxed agents
+# reach this socket only after the agent host's settings allow its path
+# (see modules/credproxy/README.md, go-live step 2).
+
+listen_unix         = "${XDG_RUNTIME_DIR}/credproxyd/broker.sock"
+log_level           = "info"
+
+# Tier 2 (non-HTTP secrets): a body_replace route returns {"env":{...}} for
+# `credproxy exec`. The route name is the only agent-chosen input; the ref
+# behind it lives in the hook (assets/hooks/op-resolve.py).
+[[route]]
+path               = "/ctx-sync"
+credential_command = ["${HOME}/.config/credproxyd/hooks/op-resolve.py"]
+hook_timeout_sec   = 10
+
+# Tier 1 (HTTP API keys): uncomment once the SDK is confirmed to accept a base
+# URL / transport override (see README go-live step 4). Until then xai stays on
+# a Tier 2 wrapper.
+#
+# [[route]]
+# path               = "/xai"
+# upstream           = "https://api.x.ai"
+# credential_command = ["${HOME}/.config/credproxyd/hooks/op-resolve-header.py"]
+# refresh_on_status  = [401]
+# strip_inbound_auth = true
+# hook_timeout_sec   = 10

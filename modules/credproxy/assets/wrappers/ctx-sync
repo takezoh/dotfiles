@@ -1,0 +1,16 @@
+#!/bin/sh
+# ctx-sync — fixed wrapper: resolve CTX_DATABASE_URL via the broker and exec ctx.
+#
+# The sandboxed agent may invoke this wrapper but cannot choose the route or ref
+# it resolves. Managed asset: installed as a COPY into sandbox-write-denied
+# ~/.config/credproxyd/wrappers/ so the agent cannot rewrite the fixed route.
+set -eu
+
+SOCK="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/credproxyd/broker.sock"
+TOKEN_FILE="${CREDPROXY_TOKEN_FILE:-$HOME/.config/credproxyd/token}"
+
+exec credproxy exec \
+	--socket "$SOCK" \
+	--route ctx-sync \
+	--token-file "$TOKEN_FILE" \
+	-- ctx "$@"
