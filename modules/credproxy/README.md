@@ -45,27 +45,38 @@ human step. 1Password **service accounts cannot read Personal/Private vaults**,
 so the secret must live in a regular vault the account is scoped to — the
 `local-dev` vault here — and vault access is fixed at service-account creation.
 
-1. **Create the service account, token straight to file** (with your interactive
-   `op`; `--raw` prints only the token so it never hits your terminal or me):
+Two secrets, two `op` binaries, cleanly separated:
+
+- The **service-account token** is stored as a 1Password Personal item and
+  resolved at **setup time** by the *interactive* `op` (op.exe reads Personal;
+  the service account cannot). `setup.sh` writes it to
+  `~/.secrets/op/service-account.token` (0600) — see `CREDPROXY_SA_TOKEN_REF`,
+  default `op://Personal/4h3467uq736jjlju6xkeu6uvyq/credential`.
+- The **actual secrets** (xAI key, DB URL) live in the `local-dev` vault and are
+  read at **daemon time** by the *native headless* `op` using that token.
+
+Steps:
+
+1. **Store the SA token in Personal** — when you create the service account,
+   save its token as the Personal item `CREDPROXY_SA_TOKEN_REF` points at:
    ```sh
-   mkdir -p ~/.secrets/op && chmod 700 ~/.secrets/op
-   umask 077
    op service-account create credproxyd --expires-in 90d \
-     --vault "local-dev:read_items" --raw \
-     > ~/.secrets/op/service-account.token
+     --vault "local-dev:read_items" --raw     # copy the token into that item
    ```
-   (If an earlier account is in the way: `op service-account delete <name>`.)
-2. **Install native headless `op`** — the daemon runs `op` non-interactively,
-   which the WSL `op.exe` shim cannot do. This needs root:
+   (Delete a stuck account with `op service-account delete <name>`.)
+2. **Install native headless `op`** (daemon-side, needs root):
    ```sh
-   bash modules/credproxy/install.sh   # in an interactive shell so sudo can prompt
+   bash modules/credproxy/install.sh   # interactive shell so sudo can prompt
    ```
-3. **Enable the daemon** — `setup.sh` starts it once the token exists:
+3. **Provision + enable** — `setup.sh` resolves the token from Personal, writes
+   the token file, and starts (or restarts, clearing cache) the daemon:
    ```sh
    bash modules/credproxy/setup.sh
    ```
 
-The routes reference `op://local-dev/AI-API-Key/xAI/general` and
+Rotation: update the Personal item (or the vault secret), then `rm
+~/.secrets/op/service-account.token` and re-run `setup.sh`. The routes reference
+`op://local-dev/AI-API-Key/xAI/general` and
 `op://local-dev/Context Fabric/PostgreSQL/url` (`ROUTE_ENV` in the hook).
 
 ### Path B — pre-resolved store (fallback; terminals without a token)
