@@ -36,7 +36,7 @@ from typing import NoReturn
 # baked into clients and never change; ref item/field names follow 1Password.
 ROUTE_ENV = {
     "ctx-sync": {
-        "CTX_DATABASE_URL": "op://local-dev/context-fabric-pg/url",
+        "CTX_DATABASE_URL": "op://local-dev/Context Fabric/PostgreSQL/url",
     },
     "grok-x-search": {
         "XAI_API_KEY": "op://local-dev/AI-API-Key/xAI/general",

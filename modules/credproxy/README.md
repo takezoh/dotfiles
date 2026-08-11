@@ -57,9 +57,9 @@ reads.
      > ~/.secrets/credproxyd/resolved.json
    ```
    Add a `--arg`/key line per ref you use (e.g. the `ctx-sync` DB URL at
-   `op://local-dev/context-fabric-pg/url`). The refs must match `ROUTE_ENV` in
-   the hook exactly. `~/.secrets` is sandbox read-denied, so the agent cannot
-   read this file. Rotation = re-run this.
+   `op://local-dev/Context Fabric/PostgreSQL/url`). The refs must match
+   `ROUTE_ENV` in the hook exactly. `~/.secrets` is sandbox read-denied, so the
+   agent cannot read this file. Rotation = re-run this.
 2. **Enable the daemon** — `setup.sh` starts it once a store OR a token exists:
    ```sh
    bash modules/credproxy/setup.sh
