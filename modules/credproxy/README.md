@@ -35,59 +35,57 @@ context-fabric's copied `ctx`).
 ## go-live (blocked on human / session restart)
 
 The module lays down everything buildable now. The hook resolves each ref from
-one of two sources (`assets/hooks/op-resolve.py`): a pre-resolved store file, or
-a service-account live `op read`. Pick the store path unless you specifically
-need non-interactive rotation.
+a service-account live `op read` when a token file exists, and falls back to a
+pre-resolved store file otherwise (`assets/hooks/op-resolve.py`).
 
-### Path B — pre-resolved store (recommended; no service account)
+### Path A — service account (primary; non-interactive rotation)
 
-1Password **service accounts cannot read Personal/Private vaults**, and the
-Individual-plan service-account UI is limited. Avoid all of that: resolve each
-ref once with the interactive `op` you already have (the WSL `op.exe` desktop
-integration reads Personal fine) and write the values to a 0600 store the broker
-reads.
+The daemon re-reads the current secret each TTL window, so rotation needs no
+human step. 1Password **service accounts cannot read Personal/Private vaults**,
+so the secret must live in a regular vault the account is scoped to — the
+`local-dev` vault here — and vault access is fixed at service-account creation.
 
-1. **Populate the store** — a JSON map of the exact `op://…` ref → value:
+1. **Create the service account, token straight to file** (with your interactive
+   `op`; `--raw` prints only the token so it never hits your terminal or me):
    ```sh
-   mkdir -p ~/.secrets/credproxyd && chmod 700 ~/.secrets/credproxyd
+   mkdir -p ~/.secrets/op && chmod 700 ~/.secrets/op
    umask 077
-   jq -n \
-     --arg xai "$(op read 'op://local-dev/AI-API-Key/xAI/general')" \
-     '{"op://local-dev/AI-API-Key/xAI/general": $xai}' \
-     > ~/.secrets/credproxyd/resolved.json
+   op service-account create credproxyd --expires-in 90d \
+     --vault "local-dev:read_items" --raw \
+     > ~/.secrets/op/service-account.token
    ```
-   Add a `--arg`/key line per ref you use (e.g. the `ctx-sync` DB URL at
-   `op://local-dev/Context Fabric/PostgreSQL/url`). The refs must match
-   `ROUTE_ENV` in the hook exactly. `~/.secrets` is sandbox read-denied, so the
-   agent cannot read this file. Rotation = re-run this.
-2. **Enable the daemon** — `setup.sh` starts it once a store OR a token exists:
+   (If an earlier account is in the way: `op service-account delete <name>`.)
+2. **Install native headless `op`** — the daemon runs `op` non-interactively,
+   which the WSL `op.exe` shim cannot do. This needs root:
+   ```sh
+   bash modules/credproxy/install.sh   # in an interactive shell so sudo can prompt
+   ```
+3. **Enable the daemon** — `setup.sh` starts it once the token exists:
    ```sh
    bash modules/credproxy/setup.sh
    ```
-   (No token file and no native `op` needed on this path.)
 
-### Path A — service account (optional; non-interactive rotation)
+The routes reference `op://local-dev/AI-API-Key/xAI/general` and
+`op://local-dev/Context Fabric/PostgreSQL/url` (`ROUTE_ENV` in the hook).
 
-Only if you want the broker to re-read a rotating secret without a human step.
-Requires the secret in a **non-Personal** vault the service account is scoped to,
-created at service-account time (vault access cannot be edited afterward). Via
-CLI with your interactive `op`:
+### Path B — pre-resolved store (fallback; terminals without a token)
+
+For a terminal where you cannot run a service account, resolve each ref once
+with interactive `op` and write a 0600 store the broker reads instead — no token
+and no native `op` needed:
 
 ```sh
-op vault create agent-secrets                      # SAs can't use Personal
-# put the item in agent-secrets (app: duplicate/move), then:
-mkdir -p ~/.secrets/op && chmod 700 ~/.secrets/op
-op service-account create local-dev --expires-in 90d \
-  --vault "agent-secrets:read_items" --raw \
-  > ~/.secrets/op/service-account.token       # --raw = token only, straight to file
-chmod 600 ~/.secrets/op/service-account.token
+mkdir -p ~/.secrets/credproxyd && chmod 700 ~/.secrets/credproxyd
+umask 077
+jq -n \
+  --arg xai "$(op read 'op://local-dev/AI-API-Key/xAI/general')" \
+  '{"op://local-dev/AI-API-Key/xAI/general": $xai}' \
+  > ~/.secrets/credproxyd/resolved.json
 ```
 
-Then set the hook's refs to `op://agent-secrets/…`, install native `op`
-(`sudo`-capable `install.sh`), and `setup.sh`. Delete a stuck account with
-`op service-account delete <name>`.
+Add one `--arg`/key line per ref. Rotation = re-run.
 
-### Both paths — open the socket to the sandbox
+### Open the socket to the sandbox
 
 The agent host's sandbox must allow the broker socket. For Claude Code this
 module's agent-module counterpart already sets `sandbox.network.allowUnixSockets`

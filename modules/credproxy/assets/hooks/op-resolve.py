@@ -11,19 +11,16 @@ this table already maps. Secrets reach the JSON stdout only — never argv or lo
 
 Two resolution sources, tried in order per ref:
 
-1. **Pre-resolved store** (default, no service account needed): a 0600 JSON
-   file (~/.secrets/credproxyd/resolved.json) mapping the op:// ref string to
-   its value. Populate it once with an interactive `op read` (works with the
-   WSL `op.exe` desktop integration), e.g.:
-       op read "op://Personal/AI-API-Key/xAI/general"
-   Rotation = re-run and rewrite the file. This path needs neither a service
-   account (which cannot read Personal/Private vaults) nor a native headless op.
+1. **Service-account live read** (primary): if a service-account token file
+   exists, run native `op read` with OP_SERVICE_ACCOUNT_TOKEN passed only to
+   that subprocess. Gives non-interactive rotation — the daemon re-reads the
+   current value each TTL window. Requires the secret in a non-Personal vault
+   the service account is scoped to (SAs cannot read Personal/Private vaults),
+   and a native headless `op` binary (the WSL `op.exe` shim is interactive).
 
-2. **Service-account live read** (optional upgrade for non-interactive
-   rotation): if a ref is absent from the store and a service-account token
-   file exists, run native `op read` with OP_SERVICE_ACCOUNT_TOKEN passed only
-   to that subprocess. Requires the secret to live in a non-Personal vault the
-   service account is scoped to.
+2. **Pre-resolved store** (fallback for terminals without a token): a 0600 JSON
+   file (~/.secrets/credproxyd/resolved.json) mapping the op:// ref string to
+   its value, populated once with an interactive `op read`. Rotation = re-run.
 """
 import json
 import os
@@ -106,11 +103,11 @@ def op_read(ref: str, token: str) -> str:
 
 
 def resolve(ref: str, store: dict, token: str) -> str:
-    if ref in store and isinstance(store[ref], str) and store[ref]:
-        return store[ref]
     if token:
         return op_read(ref, token)
-    # Neither a stored value nor a token: the operator has not provisioned this
+    if ref in store and isinstance(store[ref], str) and store[ref]:
+        return store[ref]
+    # Neither a token nor a stored value: the operator has not provisioned this
     # ref. Surface it as an unavailable credential rather than a silent empty.
     fail("secret_unprovisioned")
 
