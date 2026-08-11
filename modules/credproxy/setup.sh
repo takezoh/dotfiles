@@ -50,6 +50,15 @@ provision_sa_token() {
 	fi
 }
 
+# 親 env への鍵供給 snippet を login shell の per-host phase へ copy する。
+# daemon の起動可否に依らず配置する — snippet は broker 不在なら何もしない。
+# 鍵が増えてもこの snippet は不変 (broker の ROUTE_ENV だけが増える)。
+# copy であって symlink にしない (working tree を実行経路に載せない規約)。
+SHELLENV_DIR="$HOME/.local/config/zshrc"
+mkdir -p "$SHELLENV_DIR"
+cp "$ASSETS/shellenv/credproxy-env.sh" "$SHELLENV_DIR/50_credproxy-env.zsh"
+log "credproxy: installed shell env supply -> $SHELLENV_DIR/50_credproxy-env.zsh"
+
 # macOS uses launchd, not systemd. Ship the launchd path in README go-live;
 # do not attempt a systemd unit there.
 if is_darwin; then

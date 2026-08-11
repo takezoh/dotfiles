@@ -105,37 +105,52 @@ jq -n \
 
 Add one `--arg`/key line per ref. Rotation = re-run.
 
-### Reaching the socket from a sandboxed agent
+### How secrets reach a sandboxed consumer
 
-No sandbox network hole is needed, because the two consumers already run in a
-command class the agent host executes **outside** its sandbox:
+A sandboxed process **cannot reach the broker socket** — that is what a sandbox
+is, and it holds on every host (Linux blocks unix sockets with a seccomp filter
+that cannot match by path, so `allowUnixSockets` is macOS-only; a host loopback
+TCP port is no better, since the sandbox has its own network namespace and a TCP
+port would lose the socket's 0600 + SO_PEERCRED protection).
 
-- **skills** run via `mise exec …` (already in Claude Code's `excludedCommands`),
-  so `grok.py` reaches the socket directly — verified 2026-08-11.
-- **`ctx sync`** runs from the SessionStart hook, which is sandbox-external by
-  design (context-fabric ADR 0012).
+So the supply path is the one channel every host shares — **the parent
+environment**:
 
-Do **not** add a per-path `sandbox.network.allowUnixSockets`: on Linux, unix
-socket blocking is a seccomp filter that cannot match by path, so per-path is
-macOS-only and silently ignored on Linux/WSL2. The only Linux switch is
-`allowAllUnixSockets`, which opens every socket (including WSL2's Windows-interop
-socket) — rejected. A host loopback TCP port is no better: the sandbox has its
-own network namespace so it cannot reach the host's 127.0.0.1, and a TCP port
-loses the unix socket's 0600 + SO_PEERCRED protection. The agent-module
-counterpart therefore sets only `denyWrite` on `~/.config/credproxyd` (so a
-sandboxed agent cannot rewrite the fixed routes) and no socket allowance.
+1. At login (outside the sandbox) the shell snippet runs `credproxy env`, which
+   asks the broker for every env route and exports the results.
+2. The agent host starts as a child of that shell and inherits them.
+3. The sandboxed consumer reads the value from its own environment.
+
+**Adding a key never touches the consumer side.** The snippet is fixed; only the
+broker's `ROUTE_ENV` gains a line.
+
+This means the key is readable by whatever runs in the sandbox — true on every
+host, because the consumer must hold it. Narrow the blast radius at the
+credential (per-route separation, read-only vault scope, rotation), not at the
+host.
+
+**Claude adds an optional layer.** `sandbox.credentials.envVars` masks the value
+so sandboxed processes see only a sentinel, and the egress proxy substitutes the
+real one for `injectHosts` requests (it needs `network.tlsTerminate`, and
+`injectHosts` must be inside `allowedDomains`). It changes nothing structural —
+same snippet, same route, same consumer — and it is honored only from user or
+managed settings, never a repository's `.claude/settings.json`. It stops the key
+from being *read*, not from being *used* against that host, so it is not a
+substitute for narrowing the credential itself.
 
 ### grok-x-search cutover
 
-Once the `grok-x-search` route resolves (verified 2026-08-11), delete the
-plaintext `~/.secrets/env/skills-grok-x-search-scripts` and the skill's
-`scripts/.env`. `grok.py` falls back to the broker route when no plaintext key
-is present (xai_sdk is gRPC, so Tier-1 header injection does not apply — the key
-is a Tier-2 env). The `mise exec … grok.py` command is unchanged.
+`grok.py` now reads `XAI_API_KEY` from its environment only — the `.env` file and
+the broker-socket fallback are both gone, because neither works from inside a
+sandbox. Supply comes from the login-shell snippet above.
 
-Until a store or token exists, the wrappers / grok.py report the broker as
-unconfigured (or fall back to the existing plaintext env) rather than failing
-silently.
+After the broker resolves the `grok-x-search` route, delete the plaintext
+`~/.secrets/env/skills-grok-x-search-scripts` and the skill's `scripts/.env`.
+Retire them only once a shell started after `setup.sh` shows the key present —
+otherwise the skill has no source at all.
+
+Until then `grok.py` exits 2 with `error: xai_key_unprovisioned` and prints the
+host and platform, so an unsupplied key is visible rather than silent.
 
 ## Verify a running broker
 
