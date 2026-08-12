@@ -11,8 +11,8 @@ CONFIG_PATH="$CONFIG_DIR/config.toml"
 CONFIG_PROVENANCE="$CONFIG_DIR/config.toml.managed.json"
 RUNTIME_ROOT="$HOME/.local/lib/credproxy"
 
-# D3 is admitted by agent-module revision 59fcde2 and must descend from the
-# immutable D2 evidence revision below.  The checksum is the exact shell
+# D3 was admitted by agent-module revision 59fcde2 before squash landing.
+# The immutable D2 evidence object below remains addressable; the checksum is the exact shell
 # profile installed by D2; it is deliberately not derived from a live source
 # asset because the source is removed in this revision.
 readonly PRE_REMOVAL_ADMISSION_REVISION="59fcde2"

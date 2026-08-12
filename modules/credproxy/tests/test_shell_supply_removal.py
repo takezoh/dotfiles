@@ -103,12 +103,16 @@ class ShellSupplyRemovalTests(unittest.TestCase):
 	def tearDown(self) -> None:
 		self.sandbox.close()
 
-	def test_admission_and_d2_evidence_revision_are_bound(self) -> None:
+	def test_admission_and_d2_evidence_revision_objects_are_bound(self) -> None:
 		setup = SETUP.read_text(encoding="utf-8")
 		self.assertIn(f'PRE_REMOVAL_ADMISSION_REVISION="{ADMISSION_REVISION}"', setup)
 		self.assertIn(f'DOTFILES_D2_EVIDENCE_REVISION="{D2_EVIDENCE_REVISION}"', setup)
-		ancestor = git("merge-base", "--is-ancestor", D2_EVIDENCE_REVISION, "HEAD", check=False)
-		self.assertEqual(ancestor.returncode, 0, ancestor.stderr.decode())
+		# The delivery branch is squash-landed, so task commits are deliberately
+		# not ancestors of main. The exact immutable object and its managed
+		# profile bytes must remain addressable for the checksum-bound removal.
+		evidence = git("cat-file", "-e", f"{D2_EVIDENCE_REVISION}^{{commit}}", check=False)
+		self.assertEqual(evidence.returncode, 0, evidence.stderr.decode())
+		self.assertEqual(legacy_profile_bytes(), git("show", f"{D2_EVIDENCE_REVISION}:modules/credproxy/assets/shellenv/credproxy-env.sh").stdout)
 
 	def test_source_asset_and_setup_install_instruction_are_absent(self) -> None:
 		self.assertFalse(LEGACY_SOURCE.exists())
