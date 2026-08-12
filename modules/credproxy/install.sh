@@ -8,18 +8,17 @@ MODULES_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
 ASSETS="$(cd "$(dirname "$0")" && pwd)/assets"
 CREDPROXY_SRC="$(cd "$DOTFILES_DIR/.." && pwd -P)/credproxy"
+CONTEXT_FABRIC_SRC="$(cd "$DOTFILES_DIR/.." && pwd -P)/context-fabric"
 RUNTIME_ROOT="$HOME/.local/lib/credproxy"
+CONTEXT_RUNTIME_ROOT="$HOME/.local/lib/context-fabric"
 BIN_DIR="$RUNTIME_ROOT/bin"
 CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/credproxyd"
 HOOK_DIR="$RUNTIME_ROOT/hooks"
 BINDING_DIR="$RUNTIME_ROOT/bindings"
-WRAPPER_PATH="$BIN_DIR/ctx-sync"
-BINDING_PATH="$BINDING_DIR/ctx-sync.json"
 MINUET_CLIENT="$BIN_DIR/minuet-anthropic"
 MINUET_BINDING="$BINDING_DIR/minuet-anthropic.json"
 CONFIG_PATH="$CONFIG_DIR/config.toml"
 CONFIG_PROVENANCE="$CONFIG_DIR/config.toml.managed.json"
-CTX_SOURCE="$HOME/.local/bin/ctx"
 # Last dotfiles-managed config before closed-operation routing.  It may be
 # migrated only when the installed bytes are this exact known revision.
 readonly LEGACY_CONFIG_SHA256="4233fb7a99556dce594897ac35111ffcf987399fdb6fad4f357533e724013989"
@@ -57,90 +56,6 @@ sed_replacement() {
 	printf '%s' "$1" | sed 's/[|&]/\\&/g'
 }
 
-install_ctx_binding_manifest() {
-	local credproxy_path="$BIN_DIR/credproxy"
-	local ctx_path="$BIN_DIR/ctx"
-	local shell_path
-	local dotfiles_revision
-	local daemon_revision
-	local uid
-	local tmp
-
-	# Invalidate any previous identity tuple before refreshing the wrapper. A
-	# missing ctx/credproxy after this point must not leave a stale binding live.
-	tmp="$(mktemp "$BINDING_DIR/.ctx-sync.disabled.XXXXXX")"
-	printf '%s\n' '{"schema":"credroute/disabled","reason":"binding_unavailable"}' >"$tmp"
-	chmod 0600 "$tmp"
-	mv "$tmp" "$BINDING_PATH"
-
-	# Install the fail-closed wrapper first. Without a valid manifest it refuses
-	# to contact the broker or start ctx, so an incomplete install is inert.
-	install -m 0755 "$ASSETS/wrappers/ctx-sync" "$WRAPPER_PATH"
-
-	if ! resolved_regular_copy "$credproxy_path" || ! resolved_regular_copy "$BIN_DIR/credproxyd" || ! resolved_regular_copy "$ctx_path"; then
-		log "credproxy: ctx binding unavailable (credproxy/credproxyd/ctx must be regular installed copies)"
-		return 0
-	fi
-	if [ "$("$credproxy_path" --credroute-version 2>/dev/null || true)" != "credroute/v1 ctx-sync/2 client/1" ]; then
-		log "credproxy: ctx binding unavailable (credproxy client revision mismatch)"
-		return 0
-	fi
-	case "$credproxy_path" in "$DOTFILES_DIR"/*) log "credproxy: ctx binding unavailable (workspace execution path)"; return 0 ;; esac
-	case "$ctx_path" in "$DOTFILES_DIR"/*) log "credproxy: ctx binding unavailable (workspace execution path)"; return 0 ;; esac
-	case "$WRAPPER_PATH" in "$DOTFILES_DIR"/*) log "credproxy: ctx binding unavailable (workspace execution path)"; return 0 ;; esac
-	uid="$(id -u)"
-	if [ "$(file_uid "$credproxy_path")" != "$uid" ] || [ "$(file_uid "$ctx_path")" != "$uid" ]; then
-		log "credproxy: ctx binding unavailable (installed copy owner mismatch)"
-		return 0
-	fi
-	shell_path="$(/usr/bin/python3 -c 'import os; print(os.path.realpath("/bin/sh"))' 2>/dev/null || true)"
-	if [ -z "$shell_path" ] || [ ! -f "$shell_path" ] || [ -L "$shell_path" ] || [ ! -x "$shell_path" ]; then
-		log "credproxy: ctx binding unavailable (fixed /bin/sh resolution failed)"
-		return 0
-	fi
-	if has_cmd git && git -C "$DOTFILES_DIR" rev-parse --verify HEAD >/dev/null 2>&1; then
-		dotfiles_revision="$(git -C "$DOTFILES_DIR" log -1 --format=%H -- \
-			modules/credproxy/install.sh \
-			modules/credproxy/assets/config.toml \
-			modules/credproxy/assets/bindings/ctx-sync.json \
-			modules/credproxy/assets/wrappers/ctx-sync)"
-	else
-		dotfiles_revision="source-tree:$(file_sha256 "$ASSETS/wrappers/ctx-sync")"
-	fi
-	daemon_revision="$(file_sha256 "$BIN_DIR/credproxyd")"
-
-	tmp="$(mktemp "$BINDING_DIR/.ctx-sync.json.XXXXXX")"
-	sed \
-		-e "s|@DOTFILES_REVISION@|$(sed_replacement "$dotfiles_revision")|g" \
-		-e "s|@BROKER_SOCKET@|/run/user/$uid/credproxyd/broker.sock|g" \
-		-e "s|@CONFIG_FILE@|$(sed_replacement "$CONFIG_PATH")|g" \
-		-e "s|@CONFIG_SHA256@|$(file_sha256 "$CONFIG_PATH")|g" \
-		-e "s|@DAEMON_REVISION@|$daemon_revision|g" \
-		-e "s|@HOME@|$(sed_replacement "$HOME")|g" \
-		-e "s|@WRAPPER_PATH@|$(sed_replacement "$WRAPPER_PATH")|g" \
-		-e "s|@WRAPPER_SHA256@|$(file_sha256 "$WRAPPER_PATH")|g" \
-		-e "s|@CREDPROXY_PATH@|$(sed_replacement "$credproxy_path")|g" \
-		-e "s|@CREDPROXY_SHA256@|$(file_sha256 "$credproxy_path")|g" \
-		-e "s|@CREDPROXY_MODE@|0$(file_mode "$credproxy_path")|g" \
-		-e "s|@CTX_PATH@|$(sed_replacement "$ctx_path")|g" \
-		-e "s|@CTX_SHA256@|$(file_sha256 "$ctx_path")|g" \
-		-e "s|@CTX_MODE@|0$(file_mode "$ctx_path")|g" \
-		-e "s|@SHELL_PATH@|$(sed_replacement "$shell_path")|g" \
-		-e "s|@SHELL_SHA256@|$(file_sha256 "$shell_path")|g" \
-		-e "s|@SHELL_UID@|$(file_uid "$shell_path")|g" \
-		-e "s|@SHELL_MODE@|0$(file_mode "$shell_path")|g" \
-		-e "s|@UID@|$uid|g" \
-		"$ASSETS/bindings/ctx-sync.json" >"$tmp"
-	chmod 0600 "$tmp"
-	if ! /usr/bin/python3 -m json.tool "$tmp" >/dev/null; then
-		rm -f "$tmp"
-		log "credproxy: ctx binding unavailable (rendered manifest invalid)"
-		return 0
-	fi
-	mv "$tmp" "$BINDING_PATH"
-	log "credproxy: installed credroute/v1 ctx binding manifest"
-}
-
 write_config_provenance() {
 	local revision="$1" template_revision="$2" tmp
 	tmp="$(mktemp "$CONFIG_DIR/.config.toml.managed.XXXXXX")"
@@ -163,16 +78,12 @@ PY
 }
 
 install_managed_config() {
-	local source_sha template_sha installed_sha rendered daemon_revision uid tmp provenance_state
+	local source_sha template_sha installed_sha rendered uid tmp provenance_state
 	uid="$(id -u)"
-	daemon_revision="$(file_sha256 "$BIN_DIR/credproxyd")"
 	tmp="$(mktemp "$CONFIG_DIR/.config.toml.rendered.XXXXXX")"
 	sed \
-		-e "s|@DAEMON_REVISION@|$daemon_revision|g" \
 		-e "s|@BROKER_SOCKET@|/run/user/$uid/credproxyd/broker.sock|g" \
-		-e "s|@CTX_PATH@|$(sed_replacement "$BIN_DIR/ctx")|g" \
 		-e "s|@HOOK_PATH@|$(sed_replacement "$HOOK_DIR/op-resolve.py")|g" \
-		-e "s|@CTX_CONFIG@|$(sed_replacement "$HOME/.config/context-fabric/config.toml")|g" \
 		"$ASSETS/config.toml" >"$tmp"
 	chmod 0600 "$tmp"
 	rendered="$tmp"
@@ -305,6 +216,20 @@ else
 	( cd "$CREDPROXY_SRC" && go build -o "$BIN_DIR/credproxy" ./cmd/credproxy )
 fi
 
+# Build the Context Fabric-owned service endpoint.  dotfiles only packages the
+# product binary; endpoint semantics and remote-sync execution stay in the
+# context-fabric repository.
+if [ ! -d "$CONTEXT_FABRIC_SRC" ]; then
+	log "credproxy: context-fabric source repo not found at $CONTEXT_FABRIC_SRC, sync service build skipped"
+elif ! has_cmd go; then
+	log "credproxy: go 未導入のため context-service build をスキップ"
+else
+	mkdir -p "$CONTEXT_RUNTIME_ROOT/bin"
+	log "credproxy: building context-service -> $CONTEXT_RUNTIME_ROOT/bin"
+	( cd "$CONTEXT_FABRIC_SRC" && go build -o "$CONTEXT_RUNTIME_ROOT/bin/context-service" ./cmd/context-service )
+	chmod 0700 "$CONTEXT_RUNTIME_ROOT" "$CONTEXT_RUNTIME_ROOT/bin"
+fi
+
 # 2. Native headless `op` (Linux only). The WSL `op` on PATH is the op.exe shim
 #    (interactive); the broker needs a native binary it can run non-interactively.
 OP_BIN="/usr/local/bin/op"
@@ -350,14 +275,7 @@ for directory in "$RUNTIME_ROOT" "$BIN_DIR" "$HOOK_DIR" "$BINDING_DIR"; do
 done
 chmod 0700 "$RUNTIME_ROOT" "$BIN_DIR" "$HOOK_DIR" "$BINDING_DIR"
 install -m 0755 "$ASSETS/hooks/op-resolve.py" "$HOOK_DIR/op-resolve.py"
-if resolved_regular_copy "$CTX_SOURCE"; then
-	install -m 0755 "$CTX_SOURCE" "$BIN_DIR/ctx"
-else
-	rm -f "$BIN_DIR/ctx"
-	log "credproxy: trusted ctx copy unavailable; ctx binding disabled"
-fi
 install_managed_config
-install_ctx_binding_manifest
 install_minuet_binding_manifest
 log "credproxy: hooks/wrappers refreshed"
 

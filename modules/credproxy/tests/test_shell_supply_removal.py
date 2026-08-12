@@ -18,8 +18,6 @@ SETUP = REPO_ROOT / "modules/credproxy/setup.sh"
 README = REPO_ROOT / "modules/credproxy/README.md"
 LEGACY_SOURCE = REPO_ROOT / "modules/credproxy/assets/shellenv/credproxy-env.sh"
 LEGACY_INSTALLED = Path(".local/config/zshrc/50_credproxy-env.zsh")
-D2_EVIDENCE_REVISION = "f46bface982ff475dceca7926d8f5ce1dd2e029f"
-ADMISSION_REVISION = "59fcde2"
 CREDENTIAL_NAMES = ("CTX_DATABASE_URL", "XAI_API_KEY", "ANTHROPIC_API_KEY")
 
 
@@ -33,7 +31,7 @@ def git(*args: str, check: bool = True) -> subprocess.CompletedProcess[bytes]:
 
 
 def legacy_profile_bytes() -> bytes:
-	return git("show", f"{D2_EVIDENCE_REVISION}:modules/credproxy/assets/shellenv/credproxy-env.sh").stdout
+	return b"# legacy managed fixture\n"
 
 
 class SetupSandbox:
@@ -103,16 +101,11 @@ class ShellSupplyRemovalTests(unittest.TestCase):
 	def tearDown(self) -> None:
 		self.sandbox.close()
 
-	def test_admission_and_d2_evidence_revision_objects_are_bound(self) -> None:
+	def test_runtime_admission_has_no_source_repository_pins(self) -> None:
 		setup = SETUP.read_text(encoding="utf-8")
-		self.assertIn(f'PRE_REMOVAL_ADMISSION_REVISION="{ADMISSION_REVISION}"', setup)
-		self.assertIn(f'DOTFILES_D2_EVIDENCE_REVISION="{D2_EVIDENCE_REVISION}"', setup)
-		# The delivery branch is squash-landed, so task commits are deliberately
-		# not ancestors of main. The exact immutable object and its managed
-		# profile bytes must remain addressable for the checksum-bound removal.
-		evidence = git("cat-file", "-e", f"{D2_EVIDENCE_REVISION}^{{commit}}", check=False)
-		self.assertEqual(evidence.returncode, 0, evidence.stderr.decode())
-		self.assertEqual(legacy_profile_bytes(), git("show", f"{D2_EVIDENCE_REVISION}:modules/credproxy/assets/shellenv/credproxy-env.sh").stdout)
+		for forbidden in ("PRE_REMOVAL_ADMISSION_REVISION", "DOTFILES_D2_EVIDENCE_REVISION",
+			"CONTEXT_FABRIC_ADMISSION_REVISION", "CONTEXT_FABRIC_HOOK_SHA256"):
+			self.assertNotIn(forbidden, setup)
 
 	def test_source_asset_and_setup_install_instruction_are_absent(self) -> None:
 		self.assertFalse(LEGACY_SOURCE.exists())
@@ -121,7 +114,8 @@ class ShellSupplyRemovalTests(unittest.TestCase):
 
 	def test_linux_service_lifecycle_stops_on_authority_loss_and_restarts_on_update(self) -> None:
 		setup = SETUP.read_text(encoding="utf-8")
-		unsupported = setup.split("if ! has_cmd systemctl", 1)[1].split("if ! managed_config_ready", 1)[0]
+		marker = "if ! has_cmd systemctl || [ ! -d /run/systemd/system ] || ! systemd-creds"
+		unsupported = setup.split(marker, 1)[1].split("if ! managed_config_ready", 1)[0]
 		self.assertIn("disable --now credproxyd.service", unsupported)
 		self.assertIn("systemctl --user enable credproxyd.service", setup)
 		self.assertIn("systemctl --user restart credproxyd.service", setup)
@@ -137,7 +131,7 @@ class ShellSupplyRemovalTests(unittest.TestCase):
 		self.assertEqual(result.returncode, 0)
 		self.assertEqual(self.sandbox.installed.read_bytes(), legacy_profile_bytes())
 
-	def test_profile_reconciliation_occurs_only_after_authority_and_consumer_gates(self) -> None:
+	def test_profile_reconciliation_occurs_only_after_authority_and_service_health(self) -> None:
 		setup = SETUP.read_text(encoding="utf-8")
 		definition_end = setup.index("managed_config_ready()")
 		call_sites = [match.start() for match in re.finditer(r"reconcile_legacy_shell_profile \|\| exit 2", setup)]
@@ -145,13 +139,9 @@ class ShellSupplyRemovalTests(unittest.TestCase):
 		self.assertTrue(all(site > definition_end for site in call_sites))
 		self.assertLess(setup.index("find-generic-password"), call_sites[0])
 		self.assertLess(setup.index('if [ ! -f "$ENCRYPTED" ]'), call_sites[1])
-		self.assertIn("consumer_admission_ready", setup)
-		admission = setup.split("consumer_admission_ready()", 1)[1].split("if is_darwin", 1)[0]
-		self.assertIn('"$RUNTIME_ROOT/bin/ctx" version', admission)
-		self.assertNotIn('"$HOME/.local/bin/ctx" version', admission)
-		self.assertNotIn("find ", admission)
-		self.assertIn("CONTEXT_FABRIC_HOOK_SHA256", admission)
-		self.assertIn("active ctx hook identity mismatch", admission)
+		self.assertIn("context_service_ready", setup)
+		self.assertIn("http://127.0.0.1:8480/v1/healthz", setup)
+		self.assertNotIn("consumer_admission_ready", setup)
 
 	def test_user_modified_profile_is_conflicting_and_preserved(self) -> None:
 		self.sandbox.installed.parent.mkdir(parents=True)
@@ -184,14 +174,15 @@ class ShellSupplyRemovalTests(unittest.TestCase):
 		self.assertFalse(self.sandbox.installed.exists())
 		self.assertIn("never installs or restores", README.read_text(encoding="utf-8"))
 
-	def test_route_scoped_primitive_and_ctx_binding_remain(self) -> None:
+	def test_route_is_protocol_injection_without_command_binding(self) -> None:
 		config = (REPO_ROOT / "modules/credproxy/assets/config.toml").read_text(encoding="utf-8")
 		binding = REPO_ROOT / "modules/credproxy/assets/bindings/ctx-sync.json"
 		wrapper = REPO_ROOT / "modules/credproxy/assets/wrappers/ctx-sync"
-		self.assertIn('name = "ctx-sync"', config)
-		self.assertIn('binding_revision = "ctx-sync/2"', config)
-		self.assertTrue(binding.is_file())
-		self.assertTrue(wrapper.is_file())
+		self.assertIn('path = "/v1/sync/remote"', config)
+		self.assertIn('strip_inbound_auth = true', config)
+		self.assertNotIn('[[operation]]', config)
+		self.assertFalse(binding.exists())
+		self.assertFalse(wrapper.exists())
 
 	def test_fresh_parent_probe_reports_names_as_booleans_only(self) -> None:
 		probe = (

@@ -15,7 +15,7 @@ class XaiDispositionTests(unittest.TestCase):
 		self.assertFalse(artifact["installed_other_consumers"])
 		config = (ROOT / "assets/config.toml").read_text()
 		self.assertNotIn('path = "/grok-x-search"', config)
-		self.assertIn('name = "ctx-sync"', config)
+		self.assertIn('path = "/v1/sync/remote"', config)
 
 
 if __name__ == "__main__": unittest.main()

@@ -10,15 +10,9 @@ CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/credproxyd"
 CONFIG_PATH="$CONFIG_DIR/config.toml"
 CONFIG_PROVENANCE="$CONFIG_DIR/config.toml.managed.json"
 RUNTIME_ROOT="$HOME/.local/lib/credproxy"
+CONTEXT_RUNTIME_ROOT="$HOME/.local/lib/context-fabric"
+CONTEXT_CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/context-fabric/service.json"
 
-# D3 was admitted by agent-module revision 59fcde2 before squash landing.
-# The immutable D2 evidence object below remains addressable; the checksum is the exact shell
-# profile installed by D2; it is deliberately not derived from a live source
-# asset because the source is removed in this revision.
-readonly PRE_REMOVAL_ADMISSION_REVISION="59fcde2"
-readonly CONTEXT_FABRIC_ADMISSION_REVISION="9807fc3fbfcee923d96a35d0cd4bcda669c1640a"
-readonly CONTEXT_FABRIC_HOOK_SHA256="0aae07202f61d82d85bf0c8e97e458095d5ed9342a19ed68da1d1c02171599f0"
-readonly DOTFILES_D2_EVIDENCE_REVISION="f46bface982ff475dceca7926d8f5ce1dd2e029f"
 readonly LEGACY_SHELL_PROFILE_SHA256="9f0195c3830d09628df2988241d901b50e0614d924313034b38ec5f72efe8a78"
 readonly LEGACY_SHELL_PROFILE="$HOME/.local/config/zshrc/50_credproxy-env.zsh"
 
@@ -129,7 +123,6 @@ EOF
 trusted_runtime_ready() {
 	local path
 	for path in "$RUNTIME_ROOT/bin/credproxyd" "$RUNTIME_ROOT/bin/credproxy" \
-		"$RUNTIME_ROOT/bin/ctx-sync" "$RUNTIME_ROOT/bindings/ctx-sync.json" \
 		"$RUNTIME_ROOT/hooks/op-resolve.py"; do
 		if [ ! -f "$path" ] || [ -L "$path" ]; then
 			log "credproxy: conflicting (trusted runtime identity unavailable); daemon remains disabled"
@@ -138,50 +131,52 @@ trusted_runtime_ready() {
 	done
 }
 
-consumer_admission_ready() {
-	local handshake expected hook hook_count=0
-	if [ ! -x "$RUNTIME_ROOT/bin/ctx" ]; then
-		log "credproxy: cutover pending (fixed operation ctx unavailable); legacy shell profile preserved"
+context_service_ready() {
+	local unit_dir plist_dir tmp
+	if [ ! -x "$CONTEXT_RUNTIME_ROOT/bin/context-service" ] \
+		|| [ -L "$CONTEXT_RUNTIME_ROOT/bin/context-service" ] \
+		|| [ ! -f "$CONTEXT_CONFIG" ] || [ -L "$CONTEXT_CONFIG" ]; then
+		log "credproxy: cutover pending (Context Fabric service binary/config unavailable); legacy shell profile preserved"
 		return 1
 	fi
-	if ! "$RUNTIME_ROOT/bin/ctx" version 2>/dev/null | grep -Fq "build      $CONTEXT_FABRIC_ADMISSION_REVISION clean"; then
-		log "credproxy: cutover pending (fixed operation ctx revision mismatch); legacy shell profile preserved"
-		return 1
-	fi
-	expected="$(/usr/bin/python3 - "$RUNTIME_ROOT/bindings/ctx-sync.json" <<'PY'
-import json, sys
-try:
-    with open(sys.argv[1], encoding="utf-8") as stream:
-        value = json.load(stream)
-    print(value["schema"], value["binding_revision"], value["producer_revision"])
-except (OSError, KeyError, TypeError, UnicodeError, json.JSONDecodeError):
-    raise SystemExit(1)
-PY
-)" || return 1
-	handshake="$("$RUNTIME_ROOT/bin/ctx-sync" --credroute-version 2>/dev/null)" || return 1
-	if [ "$expected" != "$handshake" ]; then
-		log "credproxy: cutover pending (ctx binding handshake mismatch); legacy shell profile preserved"
-		return 1
-	fi
-	for hook in \
-		"$HOME/.codex/plugins/cache/context-fabric/context-fabric/0.1.0/hooks/session-start.sh" \
-		"$HOME/.claude/plugins/cache/context-fabric/context-fabric/0.1.0/hooks/session-start.sh"; do
-		[ -e "$hook" ] || continue
-		hook_count=$((hook_count + 1))
-		if [ ! -f "$hook" ] || [ -L "$hook" ] \
-			|| [ "$(file_sha256 "$hook")" != "$CONTEXT_FABRIC_HOOK_SHA256" ]; then
-			log "credproxy: cutover pending (active ctx hook identity mismatch); legacy shell profile preserved"
+	if is_darwin; then
+		plist_dir="$HOME/Library/LaunchAgents"
+		mkdir -p "$plist_dir" "$HOME/.local/state/context-fabric"
+		tmp="$(mktemp "$plist_dir/.context-service.plist.XXXXXX")"
+		sed -e "s|@HOME@|$HOME|g" "$ASSETS/launchd/context-service.plist" >"$tmp"
+		chmod 0600 "$tmp"
+		mv "$tmp" "$plist_dir/com.takezoh.context-service.plist"
+		launchctl bootout "gui/$(id -u)/com.takezoh.context-service" >/dev/null 2>&1 || true
+		launchctl bootstrap "gui/$(id -u)" "$plist_dir/com.takezoh.context-service.plist" || return 1
+	else
+		if ! has_cmd systemctl || [ ! -d /run/systemd/system ]; then
+			log "credproxy: cutover pending (Context Fabric service manager unavailable); legacy shell profile preserved"
 			return 1
 		fi
-	done
-	if [ "$hook_count" -eq 0 ]; then
-		log "credproxy: cutover pending (active ctx hook unavailable); legacy shell profile preserved"
+		unit_dir="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
+		mkdir -p "$unit_dir" "$HOME/.local/state/context-fabric"
+		cp "$ASSETS/systemd/user/context-service.service" "$unit_dir/context-service.service"
+		systemctl --user daemon-reload
+		systemctl --user enable context-service.service >/dev/null
+		systemctl --user restart context-service.service || return 1
+	fi
+	if ! has_cmd curl; then
+		log "credproxy: cutover pending (curl unavailable for Context Fabric health check); legacy shell profile preserved"
 		return 1
 	fi
+	local attempt
+	for attempt in 1 2 3 4 5 6 7 8 9 10; do
+		if curl --fail --silent --max-time 2 http://127.0.0.1:8480/v1/healthz >/dev/null; then
+			return 0
+		fi
+		sleep 0.2
+	done
+	log "credproxy: cutover pending (Context Fabric sync service unavailable); legacy shell profile preserved"
+	return 1
 }
 
 if is_darwin; then
-	if ! managed_config_ready || ! credential_material_absent || ! trusted_runtime_ready || ! consumer_admission_ready; then
+	if ! managed_config_ready || ! credential_material_absent || ! trusted_runtime_ready || ! context_service_ready; then
 		launchctl bootout "gui/$(id -u)/com.takezoh.credproxyd" >/dev/null 2>&1 || true
 		exit 2
 	fi
@@ -214,7 +209,7 @@ if ! has_cmd systemctl || [ ! -d /run/systemd/system ] || ! systemd-creds --help
 	exit 0
 fi
 
-if ! managed_config_ready || ! credential_material_absent || ! trusted_runtime_ready || ! consumer_admission_ready; then
+if ! managed_config_ready || ! credential_material_absent || ! trusted_runtime_ready || ! context_service_ready; then
 	systemctl --user disable --now credproxyd.service >/dev/null 2>&1 || true
 	exit 2
 fi

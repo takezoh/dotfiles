@@ -17,9 +17,9 @@ from pathlib import Path
 from typing import Callable, Mapping, NoReturn, Sequence
 
 
-ROUTE_ENV = {
-	"ctx-sync": {
-		"CTX_DATABASE_URL": "op://local-dev/Context Fabric/PostgreSQL/url",
+ROUTE_HEADERS = {
+	"v1/sync/remote": {
+		"Authorization": ("Bearer ", "op://local-dev/Context Fabric/Service Principal/token"),
 	},
 }
 
@@ -132,7 +132,7 @@ def resolve_request(
 	run_op: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
 ) -> dict[str, object]:
 	route = req.get("route", "")
-	mapping = ROUTE_ENV.get(route) if isinstance(route, str) else None
+	mapping = ROUTE_HEADERS.get(route) if isinstance(route, str) else None
 	if mapping is None:
 		fail("unknown_route")
 	token = authority_token(
@@ -141,8 +141,8 @@ def resolve_request(
 		read_bytes=read_bytes,
 		run_security=run_security,
 	)
-	env = {name: op_read(ref, token, run=run_op) for name, ref in mapping.items()}
-	return {"body_replace": {"env": env}, "expires_in_sec": EXPIRES_IN_SEC}
+	headers = {name: prefix + op_read(ref, token, run=run_op) for name, (prefix, ref) in mapping.items()}
+	return {"headers": headers, "expires_in_sec": EXPIRES_IN_SEC}
 
 
 def main() -> None:

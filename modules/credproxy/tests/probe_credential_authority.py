@@ -78,14 +78,14 @@ def fake_probe(platform_name: str, producer_revision: str) -> dict[str, object]:
 		with redirect_stdout(out), redirect_stderr(err):
 			for _ in range(2):
 				resolver.resolve_request(
-					{"route": "ctx-sync"}, platform_name=platform_name,
+					{"route": "v1/sync/remote"}, platform_name=platform_name,
 					environ={"CREDENTIALS_DIRECTORY": str(runtime)},
 					read_bytes=fake_read, run_security=fake_security, run_op=fake_op,
 				)
 			observed["revoked"] = True
 			try:
 				resolver.resolve_request(
-					{"route": "ctx-sync"}, platform_name=platform_name,
+					{"route": "v1/sync/remote"}, platform_name=platform_name,
 					environ={"CREDENTIALS_DIRECTORY": str(runtime)},
 					read_bytes=fake_read, run_security=fake_security, run_op=fake_op,
 				)

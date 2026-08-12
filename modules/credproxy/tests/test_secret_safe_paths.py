@@ -26,10 +26,12 @@ class SecretSafePathTests(unittest.TestCase):
 		self.assertEqual(binding["operation"]["url"], "https://api.anthropic.com/v1/messages")
 		self.assertFalse(binding["limits"]["automatic_retry"])
 
-	def test_config_retains_only_ctx_closed_operation(self):
+	def test_config_uses_protocol_injection_only(self):
 		text = (ROOT / "assets/config.toml").read_text()
-		self.assertIn('name = "ctx-sync"', text)
-		self.assertIn('binding_revision = "ctx-sync/2"', text)
+		self.assertIn('path = "/v1/sync/remote"', text)
+		self.assertIn('upstream = "http://127.0.0.1:8480"', text)
+		self.assertNotIn('[[operation]]', text)
+		self.assertNotIn('executable_paths', text)
 		self.assertNotIn('path = "/anthropic"', text)
 		self.assertNotIn('path = "/grok-x-search"', text)
 

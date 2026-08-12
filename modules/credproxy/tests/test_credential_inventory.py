@@ -22,11 +22,11 @@ except ModuleNotFoundError:  # pragma: no cover - Python 3.11 is the supported r
 
 SCHEMA = "credproxy-inventory/v1"
 ROUTES = {
-	"ctx-sync": {
-		"credential_names": ["CTX_DATABASE_URL"],
-		"delivery_kind": "env-body",
+	"v1/sync/remote": {
+		"credential_names": ["Context Fabric service bearer"],
+		"delivery_kind": "http-header-injection",
 		"owner": "dotfiles:modules/credproxy",
-		"consumer": {"identity": "context-fabric:ctx-sync", "revision": "pending-hook-cutover"},
+		"consumer": {"identity": "context-fabric:POST /v1/sync/remote", "revision": "protocol-v1"},
 		"disposition": "keep",
 	},
 	"grok-x-search": {
@@ -287,7 +287,7 @@ class InventoryTests(unittest.TestCase):
 		config.parent.mkdir(parents=True)
 		config.write_text(
 			'listen_unix = "/fixed/socket"\n'
-			'[[route]]\npath = "/ctx-sync"\n' + extra,
+			'[[route]]\npath = "/v1/sync/remote"\n' + extra,
 			encoding="utf-8",
 		)
 		(root / "modules/credproxy/assets/shellenv").mkdir(parents=True)

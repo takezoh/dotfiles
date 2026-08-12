@@ -34,8 +34,7 @@ class InstallFixture:
         go = self.fake_bin / "go"
         go.write_text(
             '#!/bin/sh\nout=""\nwhile [ "$#" -gt 0 ]; do [ "$1" = -o ] && { shift; out="$1"; }; shift; done\n'
-            'if [ "${out##*/}" = credproxy ]; then printf "%s\\n" \'#!/bin/sh\' \'[ "$1" = --credroute-version ] && echo "credroute/v1 ctx-sync/2 client/1"\' \'exit 0\' > "$out"; '
-            'else printf "#!/bin/sh\\nexit 0\\n" > "$out"; fi\nchmod 0755 "$out"\n', encoding="utf-8")
+            'printf "#!/bin/sh\\nexit 0\\n" > "$out"\nchmod 0755 "$out"\n', encoding="utf-8")
         go.chmod(0o755)
         ctx = self.home / ".local/bin/ctx"
         ctx.parent.mkdir(parents=True)
@@ -60,15 +59,13 @@ class InstallManagementTests(unittest.TestCase):
         result = self.fixture.run()
         self.assertEqual(result.returncode, 0, result.stderr)
         runtime = self.fixture.home / ".local/lib/credproxy"
-        for path in (runtime / "bin/credproxy", runtime / "bin/credproxyd", runtime / "bin/ctx", runtime / "bin/ctx-sync", runtime / "bindings/ctx-sync.json", runtime / "hooks/op-resolve.py"):
+        for path in (runtime / "bin/credproxy", runtime / "bin/credproxyd", runtime / "hooks/op-resolve.py"):
             self.assertTrue(path.is_file() and not path.is_symlink(), path)
         provenance = json.loads(self.fixture.config.with_name("config.toml.managed.json").read_text())
         self.assertEqual(provenance["schema"], "credproxy-managed-config/v1")
         self.assertEqual(provenance["source_revision"], provenance["installed_revision"])
-        binding = json.loads((runtime / "bindings/ctx-sync.json").read_text())
-        self.assertEqual(binding["schema"], "credroute/v1")
-        self.assertEqual(binding["client_revision"], "client/1")
-        self.assertRegex(binding["daemon_revision"], r"^credproxyd/[0-9a-f]{64}$")
+        self.assertFalse((runtime / "bin/ctx-sync").exists())
+        self.assertFalse((runtime / "bindings/ctx-sync.json").exists())
 
     def test_local_config_is_preserved_and_typed_conflicting(self):
         self.fixture.config.parent.mkdir(parents=True)
@@ -89,17 +86,9 @@ class InstallManagementTests(unittest.TestCase):
         self.assertEqual(self.fixture.config.read_bytes(), before)
         self.assertIn("provenance absent/invalid", second.stderr)
 
-    def test_exact_known_legacy_config_is_migrated(self):
-        legacy = subprocess.run(
-            ["git", "-C", str(REPO), "show", "f46bface982ff475dceca7926d8f5ce1dd2e029f:modules/credproxy/assets/config.toml"],
-            check=True, capture_output=True,
-        ).stdout
-        self.fixture.config.parent.mkdir(parents=True)
-        self.fixture.config.write_bytes(legacy)
-        result = self.fixture.run()
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertNotEqual(self.fixture.config.read_bytes(), legacy)
-        self.assertIn("migrated exact known managed", result.stderr)
+    def test_install_has_no_dependency_on_unreachable_delivery_revision(self):
+        text = (MODULE / "install.sh").read_text()
+        self.assertNotIn("f46bface", text)
 
     def test_exact_original_managed_config_is_migrated(self):
         legacy = subprocess.run(

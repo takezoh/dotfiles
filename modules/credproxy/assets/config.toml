@@ -1,31 +1,13 @@
 # Rendered at install time. No credential value is stored in this file.
-daemon_revision = "credproxyd/@DAEMON_REVISION@"
 listen_unix = "@BROKER_SOCKET@"
 log_level = "info"
 
-[[operation]]
-name = "ctx-sync"
-binding_revision = "ctx-sync/2"
-executable_paths = ["@CTX_PATH@"]
-subcommand = "sync"
-credential_command = ["@HOOK_PATH@", "ctx-sync"]
+[[route]]
+path = "/v1/sync/remote"
+upstream = "http://127.0.0.1:8480"
+credential_command = ["@HOOK_PATH@"]
 hook_timeout_sec = 10
-max_runtime_sec = 300
-pass_env = ["LANG", "LC_ALL", "TZ"]
-fixed_env = { PATH = "/usr/bin:/bin", CTX_CONFIG = "@CTX_CONFIG@" }
-env = { CTX_DATABASE_URL = "CTX_DATABASE_URL" }
-
-[[operation.argument]]
-flag = "-timeout"
-type = "duration"
-min = "1s"
-max = "5m"
-
-[[operation.argument]]
-flag = "-min-interval"
-type = "duration"
-min = "0s"
-max = "24h"
+strip_inbound_auth = true
 
 # XAI was retired only after installed consumer inventory was determinate.
-# Anthropic remains disabled because no admitted closed operation exists.
+# Anthropic remains disabled because it has no protocol-injection integration.

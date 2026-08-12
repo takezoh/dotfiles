@@ -1,0 +1,19 @@
+[Unit]
+Description=Context Fabric local service
+After=default.target
+ConditionPathExists=%h/.config/context-fabric/service.json
+ConditionPathIsExecutable=%h/.local/lib/context-fabric/bin/context-service
+
+[Service]
+Type=simple
+ExecStart=%h/.local/lib/context-fabric/bin/context-service -config %h/.config/context-fabric/service.json -listen 127.0.0.1:8480
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=%h/.local/state/context-fabric
+PrivateTmp=true
+
+[Install]
+WantedBy=default.target
