@@ -1,0 +1,11 @@
+{
+  "schema": "credroute/anthropic/v1",
+  "binding_id": "minuet-anthropic",
+  "binding_revision": "minuet-anthropic/1",
+  "producer_revision": "@DOTFILES_REVISION@",
+  "classification": "provider_disabled",
+  "reason": "consumer_bound_caller_admission_unsupported",
+  "client": {"path": "@CLIENT_PATH@", "sha256": "@CLIENT_SHA256@", "uid": "@UID@", "mode": "0755"},
+  "operation": {"method": "POST", "url": "https://api.anthropic.com/v1/messages", "credential_header": "x-api-key", "injection_owner": "broker"},
+  "limits": {"stdin_bytes": 1048576, "buffer_bytes": 65536, "first_byte_seconds": 60, "total_seconds": 300, "in_flight": 1, "cancel_deadline_ms": 1000, "automatic_retry": false}
+}

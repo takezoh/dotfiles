@@ -1,6 +1,9 @@
 return {
 	"milanglacier/minuet-ai.nvim",
-	enabled = vim.env.ANTHROPIC_API_KEY ~= nil and vim.env.ANTHROPIC_API_KEY ~= "",
+	-- credproxyd cannot currently prove an installed executable-bound caller
+	-- and exact POST /v1/messages operation.  Fail closed; never inspect or
+	-- copy credential material into Neovim/Lua/argv/config.
+	enabled = false,
 	dependencies = { "nvim-lua/plenary.nvim" },
 	opts = {
 		provider = "claude",

@@ -1,0 +1,29 @@
+{
+  "schema": "credproxy/pre-removal-evidence/v1",
+  "producer_repository": "dotfiles",
+  "production_revision": "8fc496b",
+  "classifications": {
+    "inventory": "determinate",
+    "authority_linux_fake": "supported",
+    "anthropic_tier1": "unsupported",
+    "anthropic_adapter": "unsupported",
+    "anthropic_selected": "provider_disabled",
+    "xai_route": "retired",
+    "ctx_binding": "retained"
+  },
+  "pinned_inputs": {
+    "dotfiles_parent_revision": "84d1131cfae515547a0be7453df8e12e270763e9",
+    "agent_module_integration_revision": "bade647",
+    "context_fabric_revision": "4605dba",
+    "xai_consumer_proof_revision": "53e0ae7a447b58e3470e8a1816616864ffb26f65"
+  },
+  "reports": {
+    "inventory": "credential-inventory.json",
+    "authority": "credential-authority.json",
+    "anthropic_tier1": "anthropic-tier1.json",
+    "anthropic_adapter": "anthropic-adapter.json",
+    "xai": "xai-route-disposition.json"
+  },
+  "shell_export_removal_authorized": false,
+  "credential_material_observed": false
+}

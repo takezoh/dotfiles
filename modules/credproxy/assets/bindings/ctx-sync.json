@@ -1,0 +1,29 @@
+{
+  "schema": "credroute/v1",
+  "binding_id": "ctx-sync",
+  "binding_revision": "ctx-sync/2",
+  "producer_revision": "@DOTFILES_REVISION@",
+  "client_revision": "client/1",
+  "daemon_revision": "credproxyd/@DAEMON_REVISION@",
+  "route": "ctx-sync",
+  "credential_names": [],
+  "subcommand": "sync",
+  "argv_grammar": {
+    "options": ["-timeout", "-min-interval"],
+    "cardinality": "zero-or-one-each",
+    "value": "go-duration",
+    "positional": false,
+    "separator": false
+  },
+  "broker": {
+    "socket": "@BROKER_SOCKET@",
+    "config": {"path": "@CONFIG_FILE@", "sha256": "@CONFIG_SHA256@", "uid": @UID@, "mode": "0600"},
+    "home": "@HOME@"
+  },
+  "base_env": {"HOME": "@HOME@", "LANG": "C.UTF-8", "TZ": "UTC"},
+  "executables": {
+    "wrapper": {"path": "@WRAPPER_PATH@", "sha256": "@WRAPPER_SHA256@", "uid": @UID@, "mode": "0755"},
+    "credproxy": {"path": "@CREDPROXY_PATH@", "sha256": "@CREDPROXY_SHA256@", "uid": @UID@, "mode": "@CREDPROXY_MODE@"},
+    "ctx": {"path": "@CTX_PATH@", "sha256": "@CTX_SHA256@", "uid": @UID@, "mode": "@CTX_MODE@"}
+  }
+}

@@ -1,0 +1,37 @@
+#!/usr/bin/python3
+import json
+import unittest
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+class SecretSafePathTests(unittest.TestCase):
+	def test_production_sources_have_no_plaintext_store_or_bearer_file(self):
+		paths = [ROOT / "assets/hooks/op-resolve.py", ROOT / "assets/config.toml"]
+		text = "\n".join(path.read_text() for path in paths)
+		for forbidden in ("resolved.json", "service-account.token", "auth_tokens_file", "CREDPROXY_RESOLVED_STORE", "CREDPROXY_OP_TOKEN_FILE"):
+			self.assertNotIn(forbidden, text)
+
+	def test_setup_inventories_legacy_material_by_presence_only(self):
+		text = (ROOT / "setup.sh").read_text()
+		for known in ("resolved.json", "service-account.token", "$CONFIG_DIR/token", "anthropic_key", "grok-script-env"):
+			self.assertIn(known, text)
+		for forbidden in ('cat "$candidate"', 'read_bytes', 'source "$candidate"'):
+			self.assertNotIn(forbidden, text)
+
+	def test_anthropic_binding_records_only_disabled_contract(self):
+		binding = json.loads((ROOT / "assets/bindings/minuet-anthropic.json").read_text())
+		self.assertEqual(binding["classification"], "provider_disabled")
+		self.assertEqual(binding["operation"]["url"], "https://api.anthropic.com/v1/messages")
+		self.assertFalse(binding["limits"]["automatic_retry"])
+
+	def test_config_retains_only_ctx_closed_operation(self):
+		text = (ROOT / "assets/config.toml").read_text()
+		self.assertIn('name = "ctx-sync"', text)
+		self.assertIn('binding_revision = "ctx-sync/2"', text)
+		self.assertNotIn('path = "/anthropic"', text)
+		self.assertNotIn('path = "/grok-x-search"', text)
+
+
+if __name__ == "__main__": unittest.main()

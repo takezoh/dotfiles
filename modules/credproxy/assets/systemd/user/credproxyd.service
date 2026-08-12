@@ -2,18 +2,16 @@
 Description=credproxy credential broker (per-user)
 Documentation=https://github.com/takezoh/credproxy
 After=default.target
+ConditionPathExists=%h/.config/credproxyd/credentials/op-service-account.cred
 
 [Service]
 Type=simple
-# %t = $XDG_RUNTIME_DIR for user units. The socket dir is created 0700 before
-# the daemon binds, so the 0600 socket sits under a private directory.
 RuntimeDirectory=credproxyd
 RuntimeDirectoryMode=0700
-ExecStart=%h/.local/bin/credproxyd --config %h/.config/credproxyd/config.toml
+LoadCredentialEncrypted=op-service-account:%h/.config/credproxyd/credentials/op-service-account.cred
+ExecStart=%h/.local/lib/credproxy/bin/credproxyd --config %h/.config/credproxyd/config.toml
 Restart=on-failure
 RestartSec=2
-
-# Hardening: the broker needs only its own config, the token, and native op.
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=read-only

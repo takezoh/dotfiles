@@ -1,42 +1,31 @@
-# credproxyd — per-terminal credential broker for sandboxed LLM agents.
-#
-# Managed asset: installed by modules/credproxy/install.sh as a COPY (never a
-# symlink) into ~/.config/credproxyd/config.toml, and never overwritten once it
-# exists so local edits survive. Edit the installed copy for host-specific
-# routes; edit this source to change the shipped default.
-#
-# Unix-socket only. No TCP listener: the sandbox cannot reach host loopback, and
-# a TCP port would only widen the same-host attack surface. Sandboxed agents
-# reach this socket only after the agent host's settings allow its path
-# (see modules/credproxy/README.md, go-live step 2).
+# Rendered at install time. No credential value is stored in this file.
+daemon_revision = "credproxyd/@DAEMON_REVISION@"
+listen_unix = "@BROKER_SOCKET@"
+log_level = "info"
 
-listen_unix         = "${XDG_RUNTIME_DIR}/credproxyd/broker.sock"
-log_level           = "info"
+[[operation]]
+name = "ctx-sync"
+binding_revision = "ctx-sync/2"
+executable_paths = ["@CTX_PATH@"]
+subcommand = "sync"
+credential_command = ["@HOOK_PATH@", "ctx-sync"]
+hook_timeout_sec = 10
+max_runtime_sec = 300
+pass_env = ["LANG", "LC_ALL", "TZ"]
+fixed_env = { PATH = "/usr/bin:/bin", CTX_CONFIG = "@CTX_CONFIG@" }
+env = { CTX_DATABASE_URL = "CTX_DATABASE_URL" }
 
-# Tier 2 (non-HTTP secrets): a body_replace route returns {"env":{...}} for
-# `credproxy exec`. The route name is the only agent-chosen input; the ref
-# behind it lives in the hook (assets/hooks/op-resolve.py).
-[[route]]
-path               = "/ctx-sync"
-credential_command = ["${HOME}/.config/credproxyd/hooks/op-resolve.py"]
-hook_timeout_sec   = 10
+[[operation.argument]]
+flag = "-timeout"
+type = "duration"
+min = "1s"
+max = "5m"
 
-# grok-x-search: xai_sdk is gRPC (api_host), not HTTP — a base-URL override is
-# not available, so the API key is served as a Tier-2 env instead of a Tier-1
-# proxy. grok.py resolves XAI_API_KEY from this route when no plaintext .env is
-# present.
-[[route]]
-path               = "/grok-x-search"
-credential_command = ["${HOME}/.config/credproxyd/hooks/op-resolve.py"]
-hook_timeout_sec   = 10
+[[operation.argument]]
+flag = "-min-interval"
+type = "duration"
+min = "0s"
+max = "24h"
 
-# Minuet/Neovim reads ANTHROPIC_API_KEY from the login-shell environment.
-[[route]]
-path               = "/anthropic"
-credential_command = ["${HOME}/.config/credproxyd/hooks/op-resolve.py"]
-hook_timeout_sec   = 10
-
-# Tier 1 (HTTP API keys via header injection) is available for any provider whose
-# SDK accepts an HTTP base-URL override. Add an upstream route with a header hook
-# when such a consumer appears; xai is not one (gRPC), so it uses the Tier-2
-# route above.
+# XAI was retired only after installed consumer inventory was determinate.
+# Anthropic remains disabled because no admitted closed operation exists.

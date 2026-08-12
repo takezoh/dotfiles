@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.takezoh.credproxyd</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>@HOME@/.local/lib/credproxy/bin/credproxyd</string>
+		<string>--config</string>
+		<string>@HOME@/.config/credproxyd/config.toml</string>
+	</array>
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>HOME</key><string>@HOME@</string>
+		<key>PATH</key><string>/usr/local/bin:/usr/bin:/bin</string>
+		<key>XDG_RUNTIME_DIR</key><string>@RUNTIME_DIR@</string>
+	</dict>
+	<key>KeepAlive</key><true/>
+	<key>RunAtLoad</key><true/>
+	<key>StandardOutPath</key><string>/dev/null</string>
+	<key>StandardErrorPath</key><string>@HOME@/Library/Logs/credproxyd.log</string>
+</dict>
+</plist>

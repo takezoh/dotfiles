@@ -1,25 +1,136 @@
-#!/bin/sh
-# ctx-sync — fixed wrapper: resolve CTX_DATABASE_URL via the broker and exec ctx.
-#
-# The sandboxed agent may invoke this wrapper but cannot choose the route or ref
-# it resolves. Managed asset: installed as a COPY into sandbox-write-denied
-# ~/.config/credproxyd/wrappers/ so the agent cannot rewrite the fixed route.
-set -eu
+#!/usr/bin/python3
+"""Installed credroute/v1 client for the closed ctx-sync/2 operation."""
+from __future__ import annotations
 
-SOCK="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/credproxyd/broker.sock"
-TOKEN_FILE="${CREDPROXY_TOKEN_FILE:-$HOME/.config/credproxyd/token}"
+import hashlib
+import json
+import os
+import re
+import stat
+import sys
+from pathlib import Path
 
-# bearer token は任意 (unix socket 0600 + SO_PEERCRED が一次防御)。file が
-# 無い端末で --token-file を渡すと credproxy exec が起動前に失敗するため、
-# 存在するときだけ付ける。
-if [ -f "$TOKEN_FILE" ]; then
-	exec credproxy exec \
-		--socket "$SOCK" \
-		--route ctx-sync \
-		--token-file "$TOKEN_FILE" \
-		-- ctx "$@"
-fi
-exec credproxy exec \
-	--socket "$SOCK" \
-	--route ctx-sync \
-	-- ctx "$@"
+PROTOCOL = "credroute/v1"
+BINDING_REVISION = "ctx-sync/2"
+_DURATION = re.compile(r"(?:0|(?:(?:[0-9]+(?:\.[0-9]+)?|\.[0-9]+)(?:ns|us|µs|ms|s|m|h))+)")
+_REJECT_CALLER_NAMES = {
+    "CREDPROXY_CONFIG", "CREDPROXY_SOCKET", "CREDPROXY_TOKEN_FILE",
+    "DYLD_INSERT_LIBRARIES", "DYLD_LIBRARY_PATH", "GODEBUG", "GOMODCACHE",
+    "CTX_DATABASE_URL", "LD_LIBRARY_PATH", "LD_PRELOAD", "PERL5LIB", "PYTHONHOME", "PYTHONPATH", "RUBYLIB",
+}
+
+
+class BindingError(Exception):
+    pass
+
+
+def fail(category: str) -> None:
+    sys.stderr.write(f"ctx-sync: {category}\n")
+    raise SystemExit(64)
+
+
+def pairs_no_duplicates(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise BindingError("binding_manifest_invalid")
+        result[key] = value
+    return result
+
+
+def sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(128 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def validate_file(identity: dict, executable: bool = True) -> Path:
+    if set(identity) != {"path", "sha256", "uid", "mode"}:
+        raise BindingError("binding_manifest_invalid")
+    path = Path(str(identity["path"]))
+    try:
+        info = path.lstat()
+    except OSError as exc:
+        raise BindingError("binding_unavailable") from exc
+    if not path.is_absolute() or stat.S_ISLNK(info.st_mode) or not stat.S_ISREG(info.st_mode):
+        raise BindingError("binding_identity_mismatch")
+    mode = format(stat.S_IMODE(info.st_mode), "04o")
+    if info.st_uid != identity["uid"] or mode != identity["mode"] or info.st_mode & (stat.S_IWGRP | stat.S_IWOTH):
+        raise BindingError("binding_identity_mismatch")
+    if executable and not info.st_mode & stat.S_IXUSR:
+        raise BindingError("binding_identity_mismatch")
+    if sha256(path) != identity["sha256"]:
+        raise BindingError("binding_identity_mismatch")
+    return path
+
+
+def load_manifest(wrapper: Path):
+    path = wrapper.parent.parent / "bindings" / "ctx-sync.json"
+    try:
+        value = json.loads(path.read_text(), object_pairs_hook=pairs_no_duplicates)
+    except (OSError, UnicodeError, json.JSONDecodeError, BindingError) as exc:
+        raise BindingError("binding_manifest_invalid") from exc
+    required = {"schema", "binding_id", "binding_revision", "producer_revision", "client_revision", "daemon_revision", "route", "credential_names", "subcommand", "argv_grammar", "broker", "base_env", "executables"}
+    if not isinstance(value, dict) or set(value) != required:
+        raise BindingError("binding_manifest_invalid")
+    if value["schema"] != PROTOCOL or value["binding_id"] != "ctx-sync" or value["binding_revision"] != BINDING_REVISION:
+        raise BindingError("incompatible_ctx_sync_binding")
+    if value["client_revision"] != "client/1" or not re.fullmatch(r"credproxyd/[0-9a-f]{64}", value["daemon_revision"]):
+        raise BindingError("binding_manifest_invalid")
+    if value["route"] != "ctx-sync" or value["credential_names"] != [] or value["subcommand"] != "sync":
+        raise BindingError("binding_manifest_invalid")
+    if value["argv_grammar"] != {"options": ["-timeout", "-min-interval"], "cardinality": "zero-or-one-each", "value": "go-duration", "positional": False, "separator": False}:
+        raise BindingError("binding_manifest_invalid")
+    broker = value["broker"]
+    if not isinstance(broker, dict) or set(broker) != {"socket", "config", "home"}:
+        raise BindingError("binding_manifest_invalid")
+    if value["base_env"] != {"HOME": broker["home"], "LANG": "C.UTF-8", "TZ": "UTC"}:
+        raise BindingError("binding_manifest_invalid")
+    executables = value["executables"]
+    if not isinstance(executables, dict) or set(executables) != {"wrapper", "credproxy", "ctx"}:
+        raise BindingError("binding_manifest_invalid")
+    resolved = {name: validate_file(identity) for name, identity in executables.items()}
+    validate_file(broker["config"], executable=False)
+    if resolved["wrapper"] != wrapper:
+        raise BindingError("binding_identity_mismatch")
+    return value, resolved
+
+
+def parse_args(args: list[str]) -> list[str]:
+    result, seen = [], set()
+    index = 0
+    while index < len(args):
+        option = args[index]
+        if option not in {"-timeout", "-min-interval"} or option in seen:
+            raise BindingError("binding_argv_invalid")
+        if index + 1 >= len(args) or not _DURATION.fullmatch(args[index + 1]):
+            raise BindingError("binding_argv_invalid")
+        seen.add(option)
+        result.extend((option, args[index + 1]))
+        index += 2
+    return result
+
+
+def main() -> None:
+    wrapper = Path(os.path.abspath(__file__))
+    try:
+        if any(name in os.environ for name in _REJECT_CALLER_NAMES):
+            raise BindingError("binding_env_invalid")
+        manifest, executables = load_manifest(wrapper)
+        if sys.argv[1:] == ["--credroute-version"]:
+            print(f"{PROTOCOL} {BINDING_REVISION} {manifest['producer_revision']}")
+            return
+        args = parse_args(sys.argv[1:])
+        broker = manifest["broker"]
+        if not str(broker["socket"]).startswith("/"):
+            raise BindingError("binding_manifest_invalid")
+        argv = [str(executables["credproxy"]), "operation", "--socket", str(broker["socket"]), "--route", "ctx-sync", "--binding-revision", BINDING_REVISION, "--daemon-revision", manifest["daemon_revision"], "--", *args]
+        os.execve(executables["credproxy"], argv, dict(manifest["base_env"]))
+    except (BindingError, OSError) as exc:
+        fail(str(exc) if isinstance(exc, BindingError) else "binding_unavailable")
+
+
+if __name__ == "__main__":
+    main()

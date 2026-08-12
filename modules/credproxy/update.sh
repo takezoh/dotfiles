@@ -6,7 +6,7 @@ MODULES_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 . "$MODULES_DIR/_lib/common.sh"
 
 CREDPROXY_SRC="$(cd "$DOTFILES_DIR/.." && pwd -P)/credproxy"
-BIN_DIR="$HOME/.local/bin"
+BIN_DIR="$HOME/.local/lib/credproxy/bin"
 
 if [ ! -d "$CREDPROXY_SRC" ]; then
 	log "credproxy: source repo not found at $CREDPROXY_SRC, skipping"

@@ -1,134 +1,158 @@
 #!/usr/bin/env python3
-"""credproxyd route hook: resolve a fixed secret ref to an env map.
+"""Resolve fixed credproxyd routes without persistent plaintext credentials.
 
-Contract (credproxyd ScriptProvider):
-  stdin : {"action","route","request","context"}
-  stdout: {"body_replace": {"env": {...}}, "expires_in_sec": N}
-
-The route -> ref mapping lives here, not in the request. The agent-facing
-request cannot choose which secret is resolved; it can only reach a route that
-this table already maps. Secrets reach the JSON stdout only — never argv or logs.
-
-Two resolution sources, tried in order per ref:
-
-1. **Service-account live read** (primary): if a service-account token file
-   exists, run native `op read` with OP_SERVICE_ACCOUNT_TOKEN passed only to
-   that subprocess. Gives non-interactive rotation — the daemon re-reads the
-   current value each TTL window. Requires the secret in a non-Personal vault
-   the service account is scoped to (SAs cannot read Personal/Private vaults),
-   and a native headless `op` binary (the WSL `op.exe` shim is interactive).
-
-2. **Pre-resolved store** (fallback for terminals without a token): a 0600 JSON
-   file (~/.secrets/credproxyd/resolved.json) mapping the op:// ref string to
-   its value, populated once with an interactive `op read`. Rotation = re-run.
+Linux/WSL receives the 1Password service-account token from systemd's private
+``$CREDENTIALS_DIRECTORY/op-service-account`` runtime file.  macOS reads one
+fixed login-Keychain item with the platform ``security`` binary.  There is no
+file-store, token-file, environment-token, or request-selected fallback.
 """
+from __future__ import annotations
+
 import json
 import os
+import platform
 import subprocess
 import sys
 from pathlib import Path
-from typing import NoReturn
+from typing import Callable, Mapping, NoReturn, Sequence
 
-# route name -> {env var name: secret ref}. Fixed, host-owned. Route names are
-# baked into clients and never change; ref item/field names follow 1Password.
+
 ROUTE_ENV = {
-    "ctx-sync": {
-        "CTX_DATABASE_URL": "op://local-dev/Context Fabric/PostgreSQL/url",
-    },
-    "grok-x-search": {
-        "XAI_API_KEY": "op://local-dev/AI-API-Key/xAI/general",
-    },
-    "anthropic": {
-        "ANTHROPIC_API_KEY": "op://local-dev/AI-API-Key/ANTHROPIC/generic",
-    },
+	"ctx-sync": {
+		"CTX_DATABASE_URL": "op://local-dev/Context Fabric/PostgreSQL/url",
+	},
 }
 
-# Static-secret TTL. credproxyd caches the response for expires_in_sec-30s.
 EXPIRES_IN_SEC = 3600
-
-OP_BIN = os.environ.get("CREDPROXY_OP_BIN", "/usr/local/bin/op")
-TOKEN_FILE = os.environ.get(
-    "CREDPROXY_OP_TOKEN_FILE",
-    str(Path.home() / ".secrets/op/service-account.token"),
-)
-STORE_FILE = os.environ.get(
-    "CREDPROXY_RESOLVED_STORE",
-    str(Path.home() / ".secrets/credproxyd/resolved.json"),
-)
+OP_BIN = "/usr/local/bin/op"
+SECURITY_BIN = "/usr/bin/security"
+SYSTEMD_CREDENTIAL_NAME = "op-service-account"
+KEYCHAIN_SERVICE = "com.takezoh.credproxy.op-service-account"
+KEYCHAIN_ACCOUNT = "credproxyd"
 
 
 def fail(reason: str) -> NoReturn:
-    # First stderr line `reason:<token>` is surfaced by credproxyd as a typed
-    # 502 reason; everything else stays server-side.
-    sys.stderr.write(f"reason:{reason}\n")
-    sys.exit(1)
+	sys.stderr.write(f"reason:{reason}\n")
+	raise SystemExit(1)
 
 
-def load_store() -> dict:
-    try:
-        data = json.loads(Path(STORE_FILE).read_text(encoding="utf-8"))
-    except FileNotFoundError:
-        return {}
-    except (OSError, ValueError):
-        fail("store_unreadable")
-    if not isinstance(data, dict):
-        fail("store_unreadable")
-    return data
+def _runtime_credential_path(environ: Mapping[str, str]) -> Path:
+	directory = environ.get("CREDENTIALS_DIRECTORY", "")
+	if not directory:
+		fail("credential_source_unavailable")
+	root = Path(directory)
+	if not root.is_absolute() or ".." in root.parts:
+		fail("credential_source_unavailable")
+	return root / SYSTEMD_CREDENTIAL_NAME
 
 
-def load_token() -> str:
-    try:
-        token = Path(TOKEN_FILE).read_text(encoding="utf-8").strip()
-    except OSError:
-        return ""
-    return token
+def _linux_token(environ: Mapping[str, str], read_bytes: Callable[[Path], bytes]) -> str:
+	try:
+		raw = read_bytes(_runtime_credential_path(environ))
+	except (OSError, ValueError):
+		fail("credential_source_unavailable")
+	try:
+		token = raw.decode("utf-8").strip()
+	except UnicodeDecodeError:
+		fail("credential_source_unavailable")
+	if not token:
+		fail("credential_source_unavailable")
+	return token
 
 
-def op_read(ref: str, token: str) -> str:
-    try:
-        proc = subprocess.run(
-            [OP_BIN, "read", "--no-newline", ref],
-            capture_output=True,
-            text=True,
-            timeout=8,
-            env={**os.environ, "OP_SERVICE_ACCOUNT_TOKEN": token},
-        )
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        fail("op_unreachable")
-    if proc.returncode != 0:
-        stderr = (proc.stderr or "").lower()
-        if "rate" in stderr and "limit" in stderr:
-            fail("op_rate_limited")
-        if "isn't a vault" in stderr or "not found" in stderr or "no item" in stderr:
-            fail("vault_denied")
-        fail("op_unreachable")
-    return proc.stdout
+def _macos_token(run: Callable[..., subprocess.CompletedProcess[str]]) -> str:
+	try:
+		proc = run(
+			[SECURITY_BIN, "find-generic-password", "-s", KEYCHAIN_SERVICE, "-a", KEYCHAIN_ACCOUNT, "-w"],
+			capture_output=True,
+			text=True,
+			timeout=5,
+			env={"PATH": "/usr/bin:/bin", "LANG": "C"},
+		)
+	except (FileNotFoundError, subprocess.TimeoutExpired):
+		fail("credential_source_unavailable")
+	if proc.returncode != 0 or not proc.stdout.strip():
+		fail("credential_source_unavailable")
+	return proc.stdout.strip()
 
 
-def resolve(ref: str, store: dict, token: str) -> str:
-    if token:
-        return op_read(ref, token)
-    if ref in store and isinstance(store[ref], str) and store[ref]:
-        return store[ref]
-    # Neither a token nor a stored value: the operator has not provisioned this
-    # ref. Surface it as an unavailable credential rather than a silent empty.
-    fail("secret_unprovisioned")
+def authority_token(
+	platform_name: str,
+	environ: Mapping[str, str],
+	*,
+	read_bytes: Callable[[Path], bytes] = Path.read_bytes,
+	run_security: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
+) -> str:
+	if platform_name == "darwin":
+		return _macos_token(run_security)
+	if platform_name == "linux":
+		return _linux_token(environ, read_bytes)
+	fail("credential_source_unavailable")
+
+
+def op_read(
+	ref: str,
+	token: str,
+	*,
+	run: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
+	home: str | None = None,
+) -> str:
+	child_env = {
+		"HOME": home or str(Path.home()),
+		"LANG": "C.UTF-8",
+		"OP_SERVICE_ACCOUNT_TOKEN": token,
+	}
+	try:
+		proc = run(
+			[OP_BIN, "read", "--no-newline", ref],
+			capture_output=True,
+			text=True,
+			timeout=8,
+			env=child_env,
+		)
+	except (FileNotFoundError, subprocess.TimeoutExpired):
+		fail("op_unreachable")
+	if proc.returncode != 0:
+		stderr = (proc.stderr or "").lower()
+		if "rate" in stderr and "limit" in stderr:
+			fail("op_rate_limited")
+		if "isn't a vault" in stderr or "not found" in stderr or "no item" in stderr:
+			fail("vault_denied")
+		fail("op_unreachable")
+	return proc.stdout
+
+
+def resolve_request(
+	req: Mapping[str, object],
+	*,
+	platform_name: str,
+	environ: Mapping[str, str],
+	read_bytes: Callable[[Path], bytes] = Path.read_bytes,
+	run_security: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
+	run_op: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
+) -> dict[str, object]:
+	route = req.get("route", "")
+	mapping = ROUTE_ENV.get(route) if isinstance(route, str) else None
+	if mapping is None:
+		fail("unknown_route")
+	token = authority_token(
+		platform_name,
+		environ,
+		read_bytes=read_bytes,
+		run_security=run_security,
+	)
+	env = {name: op_read(ref, token, run=run_op) for name, ref in mapping.items()}
+	return {"body_replace": {"env": env}, "expires_in_sec": EXPIRES_IN_SEC}
 
 
 def main() -> None:
-    try:
-        req = json.load(sys.stdin)
-    except (json.JSONDecodeError, ValueError):
-        fail("bad_request")
-    route = req.get("route", "")
-    mapping = ROUTE_ENV.get(route)
-    if mapping is None:
-        fail("unknown_route")
-    store = load_store()
-    token = load_token()
-    env = {name: resolve(ref, store, token) for name, ref in mapping.items()}
-    json.dump({"body_replace": {"env": env}, "expires_in_sec": EXPIRES_IN_SEC}, sys.stdout)
+	try:
+		req = json.load(sys.stdin)
+	except (json.JSONDecodeError, ValueError):
+		fail("bad_request")
+	result = resolve_request(req, platform_name=platform.system().lower(), environ=os.environ)
+	json.dump(result, sys.stdout)
 
 
 if __name__ == "__main__":
-    main()
+	main()

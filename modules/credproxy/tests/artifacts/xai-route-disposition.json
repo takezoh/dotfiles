@@ -1,0 +1,13 @@
+{
+  "schema": "credproxy/xai-route-disposition/v1",
+  "classification": "retired",
+  "consumer": "grok-x-search",
+  "authentication": "oauth_subscription_cli",
+  "proof_revision": "53e0ae7a447b58e3470e8a1816616864ffb26f65",
+  "proof_artifact": "agent-module:docs/changes/change-20260812-credproxy-command-bound-routing/evidence/xai-oauth-consumer-proof.json",
+  "installed_other_consumers": false,
+  "route_owner_revision": "8fc496b",
+  "env_delivery_primitive": "retained",
+  "ctx_route": "retained",
+  "credential_material_observed": false
+}

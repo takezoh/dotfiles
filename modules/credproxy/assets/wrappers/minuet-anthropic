@@ -1,0 +1,4 @@
+#!/bin/sh
+# Determinate fail-closed client.  Do not add a key/env/curl fallback here.
+printf '%s\n' 'minuet_anthropic_unavailable:provider_disabled' >&2
+exit 69

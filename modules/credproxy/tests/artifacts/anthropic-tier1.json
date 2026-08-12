@@ -1,0 +1,37 @@
+{
+  "cases": {
+    "broker_x_api_key_injection": "not_observed",
+    "buffer_64kib": "not_observed",
+    "caller_credential_header_rejected": "not_observed",
+    "canary_non_leak": "pass",
+    "cancel_deadline": "not_observed",
+    "cleanup": "not_observed",
+    "finite_argv": "not_observed",
+    "first_byte_60s": "not_observed",
+    "fixed_post_messages": "fail",
+    "generic_bearer_rejected": "not_observed",
+    "next_request_cancel": "not_observed",
+    "no_retry": "not_observed",
+    "peer_bound_installed_client": "fail",
+    "same_uid_only_rejected": "not_observed",
+    "single_in_flight": "not_observed",
+    "sse_order": "not_observed",
+    "stdin_1mib": "not_observed",
+    "total_300s": "not_observed"
+  },
+  "classification": "unsupported",
+  "client_revision": "sha256:444c768e61dbf677337c329e5aa33310fb275712b5c7a8e3f929c8e2cecffb46",
+  "credential_material_observed": false,
+  "credproxyd_revision": "sha256:b372248776665c38e3c304fe4cf4971d9fedd3536e90648c85af61dbde68f16c",
+  "mode": "tier1",
+  "observations": {
+    "anthropic_operation_status": "HTTP/1.1 404 Not Found",
+    "client_category": "minuet_anthropic_unavailable:provider_disabled",
+    "client_exit": 69,
+    "state": "observed"
+  },
+  "reason": "fixed_anthropic_operation_absent_and_client_disabled",
+  "runner_revision": "d1407bb214d3901108ed9ba80941dd69691685cf",
+  "schema": "credproxy/anthropic-delivery/v1",
+  "selected_outcome": "provider_disabled"
+}
