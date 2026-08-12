@@ -16,8 +16,8 @@ RUNTIME_ROOT="$HOME/.local/lib/credproxy"
 # profile installed by D2; it is deliberately not derived from a live source
 # asset because the source is removed in this revision.
 readonly PRE_REMOVAL_ADMISSION_REVISION="59fcde2"
-readonly CONTEXT_FABRIC_ADMISSION_REVISION="23b827bb3eb68b6eb16adbbeeeb8879680dd04f9"
-readonly CONTEXT_FABRIC_HOOK_SHA256="3b690a4a52def2572d4b2128397339c147698cfab7a215a3ab80dc4d3e62ac15"
+readonly CONTEXT_FABRIC_ADMISSION_REVISION="9807fc3fbfcee923d96a35d0cd4bcda669c1640a"
+readonly CONTEXT_FABRIC_HOOK_SHA256="0aae07202f61d82d85bf0c8e97e458095d5ed9342a19ed68da1d1c02171599f0"
 readonly DOTFILES_D2_EVIDENCE_REVISION="f46bface982ff475dceca7926d8f5ce1dd2e029f"
 readonly LEGACY_SHELL_PROFILE_SHA256="9f0195c3830d09628df2988241d901b50e0614d924313034b38ec5f72efe8a78"
 readonly LEGACY_SHELL_PROFILE="$HOME/.local/config/zshrc/50_credproxy-env.zsh"
