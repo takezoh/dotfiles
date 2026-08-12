@@ -23,6 +23,7 @@ CTX_SOURCE="$HOME/.local/bin/ctx"
 # Last dotfiles-managed config before closed-operation routing.  It may be
 # migrated only when the installed bytes are this exact known revision.
 readonly LEGACY_CONFIG_SHA256="4233fb7a99556dce594897ac35111ffcf987399fdb6fad4f357533e724013989"
+readonly ORIGINAL_MANAGED_CONFIG_SHA256="fea0d45dc40287b7df116025468a06bd7265677ae8abbe290a3809e3b185ef9b"
 
 file_sha256() {
 	if has_cmd sha256sum; then
@@ -237,7 +238,7 @@ PY
 		log "credproxy: upgraded exact unmodified managed config.toml"
 		return 0
 	fi
-	if [ "$installed_sha" = "$LEGACY_CONFIG_SHA256" ]; then
+	if [ "$installed_sha" = "$LEGACY_CONFIG_SHA256" ] || [ "$installed_sha" = "$ORIGINAL_MANAGED_CONFIG_SHA256" ]; then
 		mv "$rendered" "$CONFIG_PATH"
 		write_config_provenance "$source_sha" "$template_sha"
 		log "credproxy: migrated exact known managed config.toml revision"

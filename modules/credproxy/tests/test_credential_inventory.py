@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import os
 import stat
 import sys
@@ -135,21 +136,39 @@ def managed_config_provenance(path: Path, installed_revision: str, template_revi
 
 
 def installed_xai_consumer_references(home: Path, extra_roots: tuple[Path, ...] = ()) -> dict[str, object]:
-	"""Scan only source/config text for credential-name/path references."""
+	"""Scan executable/config surfaces, excluding prose, tests, and vendored deps."""
 	roots = (*extra_roots, home / ".codex/plugins/cache", home / ".claude/plugins/cache")
-	extensions = {".py", ".sh", ".zsh", ".toml", ".json", ".yaml", ".yml", ".md"}
+	extensions = {".py", ".sh", ".zsh", ".toml", ".json", ".yaml", ".yml"}
+	excluded_parts = {"docs", "tests", "test", "artifacts", "evidence", "plans", ".venv", "site-packages", "__pycache__", ".git"}
+	patterns = (
+		re.compile(r'''os\.(?:getenv|environ(?:\.get|\[))\s*\(?\s*["']XAI_API_KEY["']'''),
+		re.compile(r'''\$\{?XAI_API_KEY(?:\}|\b)'''),
+		re.compile(r'''(?m)^\s*(?:export\s+)?XAI_API_KEY\s*='''),
+		re.compile(r'''["']XAI_API_KEY["']\s*:'''),
+		re.compile(r'''(?s)name\s*:\s*XAI_API_KEY\b.*?(?:mode\s*:\s*mask|injectHosts\s*:)'''),
+		re.compile(r'''path\s*=\s*["']/grok-x-search["']'''),
+	)
 	matches = []
 	for root in roots:
 		if not root.is_dir():
 			continue
 		for path in root.rglob("*"):
-			if not path.is_file() or path.is_symlink() or path.name == ".env" or path.suffix not in extensions:
+			if not path.is_file() or path.is_symlink():
+				continue
+			relative = path.relative_to(root)
+			if any(part in excluded_parts or part.startswith("test_") for part in relative.parts):
+				continue
+			if path.name == ".env":
+				if "grok-x-search" in relative.parts:
+					matches.append(str(path))
+				continue
+			if path.suffix not in extensions:
 				continue
 			try:
 				text = path.read_text(encoding="utf-8")
 			except (OSError, UnicodeError):
 				continue
-			if "XAI_API_KEY" in text or 'path = "/grok-x-search"' in text or "/grok-x-search/" in text:
+			if any(pattern.search(text) for pattern in patterns):
 				try:
 					display = "~/" + str(path.relative_to(home))
 				except ValueError:
@@ -309,7 +328,7 @@ class InventoryTests(unittest.TestCase):
 			home = Path(temp) / "home"
 			consumer = home / ".codex/plugins/cache/example/consumer.py"
 			consumer.parent.mkdir(parents=True)
-			consumer.write_text('name = "XAI_API_KEY"\n', encoding="utf-8")
+			consumer.write_text('import os\nkey = os.getenv("XAI_API_KEY")\n', encoding="utf-8")
 			result = build_inventory(root, home, None)
 			self.assertEqual(result["closure"]["classification"], "conflicting")
 			self.assertTrue(result["xai_consumers"]["references"])

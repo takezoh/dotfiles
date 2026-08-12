@@ -101,6 +101,18 @@ class InstallManagementTests(unittest.TestCase):
         self.assertNotEqual(self.fixture.config.read_bytes(), legacy)
         self.assertIn("migrated exact known managed", result.stderr)
 
+    def test_exact_original_managed_config_is_migrated(self):
+        legacy = subprocess.run(
+            ["git", "-C", str(REPO), "show", "c4680b140fd5319b5ea4f276825f430834b32783:modules/credproxy/assets/config.toml"],
+            check=True, capture_output=True,
+        ).stdout
+        self.fixture.config.parent.mkdir(parents=True)
+        self.fixture.config.write_bytes(legacy)
+        result = self.fixture.run()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotEqual(self.fixture.config.read_bytes(), legacy)
+        self.assertIn("migrated exact known managed", result.stderr)
+
     def test_exact_unmodified_managed_config_is_upgraded(self):
         first = self.fixture.run()
         self.assertEqual(first.returncode, 0, first.stderr)
