@@ -22,7 +22,7 @@
   "classification": "unsupported",
   "client_revision": "sha256:444c768e61dbf677337c329e5aa33310fb275712b5c7a8e3f929c8e2cecffb46",
   "credential_material_observed": false,
-  "credproxyd_revision": "sha256:b372248776665c38e3c304fe4cf4971d9fedd3536e90648c85af61dbde68f16c",
+  "credproxyd_revision": "sha256:21f717d43cc341632cd763890c505c7b279c3187bb6a5e88e01d2da096167ccb",
   "mode": "adapter",
   "observations": {
     "anthropic_operation_status": "HTTP/1.1 404 Not Found",
@@ -31,7 +31,7 @@
     "state": "observed"
   },
   "reason": "fixed_anthropic_operation_absent_and_client_disabled",
-  "runner_revision": "d1407bb214d3901108ed9ba80941dd69691685cf",
+  "runner_revision": "a20ad6064a9bfcfa52efbf2798838b9c46e14af8",
   "schema": "credproxy/anthropic-delivery/v1",
   "selected_outcome": "provider_disabled"
 }
