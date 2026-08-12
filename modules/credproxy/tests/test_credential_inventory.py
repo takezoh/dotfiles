@@ -144,7 +144,6 @@ def installed_xai_consumer_references(home: Path, extra_roots: tuple[Path, ...] 
 		re.compile(r'''os\.(?:getenv|environ(?:\.get|\[))\s*\(?\s*["']XAI_API_KEY["']'''),
 		re.compile(r'''\$\{?XAI_API_KEY(?:\}|\b)'''),
 		re.compile(r'''(?m)^\s*(?:export\s+)?XAI_API_KEY\s*='''),
-		re.compile(r'''["']XAI_API_KEY["']\s*:'''),
 		re.compile(r'''(?s)name\s*:\s*XAI_API_KEY\b.*?(?:mode\s*:\s*mask|injectHosts\s*:)'''),
 		re.compile(r'''path\s*=\s*["']/grok-x-search["']'''),
 	)
@@ -153,7 +152,7 @@ def installed_xai_consumer_references(home: Path, extra_roots: tuple[Path, ...] 
 		if not root.is_dir():
 			continue
 		for path in root.rglob("*"):
-			if not path.is_file() or path.is_symlink():
+			if not path.is_file():
 				continue
 			relative = path.relative_to(root)
 			if any(part in excluded_parts or part.startswith("test_") for part in relative.parts):
@@ -165,7 +164,10 @@ def installed_xai_consumer_references(home: Path, extra_roots: tuple[Path, ...] 
 			if path.suffix not in extensions:
 				continue
 			try:
-				text = path.read_text(encoding="utf-8")
+				read_path = path.resolve(strict=True) if path.is_symlink() else path
+				if not read_path.is_file():
+					continue
+				text = read_path.read_text(encoding="utf-8")
 			except (OSError, UnicodeError):
 				continue
 			if any(pattern.search(text) for pattern in patterns):
@@ -332,6 +334,28 @@ class InventoryTests(unittest.TestCase):
 			result = build_inventory(root, home, None)
 			self.assertEqual(result["closure"]["classification"], "conflicting")
 			self.assertTrue(result["xai_consumers"]["references"])
+
+	def test_symlinked_installed_xai_consumer_is_conflicting(self) -> None:
+		with tempfile.TemporaryDirectory() as temp:
+			root = self._repo(Path(temp) / "repo")
+			home = Path(temp) / "home"
+			target = Path(temp) / "consumer.py"
+			target.write_text('import os\nkey = os.getenv("XAI_API_KEY")\n', encoding="utf-8")
+			consumer = home / ".codex/plugins/cache/example/consumer.py"
+			consumer.parent.mkdir(parents=True)
+			consumer.symlink_to(target)
+			result = build_inventory(root, home, None)
+			self.assertEqual(result["closure"]["classification"], "conflicting")
+
+	def test_benign_json_state_is_not_an_xai_consumer(self) -> None:
+		with tempfile.TemporaryDirectory() as temp:
+			root = self._repo(Path(temp) / "repo")
+			home = Path(temp) / "home"
+			state = home / ".codex/plugins/cache/example/state.json"
+			state.parent.mkdir(parents=True)
+			state.write_text('{"XAI_API_KEY": false}\n', encoding="utf-8")
+			result = build_inventory(root, home, None)
+			self.assertEqual(result["closure"]["classification"], "determinate")
 
 
 def main() -> None:

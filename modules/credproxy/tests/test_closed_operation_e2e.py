@@ -21,6 +21,9 @@ WRAPPER_SOURCE = MODULE / "assets/wrappers/ctx-sync"
 CONFIG_SOURCE = MODULE / "assets/config.toml"
 BINDING_SOURCE = MODULE / "assets/bindings/ctx-sync.json"
 CORE = Path(os.environ.get("CREDPROXY_CORE_DIR", "/workspace/credproxy"))
+EXPECTED_CORE_REVISION = os.environ.get(
+    "CREDPROXY_CORE_REVISION", "cbe0d235e4412d12b01f7cdbcaa5577ad2595313"
+)
 
 
 def digest(path: Path) -> str:
@@ -33,6 +36,10 @@ def identity(path: Path) -> dict[str, object]:
         "path": str(path), "sha256": digest(path), "uid": info.st_uid,
         "mode": format(stat.S_IMODE(info.st_mode), "04o"),
     }
+
+
+def assert_secret_absent(testcase: unittest.TestCase, secret: str, value: str) -> None:
+    testcase.assertNotIn(secret, value)
 
 
 def unix_http(socket_path: Path, request: bytes) -> bytes:
@@ -54,7 +61,12 @@ def unix_http(socket_path: Path, request: bytes) -> bytes:
 class ClosedOperationE2E(unittest.TestCase):
     def test_real_daemon_wrapper_and_client_never_return_credential(self):
         if not (CORE / "go.mod").is_file():
-            self.skipTest(f"credproxy core unavailable: {CORE}")
+            self.fail(f"credproxy core unavailable: {CORE}")
+        revision = subprocess.run(
+            ["git", "-C", str(CORE), "rev-parse", "HEAD"],
+            check=True, capture_output=True, text=True,
+        ).stdout.strip()
+        self.assertEqual(revision, EXPECTED_CORE_REVISION)
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             runtime = root / "home/.local/lib/credproxy"
@@ -158,10 +170,11 @@ class ClosedOperationE2E(unittest.TestCase):
                 routes = unix_http(socket_path, b"GET /_routes HTTP/1.1\r\nHost: credproxyd\r\nConnection: close\r\n\r\n")
                 direct = unix_http(socket_path, b"GET /ctx-sync HTTP/1.1\r\nHost: credproxyd\r\nConnection: close\r\n\r\n")
                 captures = result.stdout + result.stderr + routes.decode(errors="replace") + direct.decode(errors="replace")
-                self.assertNotIn(secret, captures)
+                assert_secret_absent(self, secret, captures)
                 self.assertNotIn(b"ctx-sync", routes.split(b"\r\n\r\n", 1)[-1])
                 self.assertIn(b"404", direct.split(b"\r\n", 1)[0])
-                self.assertIn(secret, captures + secret)  # mutation proves the detector turns red
+                with self.assertRaises(AssertionError):
+                    assert_secret_absent(self, secret, captures + secret)
             finally:
                 process.send_signal(signal.SIGTERM)
                 try:
@@ -169,7 +182,7 @@ class ClosedOperationE2E(unittest.TestCase):
                 except subprocess.TimeoutExpired:
                     process.kill()
                     daemon_stdout, daemon_stderr = process.communicate(timeout=5)
-                self.assertNotIn(secret, daemon_stdout + daemon_stderr)
+                assert_secret_absent(self, secret, daemon_stdout + daemon_stderr)
 
 
 if __name__ == "__main__":

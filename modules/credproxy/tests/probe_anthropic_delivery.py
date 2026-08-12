@@ -101,8 +101,19 @@ def observe(credproxyd: Path, client: Path, timeout: int) -> dict[str, object]:
 
 def report(mode: str, revision: str, observation: dict[str, object], tier1_report: dict | None = None) -> dict[str, object]:
     cases = {name: "not_observed" for name in CASES}
-    if mode == "adapter" and (not tier1_report or tier1_report.get("classification") != "unsupported"):
-        classification, reason = "inconclusive", "tier1_explicit_unsupported_required"
+    tier1_matches = bool(
+        tier1_report
+        and tier1_report.get("schema") == SCHEMA
+        and tier1_report.get("mode") == "tier1"
+        and tier1_report.get("runner_revision") == revision
+        and tier1_report.get("credproxyd_revision") == observation.get("credproxyd_revision")
+        and tier1_report.get("client_revision") == observation.get("client_revision")
+        and tier1_report.get("classification") == "unsupported"
+        and tier1_report.get("selected_outcome") == "provider_disabled"
+        and tier1_report.get("credential_material_observed") is False
+    )
+    if mode == "adapter" and not tier1_matches:
+        classification, reason = "inconclusive", "same_revision_tier1_unsupported_required"
     elif observation.get("state") != "observed":
         classification, reason = "inconclusive", str(observation.get("reason", "probe_not_observed"))
     elif observation.get("credential_material_observed"):
@@ -154,7 +165,11 @@ class AnthropicProbeTests(unittest.TestCase):
 
     def test_adapter_requires_explicit_tier1_unsupported(self):
         self.assertEqual(report("adapter", "test", self.observed_disabled)["classification"], "inconclusive")
-        self.assertEqual(report("adapter", "test", self.observed_disabled, {"classification": "unsupported"})["classification"], "unsupported")
+        tier1 = report("tier1", "test", self.observed_disabled)
+        self.assertEqual(report("adapter", "test", self.observed_disabled, tier1)["classification"], "unsupported")
+        self.assertEqual(report("adapter", "stale", self.observed_disabled, tier1)["classification"], "inconclusive")
+        changed_binary = dict(self.observed_disabled, client_revision="sha256:changed")
+        self.assertEqual(report("adapter", "test", changed_binary, tier1)["classification"], "inconclusive")
 
 
 def main() -> None:

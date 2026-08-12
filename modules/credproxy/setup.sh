@@ -164,6 +164,9 @@ if is_darwin; then
 fi
 
 if ! has_cmd systemctl || [ ! -d /run/systemd/system ] || ! systemd-creds --help >/dev/null 2>&1; then
+	if has_cmd systemctl; then
+		systemctl --user disable --now credproxyd.service >/dev/null 2>&1 || true
+	fi
 	log "credproxy: credential_source_unavailable (systemd encrypted credentials unsupported); route disabled"
 	exit 0
 fi
@@ -185,5 +188,6 @@ if [ ! -f "$ENCRYPTED" ]; then
 	log "credproxy: credential_source_unavailable (encrypted credential absent); route disabled"
 	exit 0
 fi
-systemctl --user enable --now credproxyd.service
+systemctl --user enable credproxyd.service
+systemctl --user restart credproxyd.service
 log "credproxy: systemd encrypted credential authority enabled"

@@ -118,6 +118,14 @@ class ShellSupplyRemovalTests(unittest.TestCase):
 		self.assertFalse(LEGACY_SOURCE.exists())
 		setup = SETUP.read_text(encoding="utf-8")
 		self.assertNotRegex(setup, r"\b(cp|install)\b[^\n]*credproxy-env\.sh")
+
+	def test_linux_service_lifecycle_stops_on_authority_loss_and_restarts_on_update(self) -> None:
+		setup = SETUP.read_text(encoding="utf-8")
+		unsupported = setup.split("if ! has_cmd systemctl", 1)[1].split("if ! managed_config_ready", 1)[0]
+		self.assertIn("disable --now credproxyd.service", unsupported)
+		self.assertIn("systemctl --user enable credproxyd.service", setup)
+		self.assertIn("systemctl --user restart credproxyd.service", setup)
+		self.assertNotIn("systemctl --user enable --now credproxyd.service", setup)
 		self.assertNotIn("assets/shellenv", setup)
 
 	def test_exact_managed_profile_is_removed(self) -> None:
