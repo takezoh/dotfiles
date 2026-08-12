@@ -146,6 +146,12 @@ class ShellSupplyRemovalTests(unittest.TestCase):
 		self.assertLess(setup.index("find-generic-password"), call_sites[0])
 		self.assertLess(setup.index('if [ ! -f "$ENCRYPTED" ]'), call_sites[1])
 		self.assertIn("consumer_admission_ready", setup)
+		admission = setup.split("consumer_admission_ready()", 1)[1].split("if is_darwin", 1)[0]
+		self.assertIn('"$RUNTIME_ROOT/bin/ctx" version', admission)
+		self.assertNotIn('"$HOME/.local/bin/ctx" version', admission)
+		self.assertNotIn("find ", admission)
+		self.assertIn("CONTEXT_FABRIC_HOOK_SHA256", admission)
+		self.assertIn("active ctx hook identity mismatch", admission)
 
 	def test_user_modified_profile_is_conflicting_and_preserved(self) -> None:
 		self.sandbox.installed.parent.mkdir(parents=True)

@@ -17,6 +17,7 @@ RUNTIME_ROOT="$HOME/.local/lib/credproxy"
 # asset because the source is removed in this revision.
 readonly PRE_REMOVAL_ADMISSION_REVISION="59fcde2"
 readonly CONTEXT_FABRIC_ADMISSION_REVISION="23b827bb3eb68b6eb16adbbeeeb8879680dd04f9"
+readonly CONTEXT_FABRIC_HOOK_SHA256="3b690a4a52def2572d4b2128397339c147698cfab7a215a3ab80dc4d3e62ac15"
 readonly DOTFILES_D2_EVIDENCE_REVISION="f46bface982ff475dceca7926d8f5ce1dd2e029f"
 readonly LEGACY_SHELL_PROFILE_SHA256="9f0195c3830d09628df2988241d901b50e0614d924313034b38ec5f72efe8a78"
 readonly LEGACY_SHELL_PROFILE="$HOME/.local/config/zshrc/50_credproxy-env.zsh"
@@ -138,13 +139,13 @@ trusted_runtime_ready() {
 }
 
 consumer_admission_ready() {
-	local handshake expected hook
-	if [ ! -x "$HOME/.local/bin/ctx" ]; then
-		log "credproxy: cutover pending (installed ctx unavailable); legacy shell profile preserved"
+	local handshake expected hook hook_count=0
+	if [ ! -x "$RUNTIME_ROOT/bin/ctx" ]; then
+		log "credproxy: cutover pending (fixed operation ctx unavailable); legacy shell profile preserved"
 		return 1
 	fi
-	if ! "$HOME/.local/bin/ctx" version 2>/dev/null | grep -Fq "build      $CONTEXT_FABRIC_ADMISSION_REVISION clean"; then
-		log "credproxy: cutover pending (installed ctx revision mismatch); legacy shell profile preserved"
+	if ! "$RUNTIME_ROOT/bin/ctx" version 2>/dev/null | grep -Fq "build      $CONTEXT_FABRIC_ADMISSION_REVISION clean"; then
+		log "credproxy: cutover pending (fixed operation ctx revision mismatch); legacy shell profile preserved"
 		return 1
 	fi
 	expected="$(/usr/bin/python3 - "$RUNTIME_ROOT/bindings/ctx-sync.json" <<'PY'
@@ -162,10 +163,19 @@ PY
 		log "credproxy: cutover pending (ctx binding handshake mismatch); legacy shell profile preserved"
 		return 1
 	fi
-	hook="$(find "$HOME/.codex/plugins/cache" "$HOME/.claude/plugins/cache" \
-		-path '*/context-fabric/*/hooks/session-start.sh' -type f -print -quit 2>/dev/null)"
-	if [ -z "$hook" ] || ! grep -Fq "'.schema | select(type == \"string\")'" "$hook"; then
-		log "credproxy: cutover pending (installed ctx hook contract unavailable); legacy shell profile preserved"
+	for hook in \
+		"$HOME/.codex/plugins/cache/context-fabric/context-fabric/0.1.0/hooks/session-start.sh" \
+		"$HOME/.claude/plugins/cache/context-fabric/context-fabric/0.1.0/hooks/session-start.sh"; do
+		[ -e "$hook" ] || continue
+		hook_count=$((hook_count + 1))
+		if [ ! -f "$hook" ] || [ -L "$hook" ] \
+			|| [ "$(file_sha256 "$hook")" != "$CONTEXT_FABRIC_HOOK_SHA256" ]; then
+			log "credproxy: cutover pending (active ctx hook identity mismatch); legacy shell profile preserved"
+			return 1
+		fi
+	done
+	if [ "$hook_count" -eq 0 ]; then
+		log "credproxy: cutover pending (active ctx hook unavailable); legacy shell profile preserved"
 		return 1
 	fi
 }
