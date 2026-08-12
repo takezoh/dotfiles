@@ -128,15 +128,24 @@ class ShellSupplyRemovalTests(unittest.TestCase):
 		self.assertNotIn("systemctl --user enable --now credproxyd.service", setup)
 		self.assertNotIn("assets/shellenv", setup)
 
-	def test_exact_managed_profile_is_removed(self) -> None:
+	def test_managed_profile_is_preserved_until_consumer_admission(self) -> None:
 		self.sandbox.installed.parent.mkdir(parents=True)
 		self.sandbox.installed.write_bytes(legacy_profile_bytes())
 
 		result = self.sandbox.run()
 
-		self.assertEqual(result.returncode, 0, result.stderr)
-		self.assertFalse(self.sandbox.installed.exists())
-		self.assertIn("removed managed legacy shell env supply", result.stderr)
+		self.assertEqual(result.returncode, 0)
+		self.assertEqual(self.sandbox.installed.read_bytes(), legacy_profile_bytes())
+
+	def test_profile_reconciliation_occurs_only_after_authority_and_consumer_gates(self) -> None:
+		setup = SETUP.read_text(encoding="utf-8")
+		definition_end = setup.index("managed_config_ready()")
+		call_sites = [match.start() for match in re.finditer(r"reconcile_legacy_shell_profile \|\| exit 2", setup)]
+		self.assertEqual(len(call_sites), 2)
+		self.assertTrue(all(site > definition_end for site in call_sites))
+		self.assertLess(setup.index("find-generic-password"), call_sites[0])
+		self.assertLess(setup.index('if [ ! -f "$ENCRYPTED" ]'), call_sites[1])
+		self.assertIn("consumer_admission_ready", setup)
 
 	def test_user_modified_profile_is_conflicting_and_preserved(self) -> None:
 		self.sandbox.installed.parent.mkdir(parents=True)
@@ -145,10 +154,8 @@ class ShellSupplyRemovalTests(unittest.TestCase):
 
 		result = self.sandbox.run()
 
-		self.assertNotEqual(result.returncode, 0)
+		self.assertEqual(result.returncode, 0)
 		self.assertEqual(self.sandbox.installed.read_bytes(), user_content)
-		self.assertIn("conflicting", result.stderr)
-		self.assertIn("user-modified", result.stderr)
 
 	def test_unknown_symlink_profile_is_conflicting_and_preserved(self) -> None:
 		target = self.sandbox.root / "user-profile"
@@ -158,11 +165,9 @@ class ShellSupplyRemovalTests(unittest.TestCase):
 
 		result = self.sandbox.run()
 
-		self.assertNotEqual(result.returncode, 0)
+		self.assertEqual(result.returncode, 0)
 		self.assertTrue(self.sandbox.installed.is_symlink())
 		self.assertEqual(target.read_bytes(), legacy_profile_bytes())
-		self.assertIn("conflicting", result.stderr)
-		self.assertIn("provenance unknown", result.stderr)
 
 	def test_absent_profile_stays_absent_and_is_never_restored(self) -> None:
 		first = self.sandbox.run()

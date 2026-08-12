@@ -151,31 +151,43 @@ def installed_xai_consumer_references(home: Path, extra_roots: tuple[Path, ...] 
 	for root in roots:
 		if not root.is_dir():
 			continue
-		for path in root.rglob("*"):
-			if not path.is_file():
-				continue
-			relative = path.relative_to(root)
-			if any(part in excluded_parts or part.startswith("test_") for part in relative.parts):
-				continue
-			if path.name == ".env":
-				if "grok-x-search" in relative.parts:
-					matches.append(str(path))
-				continue
-			if path.suffix not in extensions:
-				continue
+		visited_dirs: set[tuple[int, int]] = set()
+		for directory, dirnames, filenames in os.walk(root, followlinks=True):
+			directory_path = Path(directory)
 			try:
-				read_path = path.resolve(strict=True) if path.is_symlink() else path
-				if not read_path.is_file():
-					continue
-				text = read_path.read_text(encoding="utf-8")
-			except (OSError, UnicodeError):
+				info = directory_path.stat()
+			except OSError:
+				dirnames[:] = []
 				continue
-			if any(pattern.search(text) for pattern in patterns):
+			identity = (info.st_dev, info.st_ino)
+			if identity in visited_dirs:
+				dirnames[:] = []
+				continue
+			visited_dirs.add(identity)
+			dirnames[:] = [name for name in dirnames if name not in excluded_parts and not name.startswith("test_")]
+			for filename in filenames:
+				path = directory_path / filename
+				if not path.is_file():
+					continue
+				relative = path.relative_to(root)
+				if any(part in excluded_parts or part.startswith("test_") for part in relative.parts):
+					continue
+				if path.name == ".env":
+					if "grok-x-search" in relative.parts:
+						matches.append(str(path))
+					continue
+				if path.suffix not in extensions:
+					continue
 				try:
-					display = "~/" + str(path.relative_to(home))
-				except ValueError:
-					display = str(path)
-				matches.append(display)
+					text = path.read_text(encoding="utf-8")
+				except (OSError, UnicodeError):
+					continue
+				if any(pattern.search(text) for pattern in patterns):
+					try:
+						display = "~/" + str(path.relative_to(home))
+					except ValueError:
+						display = str(path)
+					matches.append(display)
 	return {"classification": "conflicting" if matches else "determinate", "references": sorted(set(matches))}
 
 
@@ -344,6 +356,19 @@ class InventoryTests(unittest.TestCase):
 			consumer = home / ".codex/plugins/cache/example/consumer.py"
 			consumer.parent.mkdir(parents=True)
 			consumer.symlink_to(target)
+			result = build_inventory(root, home, None)
+			self.assertEqual(result["closure"]["classification"], "conflicting")
+
+	def test_symlinked_plugin_directory_consumer_is_conflicting(self) -> None:
+		with tempfile.TemporaryDirectory() as temp:
+			root = self._repo(Path(temp) / "repo")
+			home = Path(temp) / "home"
+			target = Path(temp) / "plugin"
+			target.mkdir()
+			(target / "consumer.py").write_text('import os\nkey = os.getenv("XAI_API_KEY")\n', encoding="utf-8")
+			consumer = home / ".codex/plugins/cache/example"
+			consumer.parent.mkdir(parents=True)
+			consumer.symlink_to(target, target_is_directory=True)
 			result = build_inventory(root, home, None)
 			self.assertEqual(result["closure"]["classification"], "conflicting")
 

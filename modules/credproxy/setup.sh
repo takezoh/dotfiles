@@ -16,6 +16,7 @@ RUNTIME_ROOT="$HOME/.local/lib/credproxy"
 # profile installed by D2; it is deliberately not derived from a live source
 # asset because the source is removed in this revision.
 readonly PRE_REMOVAL_ADMISSION_REVISION="59fcde2"
+readonly CONTEXT_FABRIC_ADMISSION_REVISION="23b827bb3eb68b6eb16adbbeeeb8879680dd04f9"
 readonly DOTFILES_D2_EVIDENCE_REVISION="f46bface982ff475dceca7926d8f5ce1dd2e029f"
 readonly LEGACY_SHELL_PROFILE_SHA256="9f0195c3830d09628df2988241d901b50e0614d924313034b38ec5f72efe8a78"
 readonly LEGACY_SHELL_PROFILE="$HOME/.local/config/zshrc/50_credproxy-env.zsh"
@@ -65,8 +66,6 @@ reconcile_legacy_shell_profile() {
 	rm -- "$LEGACY_SHELL_PROFILE"
 	log "credproxy: removed managed legacy shell env supply"
 }
-
-reconcile_legacy_shell_profile
 
 managed_config_ready() {
 	local template_sha installed_sha
@@ -138,8 +137,41 @@ trusted_runtime_ready() {
 	done
 }
 
+consumer_admission_ready() {
+	local handshake expected hook
+	if [ ! -x "$HOME/.local/bin/ctx" ]; then
+		log "credproxy: cutover pending (installed ctx unavailable); legacy shell profile preserved"
+		return 1
+	fi
+	if ! "$HOME/.local/bin/ctx" version 2>/dev/null | grep -Fq "build      $CONTEXT_FABRIC_ADMISSION_REVISION clean"; then
+		log "credproxy: cutover pending (installed ctx revision mismatch); legacy shell profile preserved"
+		return 1
+	fi
+	expected="$(/usr/bin/python3 - "$RUNTIME_ROOT/bindings/ctx-sync.json" <<'PY'
+import json, sys
+try:
+    with open(sys.argv[1], encoding="utf-8") as stream:
+        value = json.load(stream)
+    print(value["schema"], value["binding_revision"], value["producer_revision"])
+except (OSError, KeyError, TypeError, UnicodeError, json.JSONDecodeError):
+    raise SystemExit(1)
+PY
+)" || return 1
+	handshake="$("$RUNTIME_ROOT/bin/ctx-sync" --credroute-version 2>/dev/null)" || return 1
+	if [ "$expected" != "$handshake" ]; then
+		log "credproxy: cutover pending (ctx binding handshake mismatch); legacy shell profile preserved"
+		return 1
+	fi
+	hook="$(find "$HOME/.codex/plugins/cache" "$HOME/.claude/plugins/cache" \
+		-path '*/context-fabric/*/hooks/session-start.sh' -type f -print -quit 2>/dev/null)"
+	if [ -z "$hook" ] || ! grep -Fq "'.schema | select(type == \"string\")'" "$hook"; then
+		log "credproxy: cutover pending (installed ctx hook contract unavailable); legacy shell profile preserved"
+		return 1
+	fi
+}
+
 if is_darwin; then
-	if ! managed_config_ready || ! credential_material_absent || ! trusted_runtime_ready; then
+	if ! managed_config_ready || ! credential_material_absent || ! trusted_runtime_ready || ! consumer_admission_ready; then
 		launchctl bootout "gui/$(id -u)/com.takezoh.credproxyd" >/dev/null 2>&1 || true
 		exit 2
 	fi
@@ -153,6 +185,7 @@ if is_darwin; then
 	mv "$tmp" "$PLIST_DIR/com.takezoh.credproxyd.plist"
 	if /usr/bin/security find-generic-password \
 		-s com.takezoh.credproxy.op-service-account -a credproxyd >/dev/null 2>&1; then
+		reconcile_legacy_shell_profile || exit 2
 		launchctl bootout "gui/$(id -u)/com.takezoh.credproxyd" >/dev/null 2>&1 || true
 		launchctl bootstrap "gui/$(id -u)" "$PLIST_DIR/com.takezoh.credproxyd.plist"
 		log "credproxy: launchd enabled with fixed Keychain authority"
@@ -171,7 +204,7 @@ if ! has_cmd systemctl || [ ! -d /run/systemd/system ] || ! systemd-creds --help
 	exit 0
 fi
 
-if ! managed_config_ready || ! credential_material_absent || ! trusted_runtime_ready; then
+if ! managed_config_ready || ! credential_material_absent || ! trusted_runtime_ready || ! consumer_admission_ready; then
 	systemctl --user disable --now credproxyd.service >/dev/null 2>&1 || true
 	exit 2
 fi
@@ -188,6 +221,7 @@ if [ ! -f "$ENCRYPTED" ]; then
 	log "credproxy: credential_source_unavailable (encrypted credential absent); route disabled"
 	exit 0
 fi
+reconcile_legacy_shell_profile || exit 2
 systemctl --user enable credproxyd.service
 systemctl --user restart credproxyd.service
 log "credproxy: systemd encrypted credential authority enabled"
