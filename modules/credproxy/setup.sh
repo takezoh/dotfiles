@@ -10,8 +10,6 @@ CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/credproxyd"
 CONFIG_PATH="$CONFIG_DIR/config.toml"
 CONFIG_PROVENANCE="$CONFIG_DIR/config.toml.managed.json"
 RUNTIME_ROOT="$HOME/.local/lib/credproxy"
-CONTEXT_RUNTIME_ROOT="$HOME/.local/lib/context-fabric"
-CONTEXT_CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/context-fabric/service.json"
 
 readonly LEGACY_SHELL_PROFILE_SHA256="9f0195c3830d09628df2988241d901b50e0614d924313034b38ec5f72efe8a78"
 readonly LEGACY_SHELL_PROFILE="$HOME/.local/config/zshrc/50_credproxy-env.zsh"
@@ -132,34 +130,6 @@ trusted_runtime_ready() {
 }
 
 context_service_ready() {
-	local unit_dir plist_dir tmp
-	if [ ! -x "$CONTEXT_RUNTIME_ROOT/bin/context-service" ] \
-		|| [ -L "$CONTEXT_RUNTIME_ROOT/bin/context-service" ] \
-		|| [ ! -f "$CONTEXT_CONFIG" ] || [ -L "$CONTEXT_CONFIG" ]; then
-		log "credproxy: cutover pending (Context Fabric service binary/config unavailable); legacy shell profile preserved"
-		return 1
-	fi
-	if is_darwin; then
-		plist_dir="$HOME/Library/LaunchAgents"
-		mkdir -p "$plist_dir" "$HOME/.local/state/context-fabric"
-		tmp="$(mktemp "$plist_dir/.context-service.plist.XXXXXX")"
-		sed -e "s|@HOME@|$HOME|g" "$ASSETS/launchd/context-service.plist" >"$tmp"
-		chmod 0600 "$tmp"
-		mv "$tmp" "$plist_dir/com.takezoh.context-service.plist"
-		launchctl bootout "gui/$(id -u)/com.takezoh.context-service" >/dev/null 2>&1 || true
-		launchctl bootstrap "gui/$(id -u)" "$plist_dir/com.takezoh.context-service.plist" || return 1
-	else
-		if ! has_cmd systemctl || [ ! -d /run/systemd/system ]; then
-			log "credproxy: cutover pending (Context Fabric service manager unavailable); legacy shell profile preserved"
-			return 1
-		fi
-		unit_dir="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
-		mkdir -p "$unit_dir" "$HOME/.local/state/context-fabric"
-		cp "$ASSETS/systemd/user/context-service.service" "$unit_dir/context-service.service"
-		systemctl --user daemon-reload
-		systemctl --user enable context-service.service >/dev/null
-		systemctl --user restart context-service.service || return 1
-	fi
 	if ! has_cmd curl; then
 		log "credproxy: cutover pending (curl unavailable for Context Fabric health check); legacy shell profile preserved"
 		return 1
@@ -182,7 +152,7 @@ if is_darwin; then
 	fi
 	PLIST_DIR="$HOME/Library/LaunchAgents"
 	RUNTIME_DIR="$HOME/Library/Caches/credproxyd/runtime"
-	mkdir -p "$PLIST_DIR" "$RUNTIME_DIR"
+	mkdir -p "$PLIST_DIR" "$RUNTIME_DIR/credproxyd"
 	tmp="$(mktemp "$PLIST_DIR/.credproxyd.plist.XXXXXX")"
 	sed -e "s|@HOME@|$HOME|g" -e "s|@RUNTIME_DIR@|$RUNTIME_DIR|g" \
 		"$ASSETS/launchd/credproxyd.plist" >"$tmp"

@@ -7,10 +7,9 @@ MODULES_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 . "$MODULES_DIR/_lib/common.sh"
 
 ASSETS="$(cd "$(dirname "$0")" && pwd)/assets"
+. "$(cd "$(dirname "$0")" && pwd)/socket-path.sh"
 CREDPROXY_SRC="$(cd "$DOTFILES_DIR/.." && pwd -P)/credproxy"
-CONTEXT_FABRIC_SRC="$(cd "$DOTFILES_DIR/.." && pwd -P)/context-fabric"
 RUNTIME_ROOT="$HOME/.local/lib/credproxy"
-CONTEXT_RUNTIME_ROOT="$HOME/.local/lib/context-fabric"
 BIN_DIR="$RUNTIME_ROOT/bin"
 CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/credproxyd"
 HOOK_DIR="$RUNTIME_ROOT/hooks"
@@ -78,11 +77,10 @@ PY
 }
 
 install_managed_config() {
-	local source_sha template_sha installed_sha rendered uid tmp provenance_state
-	uid="$(id -u)"
+	local source_sha template_sha installed_sha rendered tmp provenance_state
 	tmp="$(mktemp "$CONFIG_DIR/.config.toml.rendered.XXXXXX")"
 	sed \
-		-e "s|@BROKER_SOCKET@|/run/user/$uid/credproxyd/broker.sock|g" \
+		-e "s|@BROKER_SOCKET@|$(sed_replacement "$(broker_socket_path)")|g" \
 		-e "s|@HOOK_PATH@|$(sed_replacement "$HOOK_DIR/op-resolve.py")|g" \
 		"$ASSETS/config.toml" >"$tmp"
 	chmod 0600 "$tmp"
@@ -214,20 +212,6 @@ else
 	log "credproxy: building credproxy + credproxyd -> $BIN_DIR"
 	( cd "$CREDPROXY_SRC" && go build -o "$BIN_DIR/credproxyd" ./cmd/credproxyd )
 	( cd "$CREDPROXY_SRC" && go build -o "$BIN_DIR/credproxy" ./cmd/credproxy )
-fi
-
-# Build the Context Fabric-owned service endpoint.  dotfiles only packages the
-# product binary; endpoint semantics and remote-sync execution stay in the
-# context-fabric repository.
-if [ ! -d "$CONTEXT_FABRIC_SRC" ]; then
-	log "credproxy: context-fabric source repo not found at $CONTEXT_FABRIC_SRC, sync service build skipped"
-elif ! has_cmd go; then
-	log "credproxy: go 未導入のため context-service build をスキップ"
-else
-	mkdir -p "$CONTEXT_RUNTIME_ROOT/bin"
-	log "credproxy: building context-service -> $CONTEXT_RUNTIME_ROOT/bin"
-	( cd "$CONTEXT_FABRIC_SRC" && go build -o "$CONTEXT_RUNTIME_ROOT/bin/context-service" ./cmd/context-service )
-	chmod 0700 "$CONTEXT_RUNTIME_ROOT" "$CONTEXT_RUNTIME_ROOT/bin"
 fi
 
 # 2. Native headless `op` (Linux only). The WSL `op` on PATH is the op.exe shim

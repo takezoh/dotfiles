@@ -6,6 +6,7 @@ ConditionPathIsExecutable=%h/.local/lib/context-fabric/bin/context-service
 
 [Service]
 Type=simple
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
 ExecStart=%h/.local/lib/context-fabric/bin/context-service -config %h/.config/context-fabric/service.json -listen 127.0.0.1:8480
 Restart=on-failure
 RestartSec=2

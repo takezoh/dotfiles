@@ -16,6 +16,7 @@ modules=(
 	cli
 	docker
 	agent-module
+	context-fabric-service
 	credproxy
 )
 

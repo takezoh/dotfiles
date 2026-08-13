@@ -40,22 +40,26 @@ revision in this module. The route is an HTTP injection route; context-service
 authenticates and performs sync. Runtime identities are install-time copies under
 `~/.local/lib/credproxy` and are not placed in the sandbox allowlist.
 
-`context-service` is built from the sibling Context Fabric repository and installed
-as a copy under `~/.local/lib/context-fabric/bin`. Its product-owned configuration is
-`~/.config/context-fabric/service.json`; dotfiles does not render it or store a bearer.
-The service principal entry contains only the SHA-256 of the bearer held by the
-credential authority. A minimal local deployment also sets `listen` to
-`127.0.0.1:8480`, an absolute `state_dir` and `snapshot_path`, and the remote source
-definitions. Setup starts the packaged service and requires `/v1/healthz` before it
-removes the legacy parent-env profile.
+`context-service` の installed copy と OS lifecycle は sibling
+`context-fabric-service` module が所有する。credproxy setup は公開
+`GET /v1/healthz` だけを upstream readiness として消費し、service config、service
+principal、source、sync semantics を生成・解釈しない。
+
+broker socket はこの module が platform ごとに一度だけ解決する。Linux/WSL は
+`${XDG_RUNTIME_DIR:-/run/user/$uid}/credproxyd/broker.sock`、macOS は
+`~/Library/Caches/credproxyd/runtime/credproxyd/broker.sock` で、rendered config と
+service manager が同じ path を使う。Context Fabric 側の端末固有 config もこの
+値を `context-fabric-service` moduleからpublic `ctx service init`へ明示入力として
+渡す。dotfiles はその config schema を直接編集しない。
 
 ## Phases
 
-- `install`: build the broker and Context Fabric service binaries; copy resolver,
+- `install`: build the broker binaries; copy resolver,
   editor client, binding, service-manager assets, and proxy config.
   Config has a managed provenance sidecar and exact source/installed revisions;
   unknown, locally modified, or source-new/installed-old state is conflicting.
-- `setup`: remove the exact known managed shell profile only after context-service
+- `setup`: remove the exact known managed shell profile only after the separately
+  managed context-service
   health, managed proxy wiring, and the selected secure authority are available;
   stop on unknown/user-modified content. It never installs or restores the
   login-shell export profile. Existing shells must be restarted to discard inherited

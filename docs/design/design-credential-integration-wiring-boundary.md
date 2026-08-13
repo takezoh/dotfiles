@@ -7,8 +7,8 @@ created: '2026-08-12'
 scope_type: component
 responsibilities:
 - id: RESP-001
-  statement: Install secure credential authority, credproxy injection routes, and
-    service definitions.
+  statement: Install secure credential authority, Context Fabric runtime copies, injection
+    routes, and OS service definitions without owning product semantics.
 - id: RESP-002
   statement: Reconcile legacy shell supply without deleting unknown user state.
 invariants:
@@ -22,12 +22,15 @@ invariants:
 boundaries:
   provides:
   - installed credproxyd configuration and authority resolver
-  - service lifecycle and legacy profile reconciliation
+  - separate context-fabric-service and credproxyd lifecycles
+  - explicit local deployment paths passed through the Context Fabric public initializer
+  - legacy profile reconciliation
   consumes:
   - credproxy protocol injection contract
   - Context Fabric HTTP sync contract
   forbidden:
   - owning Context Fabric sync semantics
+  - rendering Context Fabric JSON or provisioning a principal credential
   - validating external repository commits, hook digests, or consumer commands
 variability:
   fixed:
@@ -51,6 +54,7 @@ owners: []
 relations: []
 source_paths:
 - modules/credproxy
+- modules/context-fabric-service
 summary: dotfiles owns secure authority and service wiring without consumer command
   policy or source revision admission.
 ---
@@ -62,8 +66,9 @@ operation-policy owner.
 
 ## Responsibilities
 
-Install copies, render route configuration, manage services, and migrate known
-dotfiles state.
+Install copies, render route configuration, manage each OS service in its owning
+module, and migrate known dotfiles state. Context Fabric config remains opaque and
+product-owned.
 
 ## Boundaries
 
@@ -78,6 +83,9 @@ operation appears in production wiring.
 ## Collaboration
 
 `POST /v1/sync/remote` and `Authorization` are the complete integration contract.
+Before service start, dotfiles invokes the installed `ctx service init` with the
+installed client snapshot, one explicit deployment tenant, and absolute local paths.
+The product CLI, not dotfiles, owns JSON projection and validation.
 
 ## Failure Responsibility
 

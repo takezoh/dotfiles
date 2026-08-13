@@ -18,6 +18,7 @@ modules=(
 	cli
 	android-re
 	agent-module
+	context-fabric-service
 	credproxy
 	terminal-windows
 	terminal-wezterm

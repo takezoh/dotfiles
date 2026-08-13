@@ -16,6 +16,7 @@ modules=(
 	editor-nvim
 	cli
 	agent-module
+	context-fabric-service
 	credproxy
 	terminal-wezterm
 	net-ssh
