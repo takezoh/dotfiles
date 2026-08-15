@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# credproxy: build the broker binaries, install a native headless `op`, and lay
-# down config/hooks/wrappers as copies. Credential material is never provisioned
-# here and no persistent plaintext fallback is accepted.
+# credproxy: obtain/build the broker binaries, install a native headless `op`,
+# and lay down config/hooks/wrappers as copies. Credential provisioning is owned
+# by setup and is limited to the protected ~/.secrets boundary.
 set -euo pipefail
 MODULES_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 . "$MODULES_DIR/_lib/common.sh"
@@ -9,6 +9,8 @@ MODULES_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 ASSETS="$(cd "$(dirname "$0")" && pwd)/assets"
 . "$(cd "$(dirname "$0")" && pwd)/socket-path.sh"
 CREDPROXY_SRC="$(cd "$DOTFILES_DIR/.." && pwd -P)/credproxy"
+readonly CREDPROXY_REPOSITORY="https://github.com/takezoh/credproxy.git"
+readonly CREDPROXY_BOOTSTRAP_REVISION="cbe0d235e4412d12b01f7cdbcaa5577ad2595313"
 RUNTIME_ROOT="$HOME/.local/lib/credproxy"
 BIN_DIR="$RUNTIME_ROOT/bin"
 CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/credproxyd"
@@ -202,9 +204,47 @@ install_minuet_binding_manifest() {
 	mv "$tmp" "$MINUET_BINDING"
 }
 
-# 1. Build credproxy + credproxyd from the sibling repo (skip if go/repo absent).
-if [ ! -d "$CREDPROXY_SRC" ]; then
-	log "credproxy: source repo not found at $CREDPROXY_SRC, skipping build"
+# 1. Build credproxy + credproxyd from the sibling repo. A fresh host obtains a
+#    shallow working tree; an existing but incomplete path is never overwritten.
+if [ ! -e "$CREDPROXY_SRC" ] && [ ! -L "$CREDPROXY_SRC" ]; then
+	if ! has_cmd git; then
+		log "credproxy: source unavailable (git is required for shallow fetch)"
+		exit 2
+	fi
+	clone_root="$(mktemp -d "$(dirname "$CREDPROXY_SRC")/.credproxy.clone.XXXXXX")"
+	clone_source="$clone_root/source"
+	cleanup_clone() {
+		rm -rf -- "$clone_root"
+	}
+	trap cleanup_clone EXIT HUP INT TERM
+	mkdir "$clone_source"
+	git -C "$clone_source" init --quiet
+	git -C "$clone_source" remote add origin "$CREDPROXY_REPOSITORY"
+	log "credproxy: shallow fetching pinned source -> $CREDPROXY_SRC"
+	if ! git -C "$clone_source" fetch --depth 1 --filter=blob:none origin \
+		"$CREDPROXY_BOOTSTRAP_REVISION"; then
+		log "credproxy: source unavailable (shallow fetch failed)"
+		exit 2
+	fi
+	observed_revision="$(git -C "$clone_source" rev-parse FETCH_HEAD 2>/dev/null || true)"
+	if [ "$observed_revision" != "$CREDPROXY_BOOTSTRAP_REVISION" ]; then
+		log "credproxy: conflicting (remote source revision is not the reviewed bootstrap revision)"
+		exit 2
+	fi
+	git -c core.hooksPath=/dev/null -C "$clone_source" checkout --detach \
+		"$CREDPROXY_BOOTSTRAP_REVISION" >/dev/null
+	if [ -e "$CREDPROXY_SRC" ] || [ -L "$CREDPROXY_SRC" ]; then
+		log "credproxy: conflicting (source path appeared during shallow fetch)"
+		exit 2
+	fi
+	mv -- "$clone_source" "$CREDPROXY_SRC"
+	rmdir "$clone_root"
+	trap - EXIT HUP INT TERM
+fi
+if [ ! -d "$CREDPROXY_SRC/.git" ] || [ ! -d "$CREDPROXY_SRC/cmd/credproxyd" ] \
+	|| [ ! -d "$CREDPROXY_SRC/cmd/credproxy" ]; then
+	log "credproxy: conflicting (source repository incomplete at $CREDPROXY_SRC)"
+	exit 2
 elif ! has_cmd go; then
 	log "credproxy: go 未導入のためビルドをスキップ"
 else

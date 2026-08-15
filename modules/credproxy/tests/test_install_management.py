@@ -28,9 +28,11 @@ class InstallFixture:
         (self.dotfiles / "modules/_lib").mkdir(parents=True)
         (self.dotfiles / "modules/_lib/common.sh").write_text(
             'has_cmd() { command -v "$1" >/dev/null 2>&1; }\n'
-            'is_linux() { return 1; }\nlog() { printf "%s\\n" "$*" >&2; }\n', encoding="utf-8")
+            'is_linux() { return 1; }\nis_wsl() { return 1; }\n'
+            'log() { printf "%s\\n" "$*" >&2; }\n', encoding="utf-8")
         (self.root / "credproxy/cmd/credproxyd").mkdir(parents=True)
         (self.root / "credproxy/cmd/credproxy").mkdir(parents=True)
+        (self.root / "credproxy/.git").mkdir()
         go = self.fake_bin / "go"
         go.write_text(
             '#!/bin/sh\nout=""\nwhile [ "$#" -gt 0 ]; do [ "$1" = -o ] && { shift; out="$1"; }; shift; done\n'
@@ -61,6 +63,7 @@ class InstallManagementTests(unittest.TestCase):
         runtime = self.fixture.home / ".local/lib/credproxy"
         for path in (runtime / "bin/credproxy", runtime / "bin/credproxyd", runtime / "hooks/op-resolve.py"):
             self.assertTrue(path.is_file() and not path.is_symlink(), path)
+        self.assertNotIn("@WSL_OP_BIN@", (runtime / "hooks/op-resolve.py").read_text())
         provenance = json.loads(self.fixture.config.with_name("config.toml.managed.json").read_text())
         self.assertEqual(provenance["schema"], "credproxy-managed-config/v1")
         self.assertEqual(provenance["source_revision"], provenance["installed_revision"])
@@ -89,6 +92,49 @@ class InstallManagementTests(unittest.TestCase):
     def test_install_has_no_dependency_on_unreachable_delivery_revision(self):
         text = (MODULE / "install.sh").read_text()
         self.assertNotIn("f46bface", text)
+
+    def test_missing_source_fetches_exact_reviewed_commit_at_depth_one(self):
+        shutil.rmtree(self.fixture.root / "credproxy")
+        calls = self.fixture.root / "git-calls"
+        git = self.fixture.fake_bin / "git"
+        git.write_text(
+            '#!/bin/sh\n'
+            f'printf "%s\\n" "$*" >>"{calls}"\n'
+            'if [ "$1" = -C ] && [ "$3" = init ]; then mkdir -p "$2/.git"; exit 0; fi\n'
+            'if [ "$1" = -C ] && [ "$3" = remote ]; then exit 0; fi\n'
+            'if [ "$1" = -C ] && [ "$3" = fetch ]; then exit 0; fi\n'
+            'if [ "$1" = -C ] && [ "$3" = rev-parse ]; then\n'
+            '  printf "%s\\n" cbe0d235e4412d12b01f7cdbcaa5577ad2595313\n'
+            '  exit 0\n'
+            'fi\n'
+            'if [ "$1" = -c ] && [ "$5" = checkout ]; then\n'
+            '  mkdir -p "$4/cmd/credproxyd" "$4/cmd/credproxy"\n'
+            '  exit 0\n'
+            'fi\n'
+            'exit 1\n',
+            encoding="utf-8",
+        )
+        git.chmod(0o755)
+
+        result = self.fixture.run()
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        argv = calls.read_text()
+        self.assertIn("remote add origin https://github.com/takezoh/credproxy.git", argv)
+        self.assertIn("fetch --depth 1 --filter=blob:none origin cbe0d235e4412d12b01f7cdbcaa5577ad2595313", argv)
+        self.assertIn("rev-parse FETCH_HEAD", argv)
+        self.assertIn("core.hooksPath=/dev/null", argv)
+        self.assertIn("checkout --detach cbe0d235e4412d12b01f7cdbcaa5577ad2595313", argv)
+
+    def test_incomplete_existing_source_is_conflicting_and_not_replaced(self):
+        incomplete = self.fixture.root / "credproxy/cmd/credproxy"
+        incomplete.rmdir()
+
+        result = self.fixture.run()
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("source repository incomplete", result.stderr)
+        self.assertFalse(incomplete.exists())
 
     def test_exact_original_managed_config_is_migrated(self):
         legacy = subprocess.run(

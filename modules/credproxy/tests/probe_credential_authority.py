@@ -7,6 +7,7 @@ import importlib.util
 import io
 import json
 import subprocess
+import sys
 import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
@@ -16,6 +17,8 @@ SCHEMA = "credential-authority/v1"
 MANDATORY = ("mechanism_available", "fixed_resolver", "child_only_injection", "restart_revocation", "negative_captures", "persistent_absence")
 CANARY = "NONSECRET_TEST_CANARY_AUTHORITY"
 RESOLVER_PATH = Path(__file__).resolve().parents[1] / "assets/hooks/op-resolve.py"
+SYSTEMD_UNIT_PATH = Path(__file__).resolve().parents[1] / "assets/systemd/user/credproxyd.service"
+sys.dont_write_bytecode = True
 
 
 def load_resolver():
@@ -43,14 +46,16 @@ def fake_probe(platform_name: str, producer_revision: str) -> dict[str, object]:
 	observed: dict[str, object] = {"tokens": [], "revoked": False}
 	cases = {name: "pass" for name in MANDATORY}
 	with tempfile.TemporaryDirectory() as temp:
-		runtime = Path(temp) / "runtime"
-		runtime.mkdir()
-		authority = runtime / "op-service-account"
+		home = Path(temp) / "home"
+		authority = home / ".secrets/op/service-account.token"
+		authority.parent.mkdir(parents=True)
+		(home / ".secrets").chmod(0o700)
+		authority.parent.chmod(0o700)
 		authority.write_text(CANARY, encoding="utf-8")
-		authority.chmod(0o400)
+		authority.chmod(0o600)
 
 		def fake_read(path: Path) -> bytes:
-			observed["runtime_path"] = path.name
+			observed["runtime_path"] = str(path.relative_to(home))
 			if observed["revoked"]:
 				raise FileNotFoundError(path)
 			return authority.read_bytes()
@@ -66,12 +71,6 @@ def fake_probe(platform_name: str, producer_revision: str) -> dict[str, object]:
 			observed["op_argv"] = argv
 			observed["op_env_names"] = sorted(env)
 			observed["tokens"].append(env.get("OP_SERVICE_ACCOUNT_TOKEN") == CANARY)
-			try:
-				with authority.open("ab") as stream:
-					stream.write(b"mutation")
-				observed["mutation_blocked"] = False
-			except PermissionError:
-				observed["mutation_blocked"] = True
 			return subprocess.CompletedProcess(argv, 0, "NONSECRET_RESOLVED_VALUE", "")
 
 		out, err = io.StringIO(), io.StringIO()
@@ -79,19 +78,19 @@ def fake_probe(platform_name: str, producer_revision: str) -> dict[str, object]:
 			for _ in range(2):
 				resolver.resolve_request(
 					{"route": "v1/sync/remote"}, platform_name=platform_name,
-					environ={"CREDENTIALS_DIRECTORY": str(runtime)},
+					environ={"HOME": str(home)},
 					read_bytes=fake_read, run_security=fake_security, run_op=fake_op,
 				)
 			observed["revoked"] = True
 			try:
 				resolver.resolve_request(
 					{"route": "v1/sync/remote"}, platform_name=platform_name,
-					environ={"CREDENTIALS_DIRECTORY": str(runtime)},
+					environ={"HOME": str(home)},
 					read_bytes=fake_read, run_security=fake_security, run_op=fake_op,
 				)
 			except SystemExit:
 				observed["revocation_failed_closed"] = True
-		for forbidden in ("resolved.json", "service-account.token", "token"):
+		for forbidden in ("resolved.json", "token"):
 			if (Path(temp) / forbidden).exists():
 				cases["persistent_absence"] = "fail"
 		capture = json.dumps({"stdout": out.getvalue(), "stderr_categories": err.getvalue().splitlines()})
@@ -99,15 +98,15 @@ def fake_probe(platform_name: str, producer_revision: str) -> dict[str, object]:
 			cases["negative_captures"] = "fail"
 	if observed.get("tokens") != [True, True] or observed.get("op_env_names") != ["HOME", "LANG", "OP_SERVICE_ACCOUNT_TOKEN"]:
 		cases["child_only_injection"] = "fail"
-	if not observed.get("revocation_failed_closed") or not observed.get("mutation_blocked"):
+	if not observed.get("revocation_failed_closed"):
 		cases["restart_revocation"] = "fail"
-	if platform_name == "linux" and observed.get("runtime_path") != "op-service-account":
+	if platform_name == "linux" and observed.get("runtime_path") != ".secrets/op/service-account.token":
 		cases["fixed_resolver"] = "fail"
 	if platform_name == "darwin" and observed.get("security_argv", [])[:2] != ["/usr/bin/security", "find-generic-password"]:
 		cases["fixed_resolver"] = "fail"
 	return {
 		"schema": SCHEMA, "runner_revision": producer_revision, "platform": platform_name,
-		"mechanism": "systemd-load-credential-encrypted" if platform_name == "linux" else "login-keychain-fixed-item",
+		"mechanism": "protected-local-secret" if platform_name == "linux" else "login-keychain-fixed-item",
 		"cases": cases, "classification": classify(cases), "route_enabled": classify(cases) == "supported",
 		"fallback": "none", "credential_material_observed": False,
 	}
@@ -123,7 +122,7 @@ class AuthorityProbeTests(unittest.TestCase):
 
 	def test_resolver_has_no_persistent_fallback_tokens(self):
 		source = RESOLVER_PATH.read_text()
-		for forbidden in ("resolved.json", "service-account.token", "CREDPROXY_RESOLVED_STORE", "CREDPROXY_OP_TOKEN_FILE"):
+		for forbidden in ("resolved.json", "CREDPROXY_RESOLVED_STORE", "CREDPROXY_OP_TOKEN_FILE"):
 			self.assertNotIn(forbidden, source)
 
 	def test_missing_runtime_authority_is_typed_unavailable(self):
@@ -132,6 +131,46 @@ class AuthorityProbeTests(unittest.TestCase):
 		with redirect_stderr(stderr), self.assertRaises(SystemExit):
 			resolver.authority_token("linux", {})
 		self.assertEqual(stderr.getvalue(), "reason:credential_source_unavailable\n")
+
+	def test_linux_unit_reads_only_protected_token_and_home_is_read_only(self):
+		unit = SYSTEMD_UNIT_PATH.read_text(encoding="utf-8")
+		self.assertNotIn("LoadCredential", unit)
+		self.assertIn("ConditionPathExists=%h/.secrets/op/service-account.token", unit)
+		self.assertIn("ProtectHome=read-only", unit)
+		self.assertIn("credproxyd --config", unit)
+
+	def test_native_op_failures_are_typed_without_exposing_stderr(self):
+		resolver = load_resolver()
+		for raw, expected in (
+			("service account is not authorized for this vault", "vault_denied"),
+			("invalid service account token", "credential_source_unavailable"),
+			("failed to load requested vault", "vault_denied"),
+			("service account validation failed", "credential_source_unavailable"),
+		):
+			with self.subTest(expected=expected):
+				def fake_op(argv, **kwargs):
+					return subprocess.CompletedProcess(argv, 1, "", raw)
+				stderr = io.StringIO()
+				with redirect_stderr(stderr), self.assertRaises(SystemExit):
+					resolver.op_read("op://fixed/item/field", CANARY, run=fake_op)
+				self.assertEqual(stderr.getvalue(), f"reason:{expected}\n")
+				self.assertNotIn(raw, stderr.getvalue())
+
+	def test_linux_authority_rejects_symlinked_parent_directory(self):
+		resolver = load_resolver()
+		with tempfile.TemporaryDirectory() as temp:
+			home = Path(temp) / "home"
+			target = Path(temp) / "target"
+			home.mkdir()
+			(home / ".secrets").mkdir(mode=0o700)
+			target.mkdir(mode=0o700)
+			(target / "service-account.token").write_text(CANARY)
+			(target / "service-account.token").chmod(0o600)
+			(home / ".secrets/op").symlink_to(target, target_is_directory=True)
+			stderr = io.StringIO()
+			with redirect_stderr(stderr), self.assertRaises(SystemExit):
+				resolver.authority_token("linux", {"HOME": str(home)})
+			self.assertEqual(stderr.getvalue(), "reason:credential_source_unavailable\n")
 
 
 def main():

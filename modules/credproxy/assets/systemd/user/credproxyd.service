@@ -2,13 +2,12 @@
 Description=credproxy credential broker (per-user)
 Documentation=https://github.com/takezoh/credproxy
 After=default.target
-ConditionPathExists=%h/.config/credproxyd/credentials/op-service-account.cred
+ConditionPathExists=%h/.secrets/op/service-account.token
 
 [Service]
 Type=simple
 RuntimeDirectory=credproxyd
 RuntimeDirectoryMode=0700
-LoadCredentialEncrypted=op-service-account:%h/.config/credproxyd/credentials/op-service-account.cred
 ExecStart=%h/.local/lib/credproxy/bin/credproxyd --config %h/.config/credproxyd/config.toml
 Restart=on-failure
 RestartSec=2

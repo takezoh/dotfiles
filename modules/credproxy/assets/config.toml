@@ -4,9 +4,11 @@ log_level = "info"
 
 [[route]]
 path = "/v1/sync/remote"
-upstream = "http://127.0.0.1:8480"
+# credproxy strips the matched route prefix before ReverseProxy.SetURL, so the
+# product-owned endpoint must be present on the fixed upstream URL.
+upstream = "http://127.0.0.1:8480/v1/sync/remote"
 credential_command = ["@HOOK_PATH@"]
-hook_timeout_sec = 10
+hook_timeout_sec = 30
 strip_inbound_auth = true
 
 # XAI was retired only after installed consumer inventory was determinate.

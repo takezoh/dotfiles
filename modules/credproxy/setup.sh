@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
-# Package the fail-closed credential authority.  This phase never reads,
-# creates, copies, or rotates credential material.
+# Package the fail-closed credential authority. Linux/WSL retrieves the stored
+# service-account token from 1Password once, keeps its sole local copy under the
+# protected ~/.secrets boundary, and enables the daemon only after validation.
 set -euo pipefail
 MODULES_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 . "$MODULES_DIR/_lib/common.sh"
 
 ASSETS="$(cd "$(dirname "$0")" && pwd)/assets"
+MODULE_DIR="$(cd "$(dirname "$0")" && pwd)"
 CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/credproxyd"
 CONFIG_PATH="$CONFIG_DIR/config.toml"
 CONFIG_PROVENANCE="$CONFIG_DIR/config.toml.managed.json"
@@ -101,7 +103,6 @@ credential_material_absent() {
 		fi
 	done <<EOF
 resolved-store|$HOME/.secrets/credproxyd/resolved.json
-service-account-token|$HOME/.secrets/op/service-account.token
 broker-token|$CONFIG_DIR/token
 grok-env-copy|$HOME/.secrets/env/skills-grok-x-search-scripts
 grok-env|$HOME/.grok/.env
@@ -171,11 +172,11 @@ if is_darwin; then
 	exit 0
 fi
 
-if ! has_cmd systemctl || [ ! -d /run/systemd/system ] || ! systemd-creds --help >/dev/null 2>&1; then
+if ! has_cmd systemctl || [ ! -d /run/systemd/system ]; then
 	if has_cmd systemctl; then
 		systemctl --user disable --now credproxyd.service >/dev/null 2>&1 || true
 	fi
-	log "credproxy: credential_source_unavailable (systemd encrypted credentials unsupported); route disabled"
+	log "credproxy: credential_source_unavailable (systemd user service unavailable); route disabled"
 	exit 0
 fi
 
@@ -185,18 +186,26 @@ if ! managed_config_ready || ! credential_material_absent || ! trusted_runtime_r
 fi
 
 UNIT_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
-ENCRYPTED="$CONFIG_DIR/credentials/op-service-account.cred"
 mkdir -p "$UNIT_DIR/credproxyd.service.d"
 cp "$ASSETS/systemd/user/credproxyd.service" "$UNIT_DIR/credproxyd.service"
 cp "$ASSETS/systemd/user/credproxyd.service.d/20-credential-source.conf" \
 	"$UNIT_DIR/credproxyd.service.d/20-credential-source.conf"
 systemctl --user daemon-reload
-if [ ! -f "$ENCRYPTED" ]; then
+if bash "$MODULE_DIR/provision-service-account-token.sh"; then
+	:
+else
+	provision_status=$?
 	systemctl --user disable --now credproxyd.service >/dev/null 2>&1 || true
-	log "credproxy: credential_source_unavailable (encrypted credential absent); route disabled"
-	exit 0
+	if [ "$provision_status" -eq 2 ]; then
+		exit 2
+	fi
+	if [ "$provision_status" -eq 3 ]; then
+		exit 0
+	fi
+	log "credproxy: conflicting (service-account token provisioner failed unexpectedly); route disabled"
+	exit 2
 fi
 reconcile_legacy_shell_profile || exit 2
 systemctl --user enable credproxyd.service
 systemctl --user restart credproxyd.service
-log "credproxy: systemd encrypted credential authority enabled"
+log "credproxy: protected service-account token authority enabled"

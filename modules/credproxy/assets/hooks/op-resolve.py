@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
-"""Resolve fixed credproxyd routes without persistent plaintext credentials.
+"""Resolve fixed credproxyd routes from the protected local credential boundary.
 
-Linux/WSL receives the 1Password service-account token from systemd's private
-``$CREDENTIALS_DIRECTORY/op-service-account`` runtime file.  macOS reads one
-fixed login-Keychain item with the platform ``security`` binary.  There is no
-file-store, token-file, environment-token, or request-selected fallback.
+Linux/WSL reads the one-time provisioned service-account token only from the
+protected ``$HOME/.secrets/op/service-account.token`` boundary. macOS reads one
+fixed login-Keychain item with the platform ``security`` binary. There is no
+request-selected source or parent-environment token fallback.
 """
 from __future__ import annotations
 
 import json
 import os
 import platform
+import stat
 import subprocess
 import sys
 from pathlib import Path
@@ -24,9 +25,10 @@ ROUTE_HEADERS = {
 }
 
 EXPIRES_IN_SEC = 3600
+OP_TIMEOUT_SEC = 25
 OP_BIN = "/usr/local/bin/op"
 SECURITY_BIN = "/usr/bin/security"
-SYSTEMD_CREDENTIAL_NAME = "op-service-account"
+TOKEN_RELATIVE_PATH = Path(".secrets/op/service-account.token")
 KEYCHAIN_SERVICE = "com.takezoh.credproxy.op-service-account"
 KEYCHAIN_ACCOUNT = "credproxyd"
 
@@ -36,19 +38,30 @@ def fail(reason: str) -> NoReturn:
 	raise SystemExit(1)
 
 
-def _runtime_credential_path(environ: Mapping[str, str]) -> Path:
-	directory = environ.get("CREDENTIALS_DIRECTORY", "")
-	if not directory:
+def _protected_token_path(environ: Mapping[str, str]) -> Path:
+	home = environ.get("HOME", "")
+	if not home:
 		fail("credential_source_unavailable")
-	root = Path(directory)
+	root = Path(home)
 	if not root.is_absolute() or ".." in root.parts:
 		fail("credential_source_unavailable")
-	return root / SYSTEMD_CREDENTIAL_NAME
+	return root / TOKEN_RELATIVE_PATH
 
 
 def _linux_token(environ: Mapping[str, str], read_bytes: Callable[[Path], bytes]) -> str:
+	path = _protected_token_path(environ)
 	try:
-		raw = read_bytes(_runtime_credential_path(environ))
+		for directory in (path.parent.parent, path.parent):
+			directory_metadata = directory.lstat()
+			if not stat.S_ISDIR(directory_metadata.st_mode) \
+				or directory_metadata.st_uid != os.getuid() \
+				or stat.S_IMODE(directory_metadata.st_mode) != 0o700:
+				fail("credential_source_unavailable")
+		metadata = path.lstat()
+		if not stat.S_ISREG(metadata.st_mode) or metadata.st_uid != os.getuid() \
+			or stat.S_IMODE(metadata.st_mode) != 0o600:
+			fail("credential_source_unavailable")
+		raw = read_bytes(path)
 	except (OSError, ValueError):
 		fail("credential_source_unavailable")
 	try:
@@ -107,7 +120,7 @@ def op_read(
 			[OP_BIN, "read", "--no-newline", ref],
 			capture_output=True,
 			text=True,
-			timeout=8,
+			timeout=OP_TIMEOUT_SEC,
 			env=child_env,
 		)
 	except (FileNotFoundError, subprocess.TimeoutExpired):
@@ -116,8 +129,16 @@ def op_read(
 		stderr = (proc.stderr or "").lower()
 		if "rate" in stderr and "limit" in stderr:
 			fail("op_rate_limited")
-		if "isn't a vault" in stderr or "not found" in stderr or "no item" in stderr:
+		if "vault" in stderr or any(marker in stderr for marker in (
+			"isn't a vault", "not found", "no item", "not authorized",
+			"permission denied", "forbidden", "does not have access",
+		)):
 			fail("vault_denied")
+		if "service account" in stderr or any(marker in stderr for marker in (
+			"invalid service account token", "authentication", "unauthorized",
+			"sign in", "signin",
+		)):
+			fail("credential_source_unavailable")
 		fail("op_unreachable")
 	return proc.stdout
 
@@ -146,6 +167,8 @@ def resolve_request(
 
 
 def main() -> None:
+	if sys.argv[1:]:
+		fail("bad_request")
 	try:
 		req = json.load(sys.stdin)
 	except (json.JSONDecodeError, ValueError):

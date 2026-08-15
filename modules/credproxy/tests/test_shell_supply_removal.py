@@ -114,9 +114,10 @@ class ShellSupplyRemovalTests(unittest.TestCase):
 
 	def test_linux_service_lifecycle_stops_on_authority_loss_and_restarts_on_update(self) -> None:
 		setup = SETUP.read_text(encoding="utf-8")
-		marker = "if ! has_cmd systemctl || [ ! -d /run/systemd/system ] || ! systemd-creds"
+		marker = "if ! has_cmd systemctl || [ ! -d /run/systemd/system ]"
 		unsupported = setup.split(marker, 1)[1].split("if ! managed_config_ready", 1)[0]
 		self.assertIn("disable --now credproxyd.service", unsupported)
+		self.assertIn('bash "$MODULE_DIR/provision-service-account-token.sh"', setup)
 		self.assertIn("systemctl --user enable credproxyd.service", setup)
 		self.assertIn("systemctl --user restart credproxyd.service", setup)
 		self.assertNotIn("systemctl --user enable --now credproxyd.service", setup)
@@ -138,7 +139,10 @@ class ShellSupplyRemovalTests(unittest.TestCase):
 		self.assertEqual(len(call_sites), 2)
 		self.assertTrue(all(site > definition_end for site in call_sites))
 		self.assertLess(setup.index("find-generic-password"), call_sites[0])
-		self.assertLess(setup.index('if [ ! -f "$ENCRYPTED" ]'), call_sites[1])
+		self.assertLess(
+			setup.index('bash "$MODULE_DIR/provision-service-account-token.sh"'),
+			call_sites[1],
+		)
 		self.assertIn("context_service_ready", setup)
 		self.assertIn("http://127.0.0.1:8480/v1/healthz", setup)
 		self.assertNotIn("consumer_admission_ready", setup)
@@ -205,7 +209,6 @@ class ShellSupplyRemovalTests(unittest.TestCase):
 		self.sandbox.prepare_managed_gate()
 		paths = {
 			"resolved-store": self.sandbox.home / ".secrets/credproxyd/resolved.json",
-			"service-account-token": self.sandbox.home / ".secrets/op/service-account.token",
 			"broker-token": self.sandbox.home / ".config/credproxyd/token",
 			"grok-env-copy": self.sandbox.home / ".secrets/env/skills-grok-x-search-scripts",
 			"grok-env": self.sandbox.home / ".grok/.env",

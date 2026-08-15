@@ -3,6 +3,7 @@
 set -euo pipefail
 MODULES_DIR="${MODULES_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
 . "$MODULES_DIR/_lib/common.sh"
+. "$(dirname "$0")/context-fabric-handoff.sh"
 
 AGENT_MODULE_DIR="$(cd "$DOTFILES_DIR/.." && pwd -P)/agent-module"
 

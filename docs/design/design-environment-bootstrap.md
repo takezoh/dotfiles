@@ -12,6 +12,9 @@ responsibilities:
   statement: install、setup、update の phase を共通 runner から各 module へ伝播する。
 - id: RESP-003
   statement: 設定ファイルを repository からユーザー環境へ冪等に配置する。
+- id: RESP-004
+  statement: Dotfiles owns credproxy secure authority and passes its exact broker
+    socket to the agent-module-owned Context Fabric runtime lifecycle.
 invariants:
 - id: INV-001
   statement: install と setup は再実行可能でなければならない。

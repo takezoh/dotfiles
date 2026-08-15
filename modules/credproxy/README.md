@@ -1,24 +1,43 @@
 # credproxy (module)
 
 Credential authority and protocol-injection wiring. Runtime assets are installed as
-copies outside the workspace; credential material is never provisioned by this
-repository and has no persistent plaintext fallback.
+copies outside the workspace. 1Password remains the canonical source; dotfiles
+provisions only the service-account bootstrap token into the protected local
+`~/.secrets` boundary.
 
 ## Authority branches
 
-- Linux/WSL: `LoadCredentialEncrypted=op-service-account:…` decrypts an
-  operator-provisioned encrypted blob into systemd's service-private
-  `$CREDENTIALS_DIRECTORY`. The resolver passes it only to the fixed native
-  `/usr/local/bin/op read --no-newline <fixed-ref>` child.
+- Linux / WSL: setup reads the service-account token once from one fixed
+  1Password Personal item using the human-authenticated CLI, then atomically
+  writes `~/.secrets/op/service-account.token` (directories `0700`, file `0600`).
+  The resolver reads only that fixed path and passes the token only in the
+  environment of fixed native `/usr/local/bin/op`.
 - macOS: the resolver invokes fixed `/usr/bin/security` for service
   `com.takezoh.credproxy.op-service-account`, account `credproxyd`, then passes
   the result only to the fixed `op` child.
 - Any other/missing/stale mechanism: `credential_source_unavailable`; setup
-  disables the daemon/route. There is no file or environment fallback.
+  disables the daemon/route. There is no parent-environment or request-selected
+  credential fallback.
 
-The operator creates the encrypted systemd credential or Keychain item outside
-this module. Tests use only fake, nonsecret material. Do not place credential
-values, prefixes, hashes, lengths, or canaries in reports.
+The service-account token remains owned by 1Password. Its protected local copy is
+the bootstrap credential that avoids a human password prompt on every service-account
+operation. Normal setup reuses a valid copy and does not call 1Password again.
+Tests use only fake, nonsecret material. Do not place
+credential values, prefixes, hashes, lengths, or canaries in reports.
+
+After the token stored in 1Password is rotated, explicitly refresh the protected
+copy and restart the service:
+
+```sh
+bash modules/credproxy/provision-service-account-token.sh --refresh
+bash modules/credproxy/setup.sh
+```
+
+Refresh stages a new owner-only file and atomically replaces the old token only
+after the 1Password read succeeds. A future `systemd-creds` integration may hold
+this bootstrap token instead; it does not replace 1Password as the canonical source.
+The credential path must not be added to sandbox allowlists, logs, evidence, or
+knowledge artifacts.
 
 ## Consumer disposition
 
@@ -56,12 +75,17 @@ service manager が同じ path を使う。Context Fabric 側の端末固有 con
 
 - `install`: build the broker binaries; copy resolver,
   editor client, binding, service-manager assets, and proxy config.
+  If the sibling credproxy source is absent, install depth-1 fetches the exact reviewed
+  bootstrap commit into a no-checkout temporary repository, verifies `FETCH_HEAD`, then
+  checks out/builds it. Branch HEAD movement does not affect bootstrap. An incomplete
+  existing path is conflicting and is never replaced.
   Config has a managed provenance sidecar and exact source/installed revisions;
   unknown, locally modified, or source-new/installed-old state is conflicting.
-- `setup`: remove the exact known managed shell profile only after the separately
-  managed context-service
-  health, managed proxy wiring, and the selected secure authority are available;
-  stop on unknown/user-modified content. It never installs or restores the
+- `setup`: provision or validate the fixed protected service-account token, then
+  remove the exact known managed shell profile only after
+  the separately managed context-service health, managed proxy wiring, and the
+  selected secure authority are available; stop on unknown/user-modified
+  content. It never installs or restores the
   login-shell export profile. Existing shells must be restarted to discard inherited
   environment snapshots.
 - `update`: rebuild and restart an already-running daemon.
