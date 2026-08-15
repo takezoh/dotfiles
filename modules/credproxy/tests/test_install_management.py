@@ -104,7 +104,7 @@ class InstallManagementTests(unittest.TestCase):
             'if [ "$1" = -C ] && [ "$3" = remote ]; then exit 0; fi\n'
             'if [ "$1" = -C ] && [ "$3" = fetch ]; then exit 0; fi\n'
             'if [ "$1" = -C ] && [ "$3" = rev-parse ]; then\n'
-            '  printf "%s\\n" cbe0d235e4412d12b01f7cdbcaa5577ad2595313\n'
+            '  printf "%s\\n" e366cfbab138a8bac0d98b4764b6bbfd8271f851\n'
             '  exit 0\n'
             'fi\n'
             'if [ "$1" = -c ] && [ "$5" = checkout ]; then\n'
@@ -121,10 +121,10 @@ class InstallManagementTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         argv = calls.read_text()
         self.assertIn("remote add origin https://github.com/takezoh/credproxy.git", argv)
-        self.assertIn("fetch --depth 1 --filter=blob:none origin cbe0d235e4412d12b01f7cdbcaa5577ad2595313", argv)
+        self.assertIn("fetch --depth 1 --filter=blob:none origin e366cfbab138a8bac0d98b4764b6bbfd8271f851", argv)
         self.assertIn("rev-parse FETCH_HEAD", argv)
         self.assertIn("core.hooksPath=/dev/null", argv)
-        self.assertIn("checkout --detach cbe0d235e4412d12b01f7cdbcaa5577ad2595313", argv)
+        self.assertIn("checkout --detach e366cfbab138a8bac0d98b4764b6bbfd8271f851", argv)
 
     def test_incomplete_existing_source_is_conflicting_and_not_replaced(self):
         incomplete = self.fixture.root / "credproxy/cmd/credproxy"
