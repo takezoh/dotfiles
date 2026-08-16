@@ -22,6 +22,9 @@ ROUTE_HEADERS = {
 	"v1/sync/remote": {
 		"Authorization": ("Bearer ", "op://local-dev/Context Fabric/Service Principal/token"),
 	},
+	"thirdverse-amsterdam-jenkins": {
+		"Authorization": ("Bearer ", "op://local-dev/Amsterdam/Jenkins/token"),
+	},
 }
 
 EXPIRES_IN_SEC = 3600

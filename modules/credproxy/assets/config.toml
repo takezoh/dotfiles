@@ -11,5 +11,13 @@ credential_command = ["@HOOK_PATH@"]
 hook_timeout_sec = 30
 strip_inbound_auth = true
 
+[[route]]
+path = "/thirdverse-amsterdam-jenkins"
+upstream = "https://jenkins.ams.3vs.dev/mcp-server/mcp"
+credential_command = ["@HOOK_PATH@"]
+refresh_on_status = [401]
+hook_timeout_sec = 30
+strip_inbound_auth = true
+
 # XAI was retired only after installed consumer inventory was determinate.
 # Anthropic remains disabled because it has no protocol-injection integration.

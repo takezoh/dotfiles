@@ -29,6 +29,13 @@ ROUTES = {
 		"consumer": {"identity": "context-fabric:POST /v1/sync/remote", "revision": "protocol-v1"},
 		"disposition": "keep",
 	},
+	"thirdverse-amsterdam-jenkins": {
+		"credential_names": ["Thirdverse Amsterdam Jenkins bearer"],
+		"delivery_kind": "http-header-injection",
+		"owner": "dotfiles:modules/credproxy",
+		"consumer": {"identity": "mcp-gateway:thirdverse-amsterdam-jenkins", "revision": "remote-mcp-v1"},
+		"disposition": "keep",
+	},
 	"grok-x-search": {
 		"credential_names": ["XAI_API_KEY"],
 		"delivery_kind": "env-body",
@@ -287,7 +294,8 @@ class InventoryTests(unittest.TestCase):
 		config.parent.mkdir(parents=True)
 		config.write_text(
 			'listen_unix = "/fixed/socket"\n'
-			'[[route]]\npath = "/v1/sync/remote"\n' + extra,
+			'[[route]]\npath = "/v1/sync/remote"\n'
+			'[[route]]\npath = "/thirdverse-amsterdam-jenkins"\n' + extra,
 			encoding="utf-8",
 		)
 		(root / "modules/credproxy/assets/shellenv").mkdir(parents=True)

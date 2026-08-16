@@ -44,6 +44,7 @@ knowledge artifacts.
 | Consumer | Outcome |
 |---|---|
 | Context Fabric remote sync | `POST /v1/sync/remote` is proxied to context-service; credproxy injects only the Context Fabric service bearer header. Context Fabric owns the operation. |
+| Thirdverse Amsterdam Jenkins MCP | The owner-only Unix-socket route `thirdverse-amsterdam-jenkins` proxies the exact Remote MCP endpoint and injects its bearer header from the fixed 1Password reference. mcp-gateway and Jenkins own MCP operation semantics. |
 | Minuet / Anthropic | provider disabled: current credproxyd cannot prove executable-bound caller admission plus exact `POST https://api.anthropic.com/v1/messages`; no adapter/key callback/env fallback |
 | grok-x-search / XAI | legacy key route retired from revision-matched OAuth-only consumer proof; generic env delivery and ctx route remain |
 

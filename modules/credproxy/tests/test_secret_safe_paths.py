@@ -32,10 +32,24 @@ class SecretSafePathTests(unittest.TestCase):
 		text = (ROOT / "assets/config.toml").read_text()
 		self.assertIn('path = "/v1/sync/remote"', text)
 		self.assertIn('upstream = "http://127.0.0.1:8480/v1/sync/remote"', text)
+		self.assertIn('path = "/thirdverse-amsterdam-jenkins"', text)
+		self.assertIn('upstream = "https://jenkins.ams.3vs.dev/mcp-server/mcp"', text)
+		self.assertEqual(text.count('strip_inbound_auth = true'), 2)
 		self.assertNotIn('[[operation]]', text)
 		self.assertNotIn('executable_paths', text)
 		self.assertNotIn('path = "/anthropic"', text)
 		self.assertNotIn('path = "/grok-x-search"', text)
+
+	def test_jenkins_reference_stays_in_the_fixed_resolver(self):
+		resolver = (ROOT / "assets/hooks/op-resolve.py").read_text()
+		ref = "op://" + "local-dev/Amsterdam/Jenkins/token"
+		self.assertIn(ref, resolver)
+		for path in ROOT.rglob("*"):
+			if not path.is_file() or "__pycache__" in path.parts or path.suffix == ".pyc":
+				continue
+			if path == ROOT / "assets/hooks/op-resolve.py":
+				continue
+			self.assertNotIn(ref, path.read_text(errors="ignore"), str(path))
 
 
 if __name__ == "__main__": unittest.main()

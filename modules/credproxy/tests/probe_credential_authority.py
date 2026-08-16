@@ -10,6 +10,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import unittest.mock
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
@@ -113,6 +114,28 @@ def fake_probe(platform_name: str, producer_revision: str) -> dict[str, object]:
 
 
 class AuthorityProbeTests(unittest.TestCase):
+	def test_jenkins_route_uses_only_the_fixed_reference(self):
+		resolver = load_resolver()
+		observed = {}
+		expected_ref = resolver.ROUTE_HEADERS["thirdverse-amsterdam-jenkins"]["Authorization"][1]
+
+		def fake_op(argv, **kwargs):
+			observed["argv"] = argv
+			return subprocess.CompletedProcess(argv, 0, "NONSECRET_JENKINS_TOKEN", "")
+
+		with unittest.mock.patch.object(resolver, "authority_token", return_value=CANARY):
+			result = resolver.resolve_request(
+				{"route": "thirdverse-amsterdam-jenkins"},
+				platform_name="linux",
+				environ={"HOME": "/not-used"},
+				run_op=fake_op,
+			)
+		self.assertEqual(result["headers"], {"Authorization": "Bearer NONSECRET_JENKINS_TOKEN"})
+		self.assertEqual(observed["argv"], [
+			resolver.OP_BIN, "read", "--no-newline",
+			expected_ref,
+		])
+
 	def test_linux_and_macos_fake_paths_are_supported_without_capture(self):
 		for name in ("linux", "darwin"):
 			with self.subTest(name=name):
