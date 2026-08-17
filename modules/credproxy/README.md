@@ -60,8 +60,8 @@ revision in this module. The route is an HTTP injection route; context-service
 authenticates and performs sync. Runtime identities are install-time copies under
 `~/.local/lib/credproxy` and are not placed in the sandbox allowlist.
 
-`context-service` の installed copy と OS lifecycle は sibling
-`context-fabric-service` module が所有する。credproxy setup は公開
+`context-service` の installed copy と OS lifecycle は sibling `agent-module` の
+`modules/plugins` が所有する。credproxy setup は公開
 `GET /v1/healthz` だけを upstream readiness として消費し、service config、service
 principal、source、sync semantics を生成・解釈しない。
 
@@ -69,8 +69,8 @@ broker socket はこの module が platform ごとに一度だけ解決する。
 `${XDG_RUNTIME_DIR:-/run/user/$uid}/credproxyd/broker.sock`、macOS は
 `~/Library/Caches/credproxyd/runtime/credproxyd/broker.sock` で、rendered config と
 service manager が同じ path を使う。Context Fabric 側の端末固有 config もこの
-値を `context-fabric-service` moduleからpublic `ctx service init`へ明示入力として
-渡す。dotfiles はその config schema を直接編集しない。
+値を thin `modules/agent-module` handoff から agent-module 所有の public
+`ctx service init`へ明示入力として渡す。dotfiles はその config schema を直接編集しない。
 
 ## Phases
 

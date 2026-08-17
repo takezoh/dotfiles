@@ -6,6 +6,17 @@ MODULE = Path(__file__).resolve().parents[1]
 
 
 class ResponsibilityBoundaryTests(unittest.TestCase):
+	def test_current_docs_keep_context_runtime_in_agent_module(self):
+		readme = (MODULE / "README.md").read_text()
+		design = (
+			MODULE.parents[1]
+			/ "docs/design/design-credential-integration-wiring-boundary.md"
+		).read_text()
+		for text in (readme, design):
+			self.assertIn("agent-module", text)
+			self.assertNotIn("sibling `context-fabric-service`", text)
+			self.assertNotIn("separate context-fabric-service", text)
+
 	def test_dotfiles_owns_wiring_not_consumer_command_policy(self):
 		production = [MODULE / "install.sh", MODULE / "setup.sh"]
 		production.extend(

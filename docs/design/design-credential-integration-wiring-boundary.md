@@ -12,6 +12,9 @@ responsibilities:
     without owning product semantics.
 - id: RESP-002
   statement: Reconcile legacy shell supply without deleting unknown user state.
+- id: RESP-003
+  statement: Provide the exact broker socket handoff to the agent-module-owned Context
+    Fabric runtime without owning its lifecycle or product configuration.
 invariants:
 - id: INV-001
   statement: dotfiles credential wiring contains no consumer executable, argv, subcommand,
@@ -25,8 +28,8 @@ boundaries:
   provides:
   - installed credproxyd configuration and authority resolver
   - atomic 1Password-to-protected-local-secret provisioning on Linux and WSL
-  - separate context-fabric-service and credproxyd lifecycles
-  - explicit local deployment paths passed through the Context Fabric public initializer
+  - credproxyd lifecycle and exact broker socket handoff to the agent-module-owned
+    Context Fabric runtime
   - legacy profile reconciliation
   consumes:
   - credproxy protocol injection contract
@@ -64,7 +67,6 @@ owners: []
 relations: []
 source_paths:
 - modules/credproxy
-- modules/context-fabric-service
 summary: dotfiles owns secure authority and service wiring without consumer command
   policy or source revision admission.
 ---
@@ -76,9 +78,9 @@ operation-policy owner.
 
 ## Responsibilities
 
-Install copies, render route configuration, manage each OS service in its owning
-module, and migrate known dotfiles state. Context Fabric config remains opaque and
-product-owned.
+Install credproxy copies, render route configuration, manage the credproxyd service,
+and migrate known dotfiles state. Context Fabric runtime/service lifecycle is owned by
+agent-module; its config remains opaque and product-owned.
 
 ## Boundaries
 
@@ -94,9 +96,10 @@ verifies the reviewed credproxy bootstrap revision before checking out or buildi
 ## Collaboration
 
 `POST /v1/sync/remote` and `Authorization` are the complete integration contract.
-Before service start, dotfiles invokes the installed `ctx service init` with the
-installed client snapshot, one explicit deployment tenant, and absolute local paths.
-The product CLI, not dotfiles, owns JSON projection and validation.
+Dotfiles resolves the broker socket once and passes it through the thin agent-module
+handoff. Agent-module invokes installed `ctx service init` with the installed client
+snapshot and explicit local paths. The product CLI, not dotfiles, owns JSON projection
+and validation.
 
 ## Failure Responsibility
 
