@@ -38,15 +38,10 @@ token_ready() {
 resolve_interactive_op() {
 	local candidate
 	if [ -d "$WSL_MARKER" ]; then
-		candidate="$(command -v op.exe 2>/dev/null || true)"
+		candidate="$(command -v op 2>/dev/null || true)"
 		[ -n "$candidate" ] || return 1
-		candidate="$(/usr/bin/realpath "$candidate" 2>/dev/null || true)"
-		case "$candidate" in
-			/mnt/?/Users/*/AppData/Local/Microsoft/WinGet/Packages/AgileBits.1Password.CLI_Microsoft.Winget.Source_8wekyb3d8bbwe/op.exe) ;;
-			*) return 1 ;;
-		esac
 		[ -f "$candidate" ] && [ ! -L "$candidate" ] && [ -x "$candidate" ] || return 1
-		printf '%s\n' "$candidate"
+		printf '%s\n' op
 		return 0
 	fi
 	[ -f "$NATIVE_OP_BIN" ] && [ ! -L "$NATIVE_OP_BIN" ] && [ -x "$NATIVE_OP_BIN" ] \

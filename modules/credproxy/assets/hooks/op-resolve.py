@@ -29,7 +29,7 @@ ROUTE_HEADERS = {
 
 EXPIRES_IN_SEC = 3600
 OP_TIMEOUT_SEC = 25
-OP_BIN = "/usr/local/bin/op"
+OP_BIN = "op"
 SECURITY_BIN = "/usr/bin/security"
 TOKEN_RELATIVE_PATH = Path(".secrets/op/service-account.token")
 KEYCHAIN_SERVICE = "com.takezoh.credproxy.op-service-account"
@@ -112,11 +112,13 @@ def op_read(
 	*,
 	run: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
 	home: str | None = None,
+	path: str | None = None,
 ) -> str:
 	child_env = {
 		"HOME": home or str(Path.home()),
 		"LANG": "C.UTF-8",
 		"OP_SERVICE_ACCOUNT_TOKEN": token,
+		"PATH": path or os.defpath,
 	}
 	try:
 		proc = run(
@@ -165,7 +167,16 @@ def resolve_request(
 		read_bytes=read_bytes,
 		run_security=run_security,
 	)
-	headers = {name: prefix + op_read(ref, token, run=run_op) for name, (prefix, ref) in mapping.items()}
+	headers = {
+		name: prefix + op_read(
+			ref,
+			token,
+			run=run_op,
+			home=environ.get("HOME"),
+			path=environ.get("PATH"),
+		)
+		for name, (prefix, ref) in mapping.items()
+	}
 	return {"headers": headers, "expires_in_sec": EXPIRES_IN_SEC}
 
 

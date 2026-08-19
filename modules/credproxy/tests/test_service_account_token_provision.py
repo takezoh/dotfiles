@@ -133,6 +133,11 @@ class ServiceAccountTokenProvisionTests(unittest.TestCase):
 		self.assertEqual(self.sandbox.token.read_text(), "EXISTING_TOKEN")
 		self.assertFalse(self.sandbox.op_calls.exists())
 
+	def test_wsl_bootstrap_invokes_the_path_resolved_op_wrapper(self) -> None:
+		text = SCRIPT.read_text(encoding="utf-8")
+		self.assertIn('candidate="$(command -v op 2>/dev/null || true)"', text)
+		self.assertIn("printf '%s\\n' op", text)
+
 
 if __name__ == "__main__":
 	unittest.main()

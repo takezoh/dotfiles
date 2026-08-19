@@ -97,7 +97,7 @@ def fake_probe(platform_name: str, producer_revision: str) -> dict[str, object]:
 		capture = json.dumps({"stdout": out.getvalue(), "stderr_categories": err.getvalue().splitlines()})
 		if CANARY in capture:
 			cases["negative_captures"] = "fail"
-	if observed.get("tokens") != [True, True] or observed.get("op_env_names") != ["HOME", "LANG", "OP_SERVICE_ACCOUNT_TOKEN"]:
+	if observed.get("tokens") != [True, True] or observed.get("op_env_names") != ["HOME", "LANG", "OP_SERVICE_ACCOUNT_TOKEN", "PATH"]:
 		cases["child_only_injection"] = "fail"
 	if not observed.get("revocation_failed_closed"):
 		cases["restart_revocation"] = "fail"
@@ -116,6 +116,7 @@ def fake_probe(platform_name: str, producer_revision: str) -> dict[str, object]:
 class AuthorityProbeTests(unittest.TestCase):
 	def test_jenkins_route_uses_only_the_fixed_reference(self):
 		resolver = load_resolver()
+		self.assertEqual(resolver.OP_BIN, "op")
 		observed = {}
 		expected_ref = resolver.ROUTE_HEADERS["thirdverse-amsterdam-jenkins"]["Authorization"][1]
 

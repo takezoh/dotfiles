@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# credproxy: obtain/build the broker binaries, install a native headless `op`,
-# and lay down config/hooks/wrappers as copies. Credential provisioning is owned
-# by setup and is limited to the protected ~/.secrets boundary.
+# credproxy: obtain/build the broker binaries and lay down config/hooks/wrappers
+# as copies. WSL reuses the PATH-level Windows `op` wrapper; native Linux owns a
+# root-installed headless `op`. Credential provisioning is owned by setup.
 set -euo pipefail
 MODULES_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 . "$MODULES_DIR/_lib/common.sh"
@@ -20,6 +20,7 @@ MINUET_CLIENT="$BIN_DIR/minuet-anthropic"
 MINUET_BINDING="$BINDING_DIR/minuet-anthropic.json"
 CONFIG_PATH="$CONFIG_DIR/config.toml"
 CONFIG_PROVENANCE="$CONFIG_DIR/config.toml.managed.json"
+WSL_OP_WRAPPER="$DOTFILES_DIR/scripts/wsl/op"
 # Last dotfiles-managed config before closed-operation routing.  It may be
 # migrated only when the installed bytes are this exact known revision.
 readonly LEGACY_CONFIG_SHA256="4233fb7a99556dce594897ac35111ffcf987399fdb6fad4f357533e724013989"
@@ -246,7 +247,8 @@ if [ ! -d "$CREDPROXY_SRC/.git" ] || [ ! -d "$CREDPROXY_SRC/cmd/credproxyd" ] \
 	log "credproxy: conflicting (source repository incomplete at $CREDPROXY_SRC)"
 	exit 2
 elif ! has_cmd go; then
-	log "credproxy: go 未導入のためビルドをスキップ"
+	log "credproxy: ERROR go unavailable; credproxy binaries were not built"
+	exit 2
 else
 	mkdir -p "$BIN_DIR"
 	log "credproxy: building credproxy + credproxyd -> $BIN_DIR"
@@ -254,10 +256,10 @@ else
 	( cd "$CREDPROXY_SRC" && go build -o "$BIN_DIR/credproxy" ./cmd/credproxy )
 fi
 
-# 2. Native headless `op` (Linux only). The WSL `op` on PATH is the op.exe shim
-#    (interactive); the broker needs a native binary it can run non-interactively.
+# 2. Native headless `op` (non-WSL Linux only). WSL uses the existing `op`
+#    wrapper, copied into the trusted runtime in step 3.
 OP_BIN="/usr/local/bin/op"
-if is_linux && [ ! -x "$OP_BIN" ]; then
+if is_linux && ! is_wsl && [ ! -x "$OP_BIN" ]; then
 	OP_VERSION="v2.31.1"
 	case "$(uname -m)" in
 		x86_64)  OP_ARCH="amd64" ;;
@@ -265,22 +267,26 @@ if is_linux && [ ! -x "$OP_BIN" ]; then
 		*)       OP_ARCH="" ;;
 	esac
 	if [ -z "$OP_ARCH" ]; then
-		log "credproxy: unsupported arch for native op, skipping"
+		log "credproxy: ERROR unsupported architecture for native op: $(uname -m)"
+		exit 2
 	else
 		TMP="$(mktemp -d)"
 		trap 'rm -rf "$TMP"' EXIT
 		URL="https://cache.agilebits.com/dist/1P/op2/pkg/${OP_VERSION}/op_linux_${OP_ARCH}_${OP_VERSION}.zip"
 		log "credproxy: installing native op ${OP_VERSION} (${OP_ARCH}) -> $OP_BIN"
-		if curl -fsSL "$URL" -o "$TMP/op.zip"; then
-			( cd "$TMP" && unzip -qo op.zip )
-			# 非対話 (sudo password 不可) でも asset 配置まで進めるため、失敗は
-			# warn に留める。root 所有 /usr/local/bin/op は confused-deputy 対策
-			# なので user パスへは fallback しない — 後で人間が入れ直す。
-			if ! as_root install -m 0755 "$TMP/op" "$OP_BIN" 2>/dev/null; then
-				log "credproxy: WARN native op の配置に sudo が必要 — 対話 shell で install.sh を再実行する"
-			fi
-		else
-			log "credproxy: WARN native op のダウンロード失敗（後で手動導入）"
+		if ! curl -fsSL "$URL" -o "$TMP/op.zip"; then
+			log "credproxy: ERROR native op download failed: $URL"
+			exit 2
+		fi
+		if ! ( cd "$TMP" && unzip -qo op.zip ); then
+			log "credproxy: ERROR native op archive extraction failed"
+			exit 2
+		fi
+		# root 所有 /usr/local/bin/op は confused-deputy 対策なので user path
+		# へ fallback しない。sudo/install の元 stderr は診断のため保持する。
+		if ! as_root install -m 0755 "$TMP/op" "$OP_BIN"; then
+			log "credproxy: ERROR native op installation failed: $OP_BIN"
+			exit 2
 		fi
 	fi
 fi
@@ -298,6 +304,16 @@ for directory in "$RUNTIME_ROOT" "$BIN_DIR" "$HOOK_DIR" "$BINDING_DIR"; do
 	mkdir -p "$directory"
 done
 chmod 0700 "$RUNTIME_ROOT" "$BIN_DIR" "$HOOK_DIR" "$BINDING_DIR"
+if is_wsl; then
+	if [ ! -f "$WSL_OP_WRAPPER" ] || [ -L "$WSL_OP_WRAPPER" ] \
+		|| [ ! -x "$WSL_OP_WRAPPER" ]; then
+		log "credproxy: ERROR WSL op wrapper unavailable on PATH source: $WSL_OP_WRAPPER"
+		exit 2
+	fi
+	install -m 0755 "$WSL_OP_WRAPPER" "$BIN_DIR/op"
+else
+	rm -f "$BIN_DIR/op"
+fi
 install -m 0755 "$ASSETS/hooks/op-resolve.py" "$HOOK_DIR/op-resolve.py"
 install_managed_config
 install_minuet_binding_manifest

@@ -10,8 +10,10 @@ provisions only the service-account bootstrap token into the protected local
 - Linux / WSL: setup reads the service-account token once from one fixed
   1Password Personal item using the human-authenticated CLI, then atomically
   writes `~/.secrets/op/service-account.token` (directories `0700`, file `0600`).
-  The resolver reads only that fixed path and passes the token only in the
-  environment of fixed native `/usr/local/bin/op`.
+  The resolver reads only that fixed path and passes the token only to the fixed
+  `op` child. WSL installs the existing PATH-level Windows `op.exe` wrapper as a
+  trusted runtime copy and calls it by command name; non-WSL Linux uses fixed
+  native `/usr/local/bin/op`.
 - macOS: the resolver invokes fixed `/usr/bin/security` for service
   `com.takezoh.credproxy.op-service-account`, account `credproxyd`, then passes
   the result only to the fixed `op` child.

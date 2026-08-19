@@ -14,6 +14,14 @@ MODULE = Path(__file__).resolve().parents[1]
 
 
 class SetupContractTests(unittest.TestCase):
+	def test_systemd_unit_allows_state_and_snapshot_writes(self):
+		unit = (MODULE / "assets/systemd/user/context-service.service").read_text(encoding="utf-8")
+		self.assertIn("ProtectHome=read-only", unit)
+		self.assertIn(
+			"ReadWritePaths=%h/.local/state/context-fabric %h/.cache/context-fabric",
+			unit,
+		)
+
 	def test_missing_public_cli_is_typed_nonzero_before_start(self):
 		with tempfile.TemporaryDirectory() as raw:
 			root = Path(raw)

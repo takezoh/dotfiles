@@ -13,7 +13,7 @@ RestartSec=2
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=read-only
-ReadWritePaths=%h/.local/state/context-fabric
+ReadWritePaths=%h/.local/state/context-fabric %h/.cache/context-fabric
 PrivateTmp=true
 
 [Install]

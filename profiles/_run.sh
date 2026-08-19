@@ -34,23 +34,33 @@ _run_script() {
 	fi
 }
 
+_run_phase() {
+	local phase="$1" module="$2" script="$3" status
+	echo "[profile] $phase: $module"
+	if _run_script "$script"; then
+		return 0
+	else
+		status=$?
+	fi
+	printf '[profile] ERROR: %s: %s failed (exit %d): %s\n' \
+		"$phase" "$module" "$status" "$script" >&2
+	return "$status"
+}
+
 for m in "${modules[@]}"; do
 	if [ "$PHASE" = "install" ] || [ "$PHASE" = "all" ]; then
 		if [ -f "$MODULES_DIR/$m/install.sh" ]; then
-			echo "[profile] install: $m"
-			_run_script "$MODULES_DIR/$m/install.sh"
+			_run_phase install "$m" "$MODULES_DIR/$m/install.sh"
 		fi
 	fi
 	if [ "$PHASE" = "setup" ] || [ "$PHASE" = "all" ]; then
 		if [ -f "$MODULES_DIR/$m/setup.sh" ]; then
-			echo "[profile] setup: $m"
-			_run_script "$MODULES_DIR/$m/setup.sh"
+			_run_phase setup "$m" "$MODULES_DIR/$m/setup.sh"
 		fi
 	fi
 	if [ "$PHASE" = "update" ]; then
 		if [ -f "$MODULES_DIR/$m/update.sh" ]; then
-			echo "[profile] update: $m"
-			_run_script "$MODULES_DIR/$m/update.sh"
+			_run_phase update "$m" "$MODULES_DIR/$m/update.sh"
 		fi
 	fi
 done

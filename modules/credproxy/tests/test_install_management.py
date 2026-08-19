@@ -93,6 +93,23 @@ class InstallManagementTests(unittest.TestCase):
         text = (MODULE / "install.sh").read_text()
         self.assertNotIn("f46bface", text)
 
+    def test_native_op_install_failure_is_not_suppressed_or_downgraded(self):
+        text = (MODULE / "install.sh").read_text()
+        self.assertNotRegex(text, r"as_root install[^\n]+2>/dev/null")
+        self.assertNotIn("WARN native op の配置", text)
+        self.assertNotIn("WARN native op のダウンロード失敗", text)
+        self.assertIn("ERROR native op download failed", text)
+        self.assertIn(
+            'log "credproxy: ERROR native op installation failed: $OP_BIN"\n\t\t\texit 2',
+            text,
+        )
+
+    def test_wsl_installs_the_existing_op_wrapper_instead_of_native_op(self):
+        text = (MODULE / "install.sh").read_text()
+        self.assertIn('WSL_OP_WRAPPER="$DOTFILES_DIR/scripts/wsl/op"', text)
+        self.assertIn('install -m 0755 "$WSL_OP_WRAPPER" "$BIN_DIR/op"', text)
+        self.assertIn('if is_linux && ! is_wsl && [ ! -x "$OP_BIN" ]; then', text)
+
     def test_missing_source_fetches_exact_reviewed_commit_at_depth_one(self):
         shutil.rmtree(self.fixture.root / "credproxy")
         calls = self.fixture.root / "git-calls"

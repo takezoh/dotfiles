@@ -12,6 +12,10 @@ CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/credproxyd"
 CONFIG_PATH="$CONFIG_DIR/config.toml"
 CONFIG_PROVENANCE="$CONFIG_DIR/config.toml.managed.json"
 RUNTIME_ROOT="$HOME/.local/lib/credproxy"
+NATIVE_OP_BIN="/usr/local/bin/op"
+WSL_OP_BIN="$RUNTIME_ROOT/bin/op"
+UNIT_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
+WSL_OP_PATH_DROPIN="$UNIT_DIR/credproxyd.service.d/30-wsl-op-path.conf"
 
 readonly LEGACY_SHELL_PROFILE_SHA256="9f0195c3830d09628df2988241d901b50e0614d924313034b38ec5f72efe8a78"
 readonly LEGACY_SHELL_PROFILE="$HOME/.local/config/zshrc/50_credproxy-env.zsh"
@@ -130,6 +134,63 @@ trusted_runtime_ready() {
 	done
 }
 
+resolve_windows_op_dir() {
+	local candidate
+	candidate="$(command -v op.exe 2>/dev/null || true)"
+	[ -n "$candidate" ] || return 1
+	candidate="$(/usr/bin/realpath "$candidate" 2>/dev/null || true)"
+	case "$candidate" in
+		/mnt/?/Users/*/AppData/Local/Microsoft/WinGet/Packages/AgileBits.1Password.CLI_Microsoft.Winget.Source_8wekyb3d8bbwe/op.exe) ;;
+		*) return 1 ;;
+	esac
+	[ -f "$candidate" ] && [ ! -L "$candidate" ] && [ -x "$candidate" ] || return 1
+	dirname "$candidate"
+}
+
+wsl_op_ready() {
+	if ! is_wsl; then
+		return 0
+	fi
+	if [ ! -f "$WSL_OP_BIN" ] || [ -L "$WSL_OP_BIN" ] || [ ! -x "$WSL_OP_BIN" ] \
+		|| [ "$(file_uid "$WSL_OP_BIN")" != "$(id -u)" ]; then
+		log "credproxy: credential_source_unavailable (trusted WSL op wrapper unavailable); daemon remains disabled"
+		return 1
+	fi
+	if ! resolve_windows_op_dir >/dev/null; then
+		log "credproxy: credential_source_unavailable (Windows op.exe unavailable on PATH); daemon remains disabled"
+		return 1
+	fi
+}
+
+native_linux_op_ready() {
+	if ! is_linux || is_wsl; then
+		return 0
+	fi
+	if [ ! -f "$NATIVE_OP_BIN" ] || [ -L "$NATIVE_OP_BIN" ] \
+		|| [ ! -x "$NATIVE_OP_BIN" ]; then
+		log "credproxy: credential_source_unavailable (native 1Password CLI unavailable: $NATIVE_OP_BIN); daemon remains disabled"
+		return 1
+	fi
+	if [ "$(file_uid "$NATIVE_OP_BIN")" != "0" ]; then
+		log "credproxy: conflicting (native 1Password CLI owner is not root: $NATIVE_OP_BIN); daemon remains disabled"
+		return 1
+	fi
+}
+
+configure_wsl_op_path() {
+	local op_dir tmp
+	if ! is_wsl; then
+		rm -f "$WSL_OP_PATH_DROPIN"
+		return 0
+	fi
+	op_dir="$(resolve_windows_op_dir)" || return 1
+	tmp="$(mktemp "$UNIT_DIR/credproxyd.service.d/.30-wsl-op-path.conf.XXXXXX")"
+	printf '[Service]\nEnvironment="PATH=%s:%s:/usr/bin:/bin"\n' \
+		"$RUNTIME_ROOT/bin" "$op_dir" >"$tmp"
+	chmod 0600 "$tmp"
+	mv "$tmp" "$WSL_OP_PATH_DROPIN"
+}
+
 context_service_ready() {
 	if ! has_cmd curl; then
 		log "credproxy: cutover pending (curl unavailable for Context Fabric health check); legacy shell profile preserved"
@@ -147,7 +208,8 @@ context_service_ready() {
 }
 
 if is_darwin; then
-	if ! managed_config_ready || ! credential_material_absent || ! trusted_runtime_ready || ! context_service_ready; then
+	if ! managed_config_ready || ! credential_material_absent || ! trusted_runtime_ready \
+		|| ! wsl_op_ready || ! native_linux_op_ready || ! context_service_ready; then
 		launchctl bootout "gui/$(id -u)/com.takezoh.credproxyd" >/dev/null 2>&1 || true
 		exit 2
 	fi
@@ -180,16 +242,20 @@ if ! has_cmd systemctl || [ ! -d /run/systemd/system ]; then
 	exit 0
 fi
 
-if ! managed_config_ready || ! credential_material_absent || ! trusted_runtime_ready || ! context_service_ready; then
+if ! managed_config_ready || ! credential_material_absent || ! trusted_runtime_ready \
+	|| ! wsl_op_ready || ! native_linux_op_ready || ! context_service_ready; then
 	systemctl --user disable --now credproxyd.service >/dev/null 2>&1 || true
 	exit 2
 fi
 
-UNIT_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
 mkdir -p "$UNIT_DIR/credproxyd.service.d"
 cp "$ASSETS/systemd/user/credproxyd.service" "$UNIT_DIR/credproxyd.service"
 cp "$ASSETS/systemd/user/credproxyd.service.d/20-credential-source.conf" \
 	"$UNIT_DIR/credproxyd.service.d/20-credential-source.conf"
+if ! configure_wsl_op_path; then
+	log "credproxy: credential_source_unavailable (failed to configure WSL op PATH); route disabled"
+	exit 2
+fi
 systemctl --user daemon-reload
 if bash "$MODULE_DIR/provision-service-account-token.sh"; then
 	:
