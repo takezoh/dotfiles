@@ -2,7 +2,7 @@
 id: adr-20260819-use-the-path-resolved-windows-1password-
 kind: adr
 title: Use the PATH-resolved Windows 1Password wrapper on WSL
-status: accepted
+status: superseded
 created: '2026-08-19'
 decision_makers:
 - takezoh
@@ -15,7 +15,7 @@ source_paths:
 summary: Use the existing PATH-level Windows op.exe wrapper for WSL while retaining
   protected local token injection.
 confirmation: python3 -m unittest discover -s modules/credproxy/tests -p 'test_*.py'
-updated: '2026-08-19'
+updated: '2026-08-20'
 ---
 
 ## Context
@@ -54,4 +54,9 @@ protected `~/.secrets/op/service-account.token` の holder と fixed route contr
 
 {% transition from="proposed" to="accepted" date="2026-08-19" %}
 User confirmed WSL must use the PATH-level Windows op.exe wrapper and must not invoke the CLI by full path.
+{% /transition %}
+
+
+{% transition from="accepted" to="superseded" date="2026-08-20" %}
+Superseded by adr-20260820-in-process-onepassword-sdk: runtime token delivery now stays inside credproxyd and no longer uses a CLI child.
 {% /transition %}

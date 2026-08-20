@@ -24,9 +24,15 @@ invariants:
 - id: INV-002
   statement: Context Fabric sync is wired only as POST /v1/sync/remote header injection.
   enforcement: test
+- id: INV-003
+  statement: credproxy remains credential-provider-neutral. A user-owned resolver
+    reads the service-account token only from the protected file and passes it
+    directly to its SDK; it never exports the token through an environment or CLI child.
+  enforcement: test
 boundaries:
   provides:
-  - installed credproxyd configuration and authority resolver
+  - installed generic credproxyd credential-command configuration
+  - dotfiles-owned 1Password resolver implementing the credential-command JSON contract
   - atomic 1Password-to-protected-local-secret provisioning on Linux and WSL
   - credproxyd lifecycle and exact broker socket handoff to the agent-module-owned
     Context Fabric runtime
@@ -41,6 +47,9 @@ boundaries:
   - rendering Context Fabric JSON or provisioning a principal credential
   - issuing or rotating the 1Password service-account token
   - persisting credential material outside ~/.secrets/op/service-account.token
+  - placing the service-account token in a process environment
+  - implementing a credential backend inside credproxyd
+  - invoking op or op.exe from the runtime resolver
   - using external repository commits, hook digests, or consumer commands as route
     admission
 variability:
@@ -58,7 +67,8 @@ failure_responsibilities:
   health, or managed provenance disables the route and preserves the previous valid
   token and legacy state.
 trust_boundaries:
-- OS secure credential authority to credproxyd provider helper
+- protected local token file to the user-owned credential resolver
+- user-owned credential resolver JSON response to provider-neutral credproxyd
 - credproxyd HTTP injection to context-service
 compatibility_policies:
 - Unknown user-managed files are preserved and reported as conflicting.
@@ -103,7 +113,9 @@ and validation.
 
 ## Failure Responsibility
 
-Setup fails closed and never substitutes parent env or a request-selected file.
+Setup fails closed and never substitutes parent env, a request-selected file, or
+an interactive CLI fallback. Users may replace the resolver command to match a
+different credential manager without changing credproxy.
 Credential refresh stages an owner-only token file inside `~/.secrets/op` and commits
 it atomically only after the 1Password read succeeds.
 

@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class SecretSafePathTests(unittest.TestCase):
 	def test_production_sources_use_only_the_protected_service_account_token(self):
-		paths = [ROOT / "assets/hooks/op-resolve.py", ROOT / "assets/config.toml"]
+		paths = [ROOT / "helpers/onepassword-resolver/main.go", ROOT / "provision-service-account-token.sh"]
 		text = "\n".join(path.read_text() for path in paths)
 		self.assertIn(".secrets/op/service-account.token", text)
 		for forbidden in ("resolved.json", "auth_tokens_file", "CREDPROXY_RESOLVED_STORE", "CREDPROXY_OP_TOKEN_FILE"):
@@ -40,14 +40,17 @@ class SecretSafePathTests(unittest.TestCase):
 		self.assertNotIn('path = "/anthropic"', text)
 		self.assertNotIn('path = "/grok-x-search"', text)
 
-	def test_jenkins_reference_stays_in_the_fixed_resolver(self):
-		resolver = (ROOT / "assets/hooks/op-resolve.py").read_text()
+	def test_jenkins_reference_stays_in_the_user_resolver(self):
+		resolver_path = ROOT / "helpers/onepassword-resolver/main.go"
+		resolver = resolver_path.read_text()
 		ref = "op://" + "local-dev/Amsterdam/Jenkins/token"
 		self.assertIn(ref, resolver)
 		for path in ROOT.rglob("*"):
 			if not path.is_file() or "__pycache__" in path.parts or path.suffix == ".pyc":
 				continue
-			if path == ROOT / "assets/hooks/op-resolve.py":
+			if "tests" in path.parts:
+				continue
+			if path == resolver_path:
 				continue
 			self.assertNotIn(ref, path.read_text(errors="ignore"), str(path))
 

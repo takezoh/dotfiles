@@ -138,7 +138,10 @@ class ShellSupplyRemovalTests(unittest.TestCase):
 		call_sites = [match.start() for match in re.finditer(r"reconcile_legacy_shell_profile \|\| exit 2", setup)]
 		self.assertEqual(len(call_sites), 2)
 		self.assertTrue(all(site > definition_end for site in call_sites))
-		self.assertLess(setup.index("find-generic-password"), call_sites[0])
+		self.assertLess(
+			setup.index('bash "$MODULE_DIR/provision-service-account-token.sh"'),
+			call_sites[0],
+		)
 		self.assertLess(
 			setup.index('bash "$MODULE_DIR/provision-service-account-token.sh"'),
 			call_sites[1],
@@ -178,12 +181,14 @@ class ShellSupplyRemovalTests(unittest.TestCase):
 		self.assertFalse(self.sandbox.installed.exists())
 		self.assertIn("never installs or restores", README.read_text(encoding="utf-8"))
 
-	def test_route_is_protocol_injection_without_command_binding(self) -> None:
+	def test_route_is_protocol_injection_with_user_resolver_binding(self) -> None:
 		config = (REPO_ROOT / "modules/credproxy/assets/config.toml").read_text(encoding="utf-8")
 		binding = REPO_ROOT / "modules/credproxy/assets/bindings/ctx-sync.json"
 		wrapper = REPO_ROOT / "modules/credproxy/assets/wrappers/ctx-sync"
 		self.assertIn('path = "/v1/sync/remote"', config)
 		self.assertIn('strip_inbound_auth = true', config)
+		self.assertEqual(config.count('credential_command = ["@HOOK_PATH@"]'), 2)
+		self.assertNotIn('[route.onepassword]', config)
 		self.assertNotIn('[[operation]]', config)
 		self.assertFalse(binding.exists())
 		self.assertFalse(wrapper.exists())

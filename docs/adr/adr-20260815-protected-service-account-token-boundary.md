@@ -2,7 +2,7 @@
 id: adr-20260815-protected-service-account-token-boundary
 kind: adr
 title: Keep the service-account bootstrap token in the protected local secret boundary
-status: accepted
+status: superseded
 created: '2026-08-15'
 decision_makers:
 - takezoh
@@ -27,7 +27,7 @@ source_paths:
 - modules/credproxy
 summary: Keep 1Password canonical while provisioning its service-account bootstrap
   token once into the protected ~/.secrets boundary.
-updated: '2026-08-15'
+updated: '2026-08-20'
 ---
 
 ## Context
@@ -74,4 +74,9 @@ tokenの発行・rotationと正本管理は引き続き1Password側のoperator�
 
 {% transition from="proposed" to="accepted" date="2026-08-15" %}
 User confirmed 1Password canonical plus one-time protected ~/.secrets bootstrap token semantics.
+{% /transition %}
+
+
+{% transition from="accepted" to="superseded" date="2026-08-20" %}
+Superseded by adr-20260820-in-process-onepassword-sdk: runtime token delivery now stays inside credproxyd and no longer uses a CLI child.
 {% /transition %}

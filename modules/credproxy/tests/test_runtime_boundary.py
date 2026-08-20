@@ -36,13 +36,29 @@ class RuntimeBoundaryTests(unittest.TestCase):
 		self.assertIn("${XDG_RUNTIME_DIR:-/run/user/$uid}", resolver)
 		self.assertIn("$runtime_dir/credproxyd/broker.sock", resolver)
 
-	def test_setup_selects_path_resolved_wsl_op_and_native_linux_op(self):
-		setup = (MODULE / "setup.sh").read_text()
-		self.assertIn('NATIVE_OP_BIN="/usr/local/bin/op"', setup)
-		self.assertIn('WSL_OP_BIN="$RUNTIME_ROOT/bin/op"', setup)
-		self.assertIn("wsl_op_ready", setup)
-		self.assertIn("native_linux_op_ready", setup)
-		self.assertIn("30-wsl-op-path.conf", setup)
+	def test_runtime_uses_user_resolver_without_op_process_or_token_environment(self):
+		production = [MODULE / "install.sh", MODULE / "setup.sh"]
+		production.extend(
+			path for path in (MODULE / "assets").rglob("*")
+			if path.is_file() and "__pycache__" not in path.parts and path.suffix != ".pyc"
+		)
+		text = "\n".join(path.read_text() for path in production)
+		config = (MODULE / "assets/config.toml").read_text()
+		self.assertEqual(config.count('credential_command = ["@HOOK_PATH@"]'), 2)
+		self.assertNotIn('[route.onepassword]', config)
+		helper = MODULE / "helpers/onepassword-resolver/main.go"
+		self.assertTrue(helper.exists())
+		helper_text = helper.read_text()
+		self.assertIn("service-account.token", helper_text)
+		self.assertIn("onepassword-sdk-go", (helper.parent / "go.mod").read_text())
+		for forbidden in (
+			"OP_SERVICE_ACCOUNT_TOKEN", "WSLENV",
+			"configure_wsl_op_path", "wsl_op_ready", "native_linux_op_ready",
+		):
+			self.assertNotIn(forbidden, text)
+		self.assertFalse((MODULE / "assets/hooks/op-resolve.py").exists())
+		for forbidden in ("OP_SERVICE_ACCOUNT_TOKEN", "os/exec", "op.exe"):
+			self.assertNotIn(forbidden, helper_text)
 
 
 if __name__ == "__main__":

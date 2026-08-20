@@ -57,13 +57,14 @@ class InstallManagementTests(unittest.TestCase):
     def setUp(self): self.fixture = InstallFixture()
     def tearDown(self): self.fixture.close()
 
-    def test_fresh_install_copies_all_runtime_identities_and_provenance(self):
+    def test_fresh_install_copies_user_resolver_runtime_and_provenance(self):
         result = self.fixture.run()
         self.assertEqual(result.returncode, 0, result.stderr)
         runtime = self.fixture.home / ".local/lib/credproxy"
-        for path in (runtime / "bin/credproxy", runtime / "bin/credproxyd", runtime / "hooks/op-resolve.py"):
+        for path in (runtime / "bin/credproxy", runtime / "bin/credproxyd", runtime / "hooks/onepassword-resolve"):
             self.assertTrue(path.is_file() and not path.is_symlink(), path)
-        self.assertNotIn("@WSL_OP_BIN@", (runtime / "hooks/op-resolve.py").read_text())
+        self.assertFalse((runtime / "hooks/op-resolve.py").exists())
+        self.assertFalse((runtime / "bin/op").exists())
         provenance = json.loads(self.fixture.config.with_name("config.toml.managed.json").read_text())
         self.assertEqual(provenance["schema"], "credproxy-managed-config/v1")
         self.assertEqual(provenance["source_revision"], provenance["installed_revision"])
@@ -104,11 +105,12 @@ class InstallManagementTests(unittest.TestCase):
             text,
         )
 
-    def test_wsl_installs_the_existing_op_wrapper_instead_of_native_op(self):
+    def test_daemon_runtime_never_installs_an_op_wrapper(self):
         text = (MODULE / "install.sh").read_text()
-        self.assertIn('WSL_OP_WRAPPER="$DOTFILES_DIR/scripts/wsl/op"', text)
-        self.assertIn('install -m 0755 "$WSL_OP_WRAPPER" "$BIN_DIR/op"', text)
-        self.assertIn('if is_linux && ! is_wsl && [ ! -x "$OP_BIN" ]; then', text)
+        self.assertNotIn('WSL_OP_WRAPPER=', text)
+        self.assertNotIn('install -m 0755 "$WSL_OP_WRAPPER"', text)
+        self.assertNotIn('install -m 0755 "$ASSETS/hooks/op-resolve.py"', text)
+        self.assertIn('go build -o "$HOOK_DIR/onepassword-resolve"', text)
 
     def test_missing_source_fetches_exact_reviewed_commit_at_depth_one(self):
         shutil.rmtree(self.fixture.root / "credproxy")

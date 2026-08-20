@@ -10,13 +10,13 @@ provisions only the service-account bootstrap token into the protected local
 - Linux / WSL: setup reads the service-account token once from one fixed
   1Password Personal item using the human-authenticated CLI, then atomically
   writes `~/.secrets/op/service-account.token` (directories `0700`, file `0600`).
-  The resolver reads only that fixed path and passes the token only to the fixed
-  `op` child. WSL installs the existing PATH-level Windows `op.exe` wrapper as a
-  trusted runtime copy and calls it by command name; non-WSL Linux uses fixed
-  native `/usr/local/bin/op`.
-- macOS: the resolver invokes fixed `/usr/bin/security` for service
-  `com.takezoh.credproxy.op-service-account`, account `credproxyd`, then passes
-  the result only to the fixed `op` child.
+  The user-owned credential resolver reads only that fixed path and passes the
+  token directly to its 1Password SDK. credproxyd remains provider-neutral and
+  invokes the resolver only through its generic JSON credential-command contract.
+  Neither process exports the token to an environment or invokes `op`/`op.exe`
+  during normal operation.
+- macOS: setup provisions the same protected local file; the user resolver path
+  is identical to Linux/WSL and does not invoke a Keychain or CLI helper.
 - Any other/missing/stale mechanism: `credential_source_unavailable`; setup
   disables the daemon/route. There is no parent-environment or request-selected
   credential fallback.
@@ -76,8 +76,9 @@ service manager が同じ path を使う。Context Fabric 側の端末固有 con
 
 ## Phases
 
-- `install`: build the broker binaries; copy resolver,
-  editor client, binding, service-manager assets, and proxy config.
+- `install`: build the provider-neutral broker and the dotfiles-owned 1Password
+  resolver; copy the resolver, editor client, binding, service-manager assets,
+  and generic credential-command proxy config.
   If the sibling credproxy source is absent, install depth-1 fetches the exact reviewed
   bootstrap commit into a no-checkout temporary repository, verifies `FETCH_HEAD`, then
   checks out/builds it. Branch HEAD movement does not affect bootstrap. An incomplete

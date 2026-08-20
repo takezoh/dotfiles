@@ -17,11 +17,19 @@ log() {
 }
 
 file_mode() {
-	stat -c '%a' "$1"
+	if stat -c '%a' "$1" >/dev/null 2>&1; then
+		stat -c '%a' "$1"
+	else
+		stat -f '%Lp' "$1"
+	fi
 }
 
 file_uid() {
-	stat -c '%u' "$1"
+	if stat -c '%u' "$1" >/dev/null 2>&1; then
+		stat -c '%u' "$1"
+	else
+		stat -f '%u' "$1"
+	fi
 }
 
 owned_directory() {
@@ -37,7 +45,7 @@ token_ready() {
 
 resolve_interactive_op() {
 	local candidate
-	if [ -d "$WSL_MARKER" ]; then
+	if [ -d "$WSL_MARKER" ] || [ "$(uname -s)" = "Darwin" ]; then
 		candidate="$(command -v op 2>/dev/null || true)"
 		[ -n "$candidate" ] || return 1
 		[ -f "$candidate" ] && [ ! -L "$candidate" ] && [ -x "$candidate" ] || return 1

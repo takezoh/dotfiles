@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# credproxy: obtain/build the broker binaries and lay down config/hooks/wrappers
-# as copies. WSL reuses the PATH-level Windows `op` wrapper; native Linux owns a
-# root-installed headless `op`. Credential provisioning is owned by setup.
+# credproxy: obtain/build the provider-neutral broker and user-owned credential
+# resolver, then lay down config/hooks/wrappers as trusted copies.
 set -euo pipefail
 MODULES_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 . "$MODULES_DIR/_lib/common.sh"
@@ -16,11 +15,11 @@ BIN_DIR="$RUNTIME_ROOT/bin"
 CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/credproxyd"
 HOOK_DIR="$RUNTIME_ROOT/hooks"
 BINDING_DIR="$RUNTIME_ROOT/bindings"
+ONEPASSWORD_RESOLVER_SRC="$(cd "$(dirname "$0")" && pwd)/helpers/onepassword-resolver"
 MINUET_CLIENT="$BIN_DIR/minuet-anthropic"
 MINUET_BINDING="$BINDING_DIR/minuet-anthropic.json"
 CONFIG_PATH="$CONFIG_DIR/config.toml"
 CONFIG_PROVENANCE="$CONFIG_DIR/config.toml.managed.json"
-WSL_OP_WRAPPER="$DOTFILES_DIR/scripts/wsl/op"
 # Last dotfiles-managed config before closed-operation routing.  It may be
 # migrated only when the installed bytes are this exact known revision.
 readonly LEGACY_CONFIG_SHA256="4233fb7a99556dce594897ac35111ffcf987399fdb6fad4f357533e724013989"
@@ -84,7 +83,7 @@ install_managed_config() {
 	tmp="$(mktemp "$CONFIG_DIR/.config.toml.rendered.XXXXXX")"
 	sed \
 		-e "s|@BROKER_SOCKET@|$(sed_replacement "$(broker_socket_path)")|g" \
-		-e "s|@HOOK_PATH@|$(sed_replacement "$HOOK_DIR/op-resolve.py")|g" \
+		-e "s|@HOOK_PATH@|$(sed_replacement "$HOOK_DIR/onepassword-resolve")|g" \
 		"$ASSETS/config.toml" >"$tmp"
 	chmod 0600 "$tmp"
 	rendered="$tmp"
@@ -256,8 +255,8 @@ else
 	( cd "$CREDPROXY_SRC" && go build -o "$BIN_DIR/credproxy" ./cmd/credproxy )
 fi
 
-# 2. Native headless `op` (non-WSL Linux only). WSL uses the existing `op`
-#    wrapper, copied into the trusted runtime in step 3.
+# 2. Native `op` for initial provisioning or explicit refresh on non-WSL Linux.
+#    It is not installed into the daemon runtime and credproxyd never executes it.
 OP_BIN="/usr/local/bin/op"
 if is_linux && ! is_wsl && [ ! -x "$OP_BIN" ]; then
 	OP_VERSION="v2.31.1"
@@ -291,7 +290,7 @@ if is_linux && ! is_wsl && [ ! -x "$OP_BIN" ]; then
 	fi
 fi
 
-# 3. Config / hooks / wrappers — copy (never symlink: the source lives in a
+# 3. User resolver / config / wrappers — copy (never symlink: sources live in a
 #    sandbox-writable repo; the runtime assets must sit outside the agent's
 #    reach). Existing config is accepted only with exact managed provenance or
 #    the one explicitly known legacy checksum.
@@ -304,19 +303,18 @@ for directory in "$RUNTIME_ROOT" "$BIN_DIR" "$HOOK_DIR" "$BINDING_DIR"; do
 	mkdir -p "$directory"
 done
 chmod 0700 "$RUNTIME_ROOT" "$BIN_DIR" "$HOOK_DIR" "$BINDING_DIR"
-if is_wsl; then
-	if [ ! -f "$WSL_OP_WRAPPER" ] || [ -L "$WSL_OP_WRAPPER" ] \
-		|| [ ! -x "$WSL_OP_WRAPPER" ]; then
-		log "credproxy: ERROR WSL op wrapper unavailable on PATH source: $WSL_OP_WRAPPER"
-		exit 2
-	fi
-	install -m 0755 "$WSL_OP_WRAPPER" "$BIN_DIR/op"
-else
-	rm -f "$BIN_DIR/op"
+if [ ! -f "$ONEPASSWORD_RESOLVER_SRC/go.mod" ] \
+	|| [ ! -f "$ONEPASSWORD_RESOLVER_SRC/main.go" ]; then
+	log "credproxy: ERROR user credential resolver source unavailable"
+	exit 2
 fi
-install -m 0755 "$ASSETS/hooks/op-resolve.py" "$HOOK_DIR/op-resolve.py"
+( cd "$ONEPASSWORD_RESOLVER_SRC" && go build -o "$HOOK_DIR/onepassword-resolve" . )
+chmod 0700 "$HOOK_DIR/onepassword-resolve"
+# Remove only obsolete dotfiles-managed daemon helpers. Interactive PATH-level
+# `op` remains user-facing and is not copied into the daemon runtime.
+rm -f "$BIN_DIR/op" "$HOOK_DIR/op-resolve.py"
 install_managed_config
 install_minuet_binding_manifest
-log "credproxy: hooks/wrappers refreshed"
+log "credproxy: user resolver/config/wrappers refreshed"
 
 log "credproxy: install done (secure authority 未準備なら daemon は inert)"

@@ -32,7 +32,8 @@ class ResponsibilityBoundaryTests(unittest.TestCase):
 			self.assertNotIn(forbidden, text)
 		self.assertIn('path = "/v1/sync/remote"', text)
 		self.assertIn('upstream = "http://127.0.0.1:8480/v1/sync/remote"', text)
-		self.assertIn('"headers": headers', text)
+		self.assertIn('credential_command = ["@HOOK_PATH@"]', text)
+		self.assertNotIn('[route.onepassword]', text)
 
 	def test_obsolete_closed_operation_assets_are_absent(self):
 		self.assertFalse((MODULE / "assets/wrappers/ctx-sync").exists())
